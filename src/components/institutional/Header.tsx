@@ -12,15 +12,15 @@ const Header = () => {
   const { isDarkMode, toggleTheme } = useTheme()
 
   const solucoesItems = [
-    { name: 'Vendas', description: 'Gerencie todo processo de vendas e propostas comerciais', icon: TrendingUp },
-    { name: 'Relacionamento', description: 'CRM completo para gestão de clientes e leads', icon: Users },
-    { name: 'Planejamento', description: 'Organize e planeje seus eventos com eficiência', icon: Calendar },
-    { name: 'Logística', description: 'Controle operacional e gestão de recursos', icon: Truck },
-    { name: 'Marketing', description: 'Campanhas digitais e automação de marketing', icon: Megaphone },
-    { name: 'Automação', description: 'Processos automatizados e workflows inteligentes', icon: Zap },
-    { name: 'Finanças', description: 'Gestão financeira completa e controle de custos', icon: DollarSign },
-    { name: 'Análises', description: 'Relatórios avançados e dashboards em tempo real', icon: BarChart3 },
-    { name: 'Fiscal e Jurídico', description: 'Compliance, contratos e documentos legais', icon: FileText }
+    { name: 'Vendas', description: 'Gerencie todo processo de vendas e propostas comerciais', icon: TrendingUp, anchor: 'inicio' },
+    { name: 'Relacionamento', description: 'CRM completo para gestão de clientes e leads', icon: Users, anchor: 'vantagens' },
+    { name: 'Planejamento', description: 'Organize e planeje seus eventos com eficiência', icon: Calendar, anchor: 'demo' },
+    { name: 'Logística', description: 'Controle operacional e gestão de recursos', icon: Truck, anchor: 'beneficios' },
+    { name: 'Marketing', description: 'Campanhas digitais e automação de marketing', icon: Megaphone, anchor: 'blog' },
+    { name: 'Automação', description: 'Processos automatizados e workflows inteligentes', icon: Zap, anchor: 'demo' },
+    { name: 'Finanças', description: 'Gestão financeira completa e controle de custos', icon: DollarSign, anchor: 'planos' },
+    { name: 'Análises', description: 'Relatórios avançados e dashboards em tempo real', icon: BarChart3, anchor: 'numeros' },
+    { name: 'Fiscal e Jurídico', description: 'Compliance, contratos e documentos legais', icon: FileText, anchor: 'sobre' }
   ]
 
   const segmentosItems = [
@@ -123,7 +123,7 @@ const Header = () => {
                           return (
                             <motion.a
                               key={item.name}
-                              href="#"
+                              href={`#${item.anchor}`}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: index * 0.05 }}
@@ -196,7 +196,7 @@ const Header = () => {
                         {segmentosItems.map((item, index) => (
                           <motion.a
                             key={item}
-                            href="#"
+                            href="#sobre"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.03 }}
