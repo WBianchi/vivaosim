@@ -1,0 +1,30 @@
+import React from 'react'
+import Header from '@/components/institutional/Header'
+import Footer from '@/components/institutional/Footer'
+import CtaHero from '@/components/institutional/CtaHero'
+import Beneficios from '@/components/institutional/Beneficios'
+import Demo from '@/components/institutional/Demo'
+import Vantagens from '@/components/institutional/Vantagens'
+import Avaliacoes from '@/components/institutional/Avaliacoes'
+import Numeros from '@/components/institutional/Numeros'
+import Planos from '@/components/institutional/Planos'
+import PostsCarrousel from '@/components/institutional/PostsCarrousel'
+import Historias from '@/components/institutional/Historias'
+
+export default function Home() {
+  return (
+    <main className="min-h-screen">
+      <Header />
+      <CtaHero />
+      <Beneficios />
+      <Demo />
+      <Vantagens />
+      <Avaliacoes />
+      <Numeros />
+      <Planos />
+      <PostsCarrousel />
+      <Historias />
+      <Footer />
+    </main>
+  )
+}
