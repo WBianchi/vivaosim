@@ -220,17 +220,17 @@ const Header = () => {
                 </AnimatePresence>
               </div>
 
-              <Link href="/planos" className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+              <a href="#planos" className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                 isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100/80'
               } backdrop-blur-sm font-medium`}>
                 Planos
-              </Link>
+              </a>
 
-              <Link href="/empresa" className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+              <a href="#sobre" className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                 isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100/80'
               } backdrop-blur-sm font-medium`}>
                 Empresa
-              </Link>
+              </a>
 
               <Link href="/blog" className={`flex items-center space-x-1 px-4 py-2 rounded-lg transition-all duration-300 ${
                 isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100/80'
@@ -264,26 +264,30 @@ const Header = () => {
               </motion.button>
 
               {/* Entrar Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`hidden md:block px-6 py-2 rounded-xl transition-all duration-300 ${
-                  isDarkMode 
-                    ? 'bg-white/10 text-white border border-white/20 hover:bg-white/20' 
-                    : 'bg-gray-100/80 text-gray-700 border border-gray-200/50 hover:bg-gray-200/80'
-                } backdrop-blur-sm font-medium`}
-              >
-                Entrar
-              </motion.button>
+              <Link href="/login">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`hidden md:block px-6 py-2 rounded-xl transition-all duration-300 ${
+                    isDarkMode 
+                      ? 'bg-white/10 text-white border border-white/20 hover:bg-white/20' 
+                      : 'bg-gray-100/80 text-gray-700 border border-gray-200/50 hover:bg-gray-200/80'
+                  } backdrop-blur-sm font-medium`}
+                >
+                  Entrar
+                </motion.button>
+              </Link>
 
               {/* CTA Button */}
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(249, 115, 22, 0.4)" }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium shadow-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 backdrop-blur-sm"
-              >
-                Começar agora
-              </motion.button>
+              <a href="#planos">
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(249, 115, 22, 0.4)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium shadow-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 backdrop-blur-sm"
+                >
+                  Começar agora
+                </motion.button>
+              </a>
 
               {/* Mobile Menu Button */}
               <motion.button

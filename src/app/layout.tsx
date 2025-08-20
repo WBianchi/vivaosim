@@ -2,12 +2,14 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/contexts/ThemeProvider'
+import CookieConsent from '@/components/shared/CookieConsent'
+import ChatWidget from '@/components/shared/ChatWidget'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Viva o Sim - Plataforma de Gestão para Eventos',
-  description: 'A plataforma mais completa para gestão de eventos. Transforme ideias em experiências inesquecíveis.',
+  title: 'Viva o Sim - CRM Completo para Eventos',
+  description: 'Plataforma completa de CRM e gestão para profissionais de eventos. Automatize vendas, organize clientes e multiplique seus resultados.',
 }
 
 export default function RootLayout({
@@ -20,6 +22,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           {children}
+          <CookieConsent />
+          <ChatWidget />
         </ThemeProvider>
       </body>
     </html>
