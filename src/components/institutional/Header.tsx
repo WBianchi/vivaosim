@@ -74,7 +74,7 @@ const Header = () => {
               <div className={`w-10 h-10 rounded-xl ${
                 isDarkMode ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-orange-500 to-orange-600'
               } flex items-center justify-center shadow-lg`}>
-                <span className="text-white font-bold text-xl">M</span>
+                <span className="text-white font-bold text-xl">V</span>
               </div>
               <span className="text-2xl font-bold ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
