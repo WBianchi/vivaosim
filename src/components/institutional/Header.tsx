@@ -86,7 +86,7 @@ const Header = () => {
             {/* Desktop Navigatsion */}
             <nav className="hidden lg:flex items-center space-x-4">
               
-              {/* Soluções Dropdown */}
+              {/* Soluções Dropdowsn */}
               <div 
                 className="relative"
                 onMouseEnter={() => setActiveDropdown('solucoes')}
