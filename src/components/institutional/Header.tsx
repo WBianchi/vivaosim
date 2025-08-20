@@ -83,7 +83,7 @@ const Header = () => {
               </span>
             </motion.div>
 
-            {/* Desktop Navigatsion */}
+            {/* Desktop Navigaetsion */}
             <nav className="hidden lg:flex items-center space-x-4">
               
               {/* Soluções Dropdowsn */}
