@@ -32,8 +32,8 @@ const BlogGrid = ({ posts, loading = false }: BlogGridProps) => {
         isDarkMode ? 'bg-slate-900' : 'bg-white'
       }`}>
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+            {[...Array(12)].map((_, index) => (
               <div
                 key={index}
                 className={`h-96 rounded-2xl ${
@@ -88,19 +88,79 @@ const BlogGrid = ({ posts, loading = false }: BlogGridProps) => {
           {posts.length} {posts.length === 1 ? 'artigo encontrado' : 'artigos encontrados'}
         </motion.div>
 
+        {/* Featured Banner */}
+        <div className={`mb-12 p-8 rounded-2xl border-2 border-dashed ${
+          isDarkMode ? 'border-slate-700 bg-slate-800/30' : 'border-gray-200 bg-gray-50'
+        }`}>
+          <div className="text-center">
+            <div className={`text-lg font-medium mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Espaço para Banner Principal
+            </div>
+            <div className={`text-sm ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              728 x 90px ou responsivo
+            </div>
+          </div>
+        </div>
+
         {/* Posts Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post, index) => (
-            <BlogCard 
-              key={post.id} 
-              post={post} 
-              index={index}
-            />
-          ))}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+          {posts.map((post, index) => {
+            // Adicionar banner lateral após cada 8 posts
+            const shouldShowBanner = (index + 1) % 8 === 0 && index < posts.length - 1
+            
+            return (
+              <React.Fragment key={post.id}>
+                <BlogCard 
+                  post={post} 
+                  index={index}
+                />
+                {shouldShowBanner && (
+                  <div className={`col-span-full my-8 p-6 rounded-xl border-2 border-dashed ${
+                    isDarkMode ? 'border-slate-700 bg-slate-800/20' : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="text-center">
+                      <div className={`text-base font-medium mb-1 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>
+                        Banner Intermediário
+                      </div>
+                      <div className={`text-sm ${
+                        isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                      }`}>
+                        Banner responsivo ou 320 x 100px
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </React.Fragment>
+            )
+          })}
+        </div>
+
+        {/* Sidebar Banner */}
+        <div className={`mt-12 p-6 rounded-xl border-2 border-dashed ${
+          isDarkMode ? 'border-slate-700 bg-slate-800/20' : 'border-gray-200 bg-gray-50'
+        }`}>
+          <div className="text-center">
+            <div className={`text-base font-medium mb-1 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Banner Lateral/Rodapé
+            </div>
+            <div className={`text-sm ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}>
+              300 x 250px ou responsivo
+            </div>
+          </div>
         </div>
 
         {/* Load More Button */}
-        {posts.length >= 9 && (
+        {posts.length >= 12 && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
