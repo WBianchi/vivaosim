@@ -257,7 +257,7 @@ const AutomacaoPage = () => {
       <FeatureGrid
         title="Tecnologia que Trabalha por Você"
         subtitle="Automação inteligente que nunca para"
-        features={recursosAutomacao}
+        features={recursosAutomacao.map(r => ({...r, icon: ''}))}
         variant="cards"
         columns={3}
       />
@@ -472,7 +472,7 @@ const AutomacaoPage = () => {
             text: 'Automatizar Processos',
             href: '/cadastro?produto=automacao',
             variant: 'primary',
-            icon: 'zap'
+            icon: 'arrow'
           },
           {
             text: 'Ver Workflows',

@@ -244,7 +244,7 @@ const FinancasPage = () => {
       <FeatureGrid
         title="Ferramentas para Saúde Financeira"
         subtitle="Controle total sobre receitas, custos e lucratividade"
-        features={recursosFinancas}
+        features={recursosFinancas.map(r => ({...r, icon: ''}))}
         variant="cards"
         columns={3}
       />

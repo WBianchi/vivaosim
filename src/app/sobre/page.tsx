@@ -252,7 +252,7 @@ const SobrePage = () => {
       <FeatureGrid
         title="Nossos Valores"
         subtitle="Os princípios que nos guiam"
-        features={valores}
+        features={valores.map(v => ({...v, icon: ''}))}
         variant="cards"
         columns={3}
       />
@@ -261,7 +261,7 @@ const SobrePage = () => {
       <FeatureGrid
         title="Nossas Conquistas"
         subtitle="Resultados que nos orgulham"
-        features={conquistas}
+        features={conquistas.map(c => ({...c, icon: '??'}))}
         variant="list"
         columns={2}
       />

@@ -264,7 +264,7 @@ const MarketingPage = () => {
       <FeatureGrid
         title="Ferramentas que Maximizam Conversões"
         subtitle="Marketing automation que funciona 24/7"
-        features={recursosMarketing}
+        features={recursosMarketing.map(r => ({...r, icon: ''}))}
         variant="cards"
         columns={3}
       />
@@ -461,7 +461,7 @@ const MarketingPage = () => {
             text: 'Automatizar Marketing',
             href: '/cadastro?produto=marketing',
             variant: 'primary',
-            icon: 'rocket'
+            icon: 'arrow'
           },
           {
             text: 'Ver Campanhas',

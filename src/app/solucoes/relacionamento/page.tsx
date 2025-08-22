@@ -367,7 +367,7 @@ const RelacionamentoPage = () => {
                     
                     <div className="relative mb-6">
                       <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${fase.cor} flex items-center justify-center mx-auto shadow-lg`}>
-                        <IconComponent className="w-12 h-12 text-white" />
+                        <div className="w-12 h-12 text-white"><IconComponent /></div>
                       </div>
                       <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-white dark:bg-slate-900 border-2 border-gray-300 dark:border-gray-600"></div>
                     </div>

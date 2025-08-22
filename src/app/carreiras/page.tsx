@@ -504,7 +504,7 @@ const CarreirasPage = () => {
             text: 'Ver Todas as Vagas',
             href: '#vagas',
             variant: 'primary',
-            icon: 'briefcase'
+            icon: 'users'
           },
           {
             text: 'Candidatura Espontânea',

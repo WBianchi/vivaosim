@@ -248,7 +248,7 @@ const AnalisesPage = () => {
       <FeatureGrid
         title="Inteligência que Revela Insights"
         subtitle="IA avançada para análises que transformam negócios"
-        features={recursosAnalises}
+        features={recursosAnalises.map(r => ({...r, icon: ''}))}
         variant="cards"
         columns={3}
       />
@@ -478,7 +478,7 @@ const AnalisesPage = () => {
             text: 'Ativar Analytics',
             href: '/cadastro?produto=analytics',
             variant: 'primary',
-            icon: 'brain'
+            icon: 'arrow'
           },
           {
             text: 'Ver Dashboard',

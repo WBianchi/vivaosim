@@ -373,7 +373,7 @@ const HistoriaPage = () => {
             text: 'Começar Agora',
             href: '/cadastro',
             variant: 'primary',
-            icon: 'rocket'
+            icon: 'arrow'
           },
           {
             text: 'Conhecer Equipe',

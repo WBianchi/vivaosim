@@ -263,7 +263,7 @@ const LogisticaPage = () => {
       <FeatureGrid
         title="Recursos que Otimizam sua Operação"
         subtitle="Tecnologia de ponta para logística perfeita"
-        features={recursosLogistica}
+        features={recursosLogistica.map(r => ({...r, icon: '??'}))}
         variant="cards"
         columns={3}
       />

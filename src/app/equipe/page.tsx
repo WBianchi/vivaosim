@@ -421,13 +421,13 @@ const EquipePage = () => {
             text: 'Ver Vagas Abertas',
             href: '/carreiras',
             variant: 'primary',
-            icon: 'briefcase'
+            icon: 'users'
           },
           {
             text: 'Conhecer Cultura',
             href: '/carreiras#cultura',
             variant: 'outline',
-            icon: 'heart'
+            icon: 'users'
           }
         ]}
         stats={[
