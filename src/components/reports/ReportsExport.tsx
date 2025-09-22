@@ -244,3 +244,5 @@ export const ReportsExport: React.FC<ReportsExportProps> = ({ data }) => {
     </div>
   )
 }
+
+export default ReportsExport

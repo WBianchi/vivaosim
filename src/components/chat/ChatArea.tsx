@@ -161,6 +161,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
       </div>
     )
   })
+  
+  MessageBubble.displayName = 'MessageBubble'
 
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">

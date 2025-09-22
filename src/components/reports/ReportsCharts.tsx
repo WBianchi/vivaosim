@@ -282,3 +282,5 @@ export const ReportsCharts: React.FC<ReportsChartsProps> = ({ period, filters, r
     </div>
   )
 }
+
+export default ReportsCharts

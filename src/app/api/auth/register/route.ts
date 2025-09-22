@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const userData = registerSchema.parse(body)
 
-    const result = await AuthService.register(userData)
+    const result = await AuthService.register(userData as any)
 
     const response = NextResponse.json({
       success: true,

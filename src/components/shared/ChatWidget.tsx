@@ -28,12 +28,7 @@ const ChatWidget = () => {
     '/leads'
   ]
 
-  // Verificar se a página atual deve mostrar o ChatWidget
-  const shouldShow = !excludedPages.some(page => pathname.startsWith(page))
-  
-  // Se não deve mostrar, retorna null
-  if (!shouldShow) return null
-
+  // Hooks sempre no topo
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [message, setMessage] = useState('')
@@ -56,6 +51,12 @@ const ChatWidget = () => {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Verificar se a página atual deve mostrar o ChatWidget
+  const shouldShow = !excludedPages.some(page => pathname.startsWith(page))
+  
+  // Se não deve mostrar, retorna null
+  if (!shouldShow) return null
 
   const handleSendMessage = async () => {
     if (!message.trim()) return

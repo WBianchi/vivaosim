@@ -158,3 +158,5 @@ export const ReportsMetrics: React.FC<ReportsMetricsProps> = ({ period, filters 
     </div>
   )
 }
+
+export default ReportsMetrics

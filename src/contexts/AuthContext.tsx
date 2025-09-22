@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Função para ler token do cookie
     const getTokenFromCookie = () => {
       const cookies = document.cookie.split(';')
-      for (let cookie of cookies) {
+      for (const cookie of cookies) {
         const [name, value] = cookie.trim().split('=')
         if (name === 'accessToken') {
           return value

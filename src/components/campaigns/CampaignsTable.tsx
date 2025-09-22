@@ -23,8 +23,8 @@ export const CampaignsTable: React.FC<CampaignsTableProps> = ({ campaigns, onCam
   }
 
   const sortedCampaigns = [...campaigns].sort((a, b) => {
-    let aValue = a[sortField]
-    let bValue = b[sortField]
+    const aValue = a[sortField]
+    const bValue = b[sortField]
     
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1

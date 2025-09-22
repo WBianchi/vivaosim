@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+
+// Forçar renderização dinâmica
+export const dynamic = 'force-dynamic'
 import Header from '@/components/institutional/Header'
 import Footer from '@/components/institutional/Footer'
 import BlogHero from '@/components/blog/BlogHero'

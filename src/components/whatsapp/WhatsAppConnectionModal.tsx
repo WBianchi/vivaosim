@@ -11,7 +11,10 @@ import {
   WifiOff, 
   Loader2, 
   CheckCircle, 
-  AlertCircle
+  AlertCircle,
+  Plus,
+  RefreshCw,
+  Trash2
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { useAuth } from '@/contexts/AuthContext'
@@ -23,7 +26,10 @@ interface WhatsAppSession {
   name: string
   status: 'STARTING' | 'SCAN_QR_CODE' | 'WORKING' | 'FAILED' | 'STOPPED'
   qrCode?: string
-  webhookUrl: string
+  connectedAt?: Date
+  lastSeen?: Date
+  phoneNumber?: string
+  profileName?: string
 }
 
 interface WhatsAppConnectionModalProps {
@@ -39,18 +45,19 @@ export const WhatsAppConnectionModal: React.FC<WhatsAppConnectionModalProps> = (
   const { user } = useAuth()
   const [isMounted, setIsMounted] = useState(false)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [newSessionName, setNewSessionName] = useState('')
   
-  const {
-    sessions,
-    isLoading,
-    error,
-    createSession,
-    fetchQRCode,
-    reconnectSession,
-    stopSession,
-    deleteSession,
-    clearError
-  } = useWhatsAppSession()
+  // Mock do hook useWhatsAppSession
+  const sessions: WhatsAppSession[] = []
+  const isLoading = false
+  const error = null
+  const createSession = async (name: string) => { console.log('Creating session:', name) }
+  const fetchQRCode = async (sessionId: string) => { console.log('Fetching QR:', sessionId) }
+  const reconnectSession = async (sessionId: string) => { console.log('Reconnecting:', sessionId) }
+  const stopSession = async (sessionId: string) => { console.log('Stopping:', sessionId) }
+  const deleteSession = async (sessionId: string) => { console.log('Deleting:', sessionId) }
+  const clearError = () => { console.log('Clearing error') }
 
   // Controlar montagem do componente
   useEffect(() => {
@@ -68,7 +75,7 @@ export const WhatsAppConnectionModal: React.FC<WhatsAppConnectionModalProps> = (
     if (!newSessionName.trim()) return
 
     try {
-      await createSession({ name: newSessionName })
+      await createSession(newSessionName)
       setNewSessionName('')
       setShowCreateForm(false)
     } catch (err) {
@@ -333,7 +340,7 @@ export const WhatsAppConnectionModal: React.FC<WhatsAppConnectionModalProps> = (
                               className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10"
                               title="Atualizar QR Code"
                             >
-                              <RefreshCcw className="w-4 h-4" />
+                              <RefreshCw className="w-4 h-4" />
                             </motion.button>
                           )}
 

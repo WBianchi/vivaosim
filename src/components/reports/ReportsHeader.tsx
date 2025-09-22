@@ -85,3 +85,5 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({ selectedReport, on
     </div>
   )
 }
+
+export default ReportsHeader

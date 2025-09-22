@@ -1243,58 +1243,355 @@ export default function FluxogramaPage() {
             </div>
           </div>
 
-          {/* Config Panel */}
+          {/* Config Panel Avançado */}
           <AnimatePresence>
             {showConfigPanel && selectedNode && (
               <motion.div
                 initial={{ x: 320 }}
                 animate={{ x: 0 }}
                 exit={{ x: 320 }}
-                className="w-80 bg-white dark:bg-gray-800 border-l p-6 shadow-lg"
+                className="w-96 bg-white dark:bg-gray-800 border-l shadow-2xl overflow-y-auto max-h-screen"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Configurações</h3>
-                  <button
-                    onClick={() => setShowConfigPanel(false)}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                {/* Header */}
+                <div className="sticky top-0 bg-white dark:bg-gray-800 border-b p-6 z-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Configurar Nó
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {selectedNode.data.label}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowConfigPanel(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Nome do Nó
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedNode.data.label}
-                      onChange={(e) => {
-                        const updatedNodes = nodes.map(n => 
-                          n.id === selectedNode.id 
-                            ? { ...n, data: { ...n.data, label: e.target.value } }
-                            : n
-                        )
-                        setNodes(updatedNodes)
-                        setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })
-                      }}
-                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    />
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                  {/* Informações Básicas */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 dark:text-white border-b pb-2">
+                      Informações Básicas
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nome do Nó
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedNode.data.label}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
+                        placeholder="Digite o nome..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Descrição
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
+                        placeholder="Descreva a função deste nó..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Categoria
+                      </label>
+                      <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500">
+                        <option>Gatilho</option>
+                        <option>Condição</option>
+                        <option>Ação</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Tipo
-                    </label>
-                    <p className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                      {selectedNode.category}
-                    </p>
+                  {/* Configurações Específicas por Tipo */}
+                  {selectedNode.category === 'triggers' && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white border-b pb-2">
+                        Configurações do Gatilho
+                      </h4>
+                      
+                      {selectedNode.type.includes('msg') && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Filtro de Mensagem
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Ex: palavra-chave, @todos, etc."
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input type="checkbox" className="rounded" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Apenas mensagens de grupos
+                              </span>
+                            </label>
+                          </div>
+                          
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input type="checkbox" className="rounded" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Ignorar mensagens próprias
+                              </span>
+                            </label>
+                          </div>
+                        </>
+                      )}
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Delay (segundos)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedNode.category === 'conditions' && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white border-b pb-2">
+                        Configurações da Condição
+                      </h4>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Operador
+                        </label>
+                        <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                          <option>Igual a</option>
+                          <option>Diferente de</option>
+                          <option>Contém</option>
+                          <option>Não contém</option>
+                          <option>Maior que</option>
+                          <option>Menor que</option>
+                          <option>Regex</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Valor de Comparação
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Digite o valor..."
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="flex items-center space-x-2">
+                          <input type="checkbox" className="rounded" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            Case sensitive
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedNode.category === 'actions' && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white border-b pb-2">
+                        Configurações da Ação
+                      </h4>
+                      
+                      {selectedNode.type.includes('send_text') && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Mensagem
+                            </label>
+                            <textarea
+                              rows={4}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Digite a mensagem... Use {{variavel}} para dados dinâmicos"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="flex items-center space-x-2">
+                              <input type="checkbox" className="rounded" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Enviar indicador de digitando
+                              </span>
+                            </label>
+                          </div>
+                        </>
+                      )}
+                      
+                      {selectedNode.type.includes('ai_response') && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Prompt da IA
+                            </label>
+                            <textarea
+                              rows={4}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Você é um assistente que... Responda baseado em..."
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Modelo IA
+                            </label>
+                            <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                              <option>GPT-4</option>
+                              <option>GPT-3.5</option>
+                              <option>Claude</option>
+                              <option>Gemini</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Temperatura (0-1)
+                            </label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              className="w-full"
+                            />
+                          </div>
+                        </>
+                      )}
+                      
+                      {selectedNode.type.includes('send_buttons') && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Botões (um por linha)
+                          </label>
+                          <textarea
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Sim&#10;Não&#10;Talvez"
+                          />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Delay antes da execução (segundos)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configurações Avançadas */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 dark:text-white border-b pb-2">
+                      Configurações Avançadas
+                    </h4>
+                    
+                    <div>
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          Ativo
+                        </span>
+                      </label>
+                    </div>
+                    
+                    <div>
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          Log de execução
+                        </span>
+                      </label>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Prioridade
+                      </label>
+                      <select className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option>Baixa</option>
+                        <option>Normal</option>
+                        <option>Alta</option>
+                        <option>Crítica</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Tags (separadas por vírgula)
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="vendas, suporte, urgente"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Variáveis Disponíveis */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 dark:text-white border-b pb-2">
+                      Variáveis Disponíveis
+                    </h4>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      <div className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+                        <div><code>{'{{contact.name}}'}</code> - Nome do contato</div>
+                        <div><code>{'{{contact.phone}}'}</code> - Telefone</div>
+                        <div><code>{'{{message.text}}'}</code> - Texto da mensagem</div>
+                        <div><code>{'{{user.name}}'}</code> - Nome do usuário</div>
+                        <div><code>{'{{date.now}}'}</code> - Data atual</div>
+                        <div><code>{'{{time.now}}'}</code> - Hora atual</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t p-6">
+                  <div className="flex gap-3 mb-4">
+                    <button
+                      onClick={() => setShowConfigPanel(false)}
+                      className="flex-1 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
+                      Salvar
+                    </button>
                   </div>
 
                   <button
                     onClick={() => deleteNode(selectedNode.id)}
-                    className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Deletar Nó

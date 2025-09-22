@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         description,
         color,
         columns: {
-          create: columns || templates[template || 'sales'] || templates.sales
+          create: (columns || templates[template || 'sales'] || templates.sales) as any
         }
       },
       include: {

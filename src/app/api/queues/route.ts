@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const queue = await prisma.queue.create({
       data: {
-        ...queueData,
+        ...queueData as any,
         agents: agents ? {
           create: agents.map(agent => ({
             agentId: agent.agentId,

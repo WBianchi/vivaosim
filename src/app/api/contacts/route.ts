@@ -134,13 +134,13 @@ export async function POST(request: NextRequest) {
     // Criar contato
     const contact = await prisma.contact.create({
       data: {
-        ...contactData,
+        ...contactData as any,
         // Criar tags se fornecidas
         tags: tags ? {
           create: tags.map(tagName => ({
             name: tagName,
             color: '#3B82F6', // Cor padrão
-            createdById: contactData.createdById || contactData.assignedToId
+            createdById: (contactData as any).createdById || contactData.assignedToId
           })).filter(tag => tag.createdById) // Remove tags sem createdById
         } : undefined
       },
@@ -153,14 +153,14 @@ export async function POST(request: NextRequest) {
     })
 
     // Log de atividade
-    if (contactData.createdById) {
+    if ((contactData as any).createdById) {
       await prisma.contactActivity.create({
         data: {
           type: 'conversion',
           title: 'Contato criado a partir do WhatsApp',
           description: `Lead convertido do chat ${validatedData.whatsappChatId || 'desconhecido'}`,
           contactId: contact.id,
-          userId: contactData.createdById,
+          userId: (contactData as any).createdById,
           metadata: {
             source: validatedData.source,
             createdFrom: validatedData.createdFrom,

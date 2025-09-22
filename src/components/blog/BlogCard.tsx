@@ -80,7 +80,7 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, index, onClick }) => {
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {post.tags.slice(0, 3).map((tag: string) => (
+          {(post.tags || []).slice(0, 3).map((tag: string) => (
             <span key={tag} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
               #{tag}
             </span>
@@ -130,3 +130,5 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, index, onClick }) => {
     </motion.div>
   )
 }
+
+export default BlogCard

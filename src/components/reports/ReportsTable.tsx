@@ -274,3 +274,5 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({ period, filters, rep
     </div>
   )
 }
+
+export default ReportsTable
