@@ -1,0 +1,1204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMINISTRADOR
+  ATENDENTE
+  ASSINANTE
+  CLIENTE
+}
+
+enum ContactStatus {
+  LEAD_FRESCO      // Acabou de chegar, sem ação
+  LEAD_QUALIFICADO // Demonstrou interesse
+  PROSPECT         // Em negociação
+  CLIENTE          // Fechou negócio
+  INATIVO          // Sem interação há tempo
+}
+
+enum ContactSource {
+  WHATSAPP
+  WEBSITE
+  REFERRAL
+  SOCIAL_MEDIA
+  PHONE_CALL
+  EMAIL
+  OTHER
+}
+
+enum UserStatus {
+  ATIVO
+  INATIVO
+  PENDENTE
+  SUSPENSO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados básicos
+  name     String
+  email    String   @unique
+  password String?  // null para login via OAuth
+  avatar   String?
+  phone    String?
+
+  // Localização
+  city    String?
+  state   String?
+  country String? @default("BR")
+  address String?
+
+  // Documentos
+  cpf  String? @unique
+  cnpj String? @unique
+
+  // Sistema
+  role           UserRole   @default(CLIENTE)
+  status         UserStatus @default(PENDENTE)
+  emailVerified  DateTime?
+  emailVerification String?  // Token para verificação de email
+  passwordReset  String?     // Token para reset de senha
+  passwordResetExpires DateTime?
+  
+  // Configurações
+  rememberMe     Boolean @default(false)
+  lastLoginAt    DateTime?
+  loginAttempts  Int     @default(0)
+  lockedUntil    DateTime?
+
+  // OAuth accounts (para Google/Facebook)
+  oauthAccounts OAuthAccount[]
+  
+  // Sessions customizadas
+  sessions      UserSession[]
+
+  // Relacionamentos originais
+  createdLeads    Lead[] @relation("LeadCreatedBy")
+  assignedLeads   Lead[] @relation("LeadAssignedTo")
+  createdEvents   Event[] @relation("EventCreatedBy")
+  assignedEvents  Event[] @relation("EventAssignedTo")
+  activities      Activity[]
+  notifications   Notification[]
+
+  // Novos relacionamentos
+  clientBudgets       Budget[] @relation("ClientBudgets")
+  createdBudgets      Budget[] @relation("CreatedBudgets")
+  clientPayments      Payment[] @relation("ClientPayments")
+  clientAppointments  Appointment[] @relation("ClientAppointments")
+  attendantAppointments Appointment[] @relation("AttendantAppointments")
+  assignedTasks       EventTask[] @relation("AssignedTasks")
+  clientMessages      WhatsAppMessage[] @relation("ClientMessages")
+  attendantMessages   WhatsAppMessage[] @relation("AttendantMessages")
+  clientSite          ClientSite? @relation("ClientSite")
+  affiliateProfile    Affiliate? @relation("AffiliateProfile")
+  referredUser        AffiliateReferral[] @relation("ReferredUser")
+  
+  // WhatsApp/WAHA relationships
+  whatsappSessions    WhatsAppSession[] @relation("WhatsAppSessions")
+  assignedChats       WhatsAppChat[] @relation("AssignedChats")
+  createdTags         WhatsAppTag[] @relation("CreatedTags")
+  createdTickets      WhatsAppTicket[] @relation("CreatedTickets")
+  assignedTickets     WhatsAppTicket[] @relation("AssignedTickets")
+  
+  // Contact Management System
+  assignedContacts    Contact[] @relation("AssignedContacts")
+  createdContacts     Contact[] @relation("CreatedContacts")
+  contactActivities   ContactActivity[] @relation("ContactActivities")
+  createdContactTags  ContactTag[] @relation("CreatedContactTags")
+  createdSchedules    Schedule[] @relation("CreatedSchedules")
+  createdQuotes       Quote[] @relation("CreatedQuotes")
+  createdContracts    Contract[] @relation("CreatedContracts")
+  createdTicketsNew   Ticket[] @relation("CreatedTickets")
+  assignedTicketsNew  Ticket[] @relation("AssignedTickets")
+  
+  // Kanban Boards
+  createdBoards       KanbanBoard[] @relation("UserCreatedBoards")
+  createdQueues       Queue[] @relation("CreatedQueues")
+  queueAssignments    QueueAgent[] @relation("QueueAgents")
+
+  @@map("users")
+}
+
+// OAuth para Google/Facebook
+model OAuthAccount {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String  // google, facebook
+  providerAccountId String
+  accessToken       String? @db.Text
+  refreshToken      String? @db.Text
+  expiresAt         DateTime?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+// Sessions customizadas com JWT
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  ipAddress    String?
+  userAgent    String?
+  isActive     Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// Models de negócio
+enum LeadStatus {
+  NOVO
+  CONTATO_REALIZADO
+  EM_NEGOCIACAO
+  PROPOSTA_ENVIADA
+  CONFIRMADO
+  PERDIDO
+  CANCELADO
+}
+
+enum LeadSource {
+  WEBSITE
+  FACEBOOK
+  INSTAGRAM
+  GOOGLE
+  INDICACAO
+  TELEFONE
+  EMAIL
+  WHATSAPP
+  OUTROS
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados do lead
+  name         String
+  email        String?
+  phone        String?
+  eventType    String?
+  eventDate    DateTime?
+  budget       Decimal?
+  description  String?
+  city         String?
+  state        String?
+
+  // Sistema
+  status       LeadStatus @default(NOVO)
+  source       LeadSource @default(WEBSITE)
+  priority     Int        @default(1) // 1-5
+  score        Int        @default(0) // 0-100
+
+  // Relacionamentos
+  createdById  String
+  createdBy    User @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  
+  assignedToId String?
+  assignedTo   User? @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+
+  events       Event[]
+  activities   Activity[]
+
+  @@map("leads")
+}
+
+enum EventStatus {
+  PLANEJAMENTO
+  EM_ANDAMENTO
+  FINALIZADO
+  CANCELADO
+}
+
+enum EventType {
+  CASAMENTO
+  ANIVERSARIO
+  CORPORATIVO
+  FORMATURA
+  FESTA_INFANTIL
+  OUTROS
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados do evento
+  name         String
+  description  String?
+  eventType    EventType @default(OUTROS)
+  eventDate    DateTime
+  endDate      DateTime?
+  location     String?
+  budget       Decimal?
+  finalValue   Decimal?
+
+  // Sistema
+  status       EventStatus @default(PLANEJAMENTO)
+
+  // Relacionamentos
+  leadId       String?
+  lead         Lead? @relation(fields: [leadId], references: [id])
+
+  createdById  String
+  createdBy    User @relation("EventCreatedBy", fields: [createdById], references: [id])
+  
+  assignedToId String?
+  assignedTo   User? @relation("EventAssignedTo", fields: [assignedToId], references: [id])
+
+  activities   Activity[]
+
+  // Novos relacionamentos
+  expenses     EventExpense[]
+  tasks        EventTask[]
+  appointments Appointment[]
+  clientSite   ClientSite?
+
+  @@map("events")
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  WHATSAPP
+  NOTE
+  TASK
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  type        ActivityType
+  scheduledAt DateTime?
+  completedAt DateTime?
+
+  // Relacionamentos
+  userId  String
+  user    User @relation(fields: [userId], references: [id])
+
+  leadId  String?
+  lead    Lead? @relation(fields: [leadId], references: [id])
+
+  eventId String?
+  event   Event? @relation(fields: [eventId], references: [id])
+
+  @@map("activities")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title     String
+  message   String
+  read      Boolean @default(false)
+  type      String  @default("info") // info, success, warning, error
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ============= NOVOS MODELS PARA O SAAS =============
+
+// Contratos
+enum ContractStatus {
+  RASCUNHO
+  ENVIADO
+  ASSINADO
+  ATIVO
+  CONCLUIDO
+  CANCELADO
+}
+
+
+// Orçamentos
+enum BudgetStatus {
+  RASCUNHO
+  ENVIADO
+  APROVADO
+  REJEITADO
+  EXPIRADO
+}
+
+model Budget {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  totalValue  Decimal
+  status      BudgetStatus @default(RASCUNHO)
+  expiresAt   DateTime?
+  
+  // Items do orçamento
+  items       BudgetItem[]
+  
+  // Relacionamentos
+  clientId    String
+  client      User      @relation("ClientBudgets", fields: [clientId], references: [id])
+  
+  createdById String
+  createdBy   User      @relation("CreatedBudgets", fields: [createdById], references: [id])
+
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+  quantity    Int     @default(1)
+  unitPrice   Decimal
+  totalPrice  Decimal
+
+  budgetId String
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@map("budget_items")
+}
+
+// Pagamentos
+enum PaymentStatus {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+enum PaymentMethod {
+  DINHEIRO
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  PIX
+  TRANSFERENCIA
+  BOLETO
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  amount      Decimal
+  dueDate     DateTime
+  paidDate    DateTime?
+  status      PaymentStatus @default(PENDENTE)
+  method      PaymentMethod?
+  description String?
+  
+  // Relacionamentos
+  clientId    String
+  client      User     @relation("ClientPayments", fields: [clientId], references: [id])
+
+  @@map("payments")
+}
+
+// Agendamentos
+enum AppointmentStatus {
+  AGENDADO
+  CONFIRMADO
+  REALIZADO
+  CANCELADO
+  REAGENDADO
+}
+
+enum AppointmentType {
+  REUNIAO
+  VISITA_TECNICA
+  DEGUSTACAO
+  APRESENTACAO
+  ENTREGA
+  EVENTO
+  OUTROS
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  status      AppointmentStatus @default(AGENDADO)
+  type        AppointmentType   @default(REUNIAO)
+  
+  // Relacionamentos
+  clientId    String
+  client      User   @relation("ClientAppointments", fields: [clientId], references: [id])
+  
+  attendantId String
+  attendant   User   @relation("AttendantAppointments", fields: [attendantId], references: [id])
+  
+  eventId     String?
+  event       Event? @relation(fields: [eventId], references: [id])
+
+  @@map("appointments")
+}
+
+// Custos do Evento (para o cliente gerenciar)
+enum ExpenseCategory {
+  ALIMENTACAO
+  DECORACAO
+  MUSICA
+  FOTOGRAFIA
+  TRANSPORTE
+  VESTUARIO
+  FLORES
+  CONVITES
+  LEMBRANCINHAS
+  OUTROS
+}
+
+model EventExpense {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+  category    ExpenseCategory
+  budgeted    Decimal // Valor orçado
+  actual      Decimal? // Valor real gasto
+  isPaid      Boolean @default(false)
+  dueDate     DateTime?
+  paidDate    DateTime?
+  
+  // Relacionamentos
+  eventId     String
+  event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_expenses")
+}
+
+// Lista de Compras/Tarefas
+enum TaskStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum TaskPriority {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+model EventTask {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  status      TaskStatus   @default(PENDENTE)
+  priority    TaskPriority @default(MEDIA)
+  dueDate     DateTime?
+  completedAt DateTime?
+  
+  // Relacionamentos
+  eventId     String
+  event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  assignedToId String?
+  assignedTo   User?  @relation("AssignedTasks", fields: [assignedToId], references: [id])
+
+  @@map("event_tasks")
+}
+
+// Chat/Mensagens WhatsApp
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messageId   String   @unique // ID do WhatsApp
+  chatId      String   // ID do chat no WhatsApp
+  fromNumber  String
+  toNumber    String
+  message     String
+  messageType String   @default("text") // text, image, audio, video, document
+  mediaUrl    String?
+  isFromClient Boolean @default(true)
+  
+  // Relacionamentos
+  clientId    String?
+  client      User?   @relation("ClientMessages", fields: [clientId], references: [id])
+  
+  attendantId String?
+  attendant   User?   @relation("AttendantMessages", fields: [attendantId], references: [id])
+
+  @@map("whatsapp_messages")
+}
+
+// Sites dos Clientes (gerados com IA)
+model ClientSite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  subdomain   String   @unique // cliente-festa.vivaosim.com
+  template    String   // Nome do template usado
+  customCss   String?
+  isActive    Boolean  @default(true)
+  content     Json     // Conteúdo em JSON
+  
+  // Relacionamentos
+  clientId    String   @unique
+  client      User     @relation("ClientSite", fields: [clientId], references: [id])
+  
+  eventId     String?  @unique
+  event       Event?   @relation(fields: [eventId], references: [id])
+
+  @@map("client_sites")
+}
+
+// Afiliados
+model Affiliate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  code            String   @unique
+  commissionRate  Decimal  @default(0.10) // 10%
+  totalEarnings   Decimal  @default(0)
+  isActive        Boolean  @default(true)
+  
+  // Relacionamentos
+  userId          String   @unique
+  user            User     @relation("AffiliateProfile", fields: [userId], references: [id])
+  
+  referrals       AffiliateReferral[]
+
+  @@map("affiliates")
+}
+
+model AffiliateReferral {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleValue    Decimal
+  commission   Decimal
+  isPaid       Boolean  @default(false)
+  paidAt       DateTime?
+  
+  // Relacionamentos
+  affiliateId  String
+  affiliate    Affiliate @relation(fields: [affiliateId], references: [id])
+  
+  referredId   String
+  referred     User      @relation("ReferredUser", fields: [referredId], references: [id])
+
+  @@map("affiliate_referrals")
+}
+
+// ============= WHATSAPP WAHA INTEGRATION =============
+
+enum WhatsAppSessionStatus {
+  STARTING
+  SCAN_QR_CODE
+  WORKING
+  FAILED
+  STOPPED
+}
+
+model WhatsAppSession {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Session info
+  sessionId     String                @unique
+  name          String
+  status        WhatsAppSessionStatus @default(STARTING)
+  qrCode        String?               // Base64 QR Code
+  webhookUrl    String
+  
+  // WAHA Configuration
+  wahaConfig    Json?                 // Additional WAHA config
+  
+  // Connection info
+  phoneNumber   String?
+  profileName   String?
+  profilePicture String?
+  connectedAt   DateTime?
+  lastSeen      DateTime?
+  
+  // Relacionamentos
+  userId        String
+  user          User                  @relation("WhatsAppSessions", fields: [userId], references: [id])
+  
+  // Contacts and chats from this session
+  contacts      WhatsAppContact[]
+  chats         WhatsAppChat[]
+  messages      WhatsAppSessionMessage[]
+
+  @@map("whatsapp_sessions")
+}
+
+model WhatsAppContact {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Contact info from WAHA
+  contactId     String    // WhatsApp ID (phone number)
+  name          String?
+  pushname      String?   // Display name
+  profilePicture String?
+  isMyContact   Boolean   @default(false)
+  isBlocked     Boolean   @default(false)
+  
+  // Relacionamentos
+  sessionId     String
+  session       WhatsAppSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  chats         WhatsAppChat[]
+  messages      WhatsAppSessionMessage[] @relation("ContactMessages")
+
+  @@unique([sessionId, contactId])
+  @@map("whatsapp_contacts")
+}
+
+model WhatsAppChat {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Chat info from WAHA
+  chatId        String    // WhatsApp Chat ID
+  name          String?   // Group name or contact name
+  isGroup       Boolean   @default(false)
+  unreadCount   Int       @default(0)
+  lastMessage   String?
+  lastMessageAt DateTime?
+  archived      Boolean   @default(false)
+  pinned        Boolean   @default(false)
+  
+  // Relacionamentos
+  sessionId     String
+  session       WhatsAppSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  contactId     String?
+  contact       WhatsAppContact? @relation(fields: [contactId], references: [id])
+  
+  messages      WhatsAppSessionMessage[]
+  
+  // Business logic
+  tags          WhatsAppChatTag[]
+  tickets       WhatsAppTicket[]
+  assignedToId  String?
+  assignedTo    User? @relation("AssignedChats", fields: [assignedToId], references: [id])
+
+  @@unique([sessionId, chatId])
+  @@map("whatsapp_chats")
+}
+
+model WhatsAppSessionMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Message info from WAHA
+  messageId     String    @unique // WAHA message ID
+  chatId        String    // WhatsApp Chat ID
+  fromMe        Boolean   @default(false)
+  timestamp     DateTime
+  
+  // Message content
+  messageType   String    @default("text") // text, image, audio, video, document, sticker
+  body          String?   // Text content
+  caption       String?   // Media caption
+  
+  // Media info
+  mediaUrl      String?   // URL to media file
+  mediaSize     Int?      // File size in bytes
+  mediaMimeType String?   // MIME type
+  mediaFilename String?   // Original filename
+  
+  // Message status
+  ack           Int?      // Message acknowledgment status
+  isForwarded   Boolean   @default(false)
+  isStarred     Boolean   @default(false)
+  
+  // Relacionamentos
+  sessionId     String
+  session       WhatsAppSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  chatRelationId String
+  chat          WhatsAppChat @relation(fields: [chatRelationId], references: [id], onDelete: Cascade)
+  
+  contactId     String?
+  contact       WhatsAppContact? @relation("ContactMessages", fields: [contactId], references: [id])
+  
+  // Business logic
+  ticketId      String?
+  ticket        WhatsAppTicket? @relation(fields: [ticketId], references: [id])
+
+  @@map("whatsapp_session_messages")
+}
+
+// Tags for chat organization
+model WhatsAppTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  color       String  @default("#3b82f6") // Hex color
+  description String?
+  
+  // Relacionamentos
+  userId      String
+  user        User @relation("CreatedTags", fields: [userId], references: [id])
+  
+  chatTags    WhatsAppChatTag[]
+
+  @@map("whatsapp_tags")
+}
+
+model WhatsAppChatTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  chatId    String
+  chat      WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  tagId     String
+  tag       WhatsAppTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, tagId])
+  @@map("whatsapp_chat_tags")
+}
+
+// Tickets for support/sales
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CLIENT
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketType {
+  SUPPORT
+  SALES
+  INFORMATION
+  COMPLAINT
+  OTHER
+}
+
+model WhatsAppTicket {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(NORMAL)
+  type        TicketType     @default(SUPPORT)
+  
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+  
+  // Relacionamentos
+  chatId      String
+  chat        WhatsAppChat @relation(fields: [chatId], references: [id])
+  
+  createdById String
+  createdBy   User @relation("CreatedTickets", fields: [createdById], references: [id])
+  
+  assignedToId String?
+  assignedTo   User? @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  
+  messages    WhatsAppSessionMessage[]
+
+  @@map("whatsapp_tickets")
+}
+
+// ========================================
+// 🎯 MODELO HÍBRIDO: CONTACT
+// Combina dados WAHA + Business
+// ========================================
+
+model Contact {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ========================================
+  // 📱 DADOS WHATSAPP (Origem WAHA)
+  // ========================================
+  whatsappChatId    String?  @unique // Chave de vinculação com WAHA
+  whatsappNumber    String?  // Telefone do WhatsApp
+  whatsappName      String?  // Nome original do contato no WhatsApp
+  whatsappIsGroup   Boolean  @default(false)
+  whatsappProfilePic String? // URL da foto de perfil
+
+  // ========================================
+  // 👤 DADOS BUSINESS (Enriquecidos)
+  // ========================================
+  name        String   // Nome completo (pode ser editado)
+  email       String?  // Email do cliente
+  phone       String?  // Telefone principal (geralmente o WhatsApp)
+  additionalPhone String? // Telefone adicional/fixo
+  document    String?  // CPF/CNPJ
+  company     String?  // Empresa
+  address     String?  // Endereço completo
+  city        String?
+  state       String?
+  zipCode     String?
+  notes       String?  // Observações importantes
+
+  // ========================================
+  // 🏷️ CLASSIFICAÇÃO E CONTROLE
+  // ========================================
+  status      ContactStatus @default(LEAD_FRESCO)
+  source      ContactSource @default(WHATSAPP)
+  createdFrom String?       // chat-conversion, manual, import, api
+  priority    Int           @default(1) // 1=baixa, 5=alta
+  
+  // Sistema de Filas
+  queueId     String?
+  queue       Queue?  @relation("QueueContacts", fields: [queueId], references: [id])
+  
+  // Status personalizado
+  statusConfigId String?
+  statusConfig   ContactStatusConfig? @relation("ContactStatus", fields: [statusConfigId], references: [id])
+  
+  // ========================================
+  // 👥 RELACIONAMENTOS BUSINESS
+  // ========================================
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedContacts", fields: [assignedToId], references: [id])
+  
+  createdById String?
+  createdBy   User?   @relation("CreatedContacts", fields: [createdById], references: [id])
+  
+  // Histórico de atividades comerciais
+  schedules    Schedule[]  // Agendamentos
+  quotes       Quote[]     // Orçamentos
+  contracts    Contract[]  // Contratos
+  tickets      Ticket[]    // Tickets de suporte
+  tags         ContactTag[] // Tags personalizadas
+  activities   ContactActivity[] // Log de atividades
+  
+  // ========================================
+  // 📋 RELACIONAMENTOS KANBAN
+  // ========================================
+  kanbanBoardId  String?
+  kanbanBoard    KanbanBoard? @relation("KanbanBoardClients", fields: [kanbanBoardId], references: [id])
+  
+  kanbanColumnId String?
+  kanbanColumn   KanbanColumn? @relation("KanbanColumnClients", fields: [kanbanColumnId], references: [id])
+  
+  // ========================================
+  // 🔗 RELACIONAMENTOS WHATSAPP
+  // ========================================
+  // Nota: Relacionamento via whatsappChatId é suficiente para vinculação
+
+  @@map("contacts")
+}
+
+// ========================================
+// 🏷️ SISTEMA DE TAGS PARA CONTACTS
+// ========================================
+model ContactTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  name        String // Nome da tag
+  color       String // Cor hex da tag
+  description String?
+  
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdById String
+  createdBy   User @relation("CreatedContactTags", fields: [createdById], references: [id])
+
+  @@unique([contactId, name]) // Um contato não pode ter a mesma tag duas vezes
+  @@map("contact_tags")
+}
+
+// ========================================
+// 📋 LOG DE ATIVIDADES DO CONTACT
+// ========================================
+model ContactActivity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  type        String // conversion, call, meeting, email, note, status_change
+  title       String // Título da atividade
+  description String? // Detalhes
+  metadata    Json?   // Dados extras (JSON)
+  
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  userId String
+  user   User @relation("ContactActivities", fields: [userId], references: [id])
+
+  @@map("contact_activities")
+}
+
+// ========================================
+// 📅 AGENDAMENTOS
+// ========================================
+model Schedule {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  title       String
+  description String?
+  datetime    DateTime
+  duration    Int?     @default(60) // em minutos
+  location    String?
+  meetingLink String?
+  status      String   @default("scheduled") // scheduled, completed, cancelled, no_show
+  
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdById String
+  createdBy   User @relation("CreatedSchedules", fields: [createdById], references: [id])
+
+  @@map("schedules")
+}
+
+// ========================================
+// 💰 ORÇAMENTOS
+// ========================================
+model Quote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  title       String
+  description String?
+  amount      Decimal  @db.Decimal(10, 2)
+  status      String   @default("draft") // draft, sent, approved, rejected, expired
+  validUntil  DateTime?
+  
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdById String
+  createdBy   User @relation("CreatedQuotes", fields: [createdById], references: [id])
+
+  @@map("quotes")
+}
+
+// ========================================
+// 📋 CONTRATOS
+// ========================================
+model Contract {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  title       String
+  description String?
+  amount      Decimal  @db.Decimal(10, 2)
+  status      String   @default("draft") // draft, active, completed, cancelled
+  startDate   DateTime?
+  endDate     DateTime?
+  signedAt    DateTime?
+  
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdById String
+  createdBy   User @relation("CreatedContracts", fields: [createdById], references: [id])
+
+  @@map("contracts")
+}
+
+// ========================================
+// 🎫 TICKETS DE SUPORTE
+// ========================================
+model Ticket {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  title       String
+  description String?
+  status      String   @default("open") // open, in_progress, resolved, closed
+  priority    String   @default("normal") // low, normal, high, urgent
+  category    String?  // technical, billing, general
+  
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdById String
+  createdBy   User @relation("CreatedTickets", fields: [createdById], references: [id])
+  
+  assignedToId String?
+  assignedTo   User? @relation("AssignedTickets", fields: [assignedToId], references: [id])
+
+  @@map("tickets")
+}
+
+// ========================================
+// 🎯 SISTEMA DE FILAS
+// ========================================
+model Queue {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  name        String   @unique // "Vendas", "Suporte", "Pós-venda"
+  description String?
+  color       String   @default("#3B82F6") // Cor hex da fila
+  isActive    Boolean  @default(true)
+  priority    Int      @default(1) // Ordem de exibição
+  
+  // Configurações da fila
+  maxContacts     Int?     // Limite de contatos por fila
+  autoAssignment  Boolean  @default(false) // Atribuição automática
+  businessHours   Json?    // Horário de funcionamento
+  
+  // Relacionamentos
+  contacts        Contact[] @relation("QueueContacts")
+  agents          QueueAgent[] // Agentes responsáveis por esta fila
+  
+  createdById String
+  createdBy   User @relation("CreatedQueues", fields: [createdById], references: [id])
+
+  @@map("queues")
+}
+
+// ========================================
+// 🎯 AGENTES DAS FILAS
+// ========================================
+model QueueAgent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  isActive    Boolean @default(true)
+  isDefault   Boolean @default(false) // Agente padrão da fila
+  priority    Int     @default(1) // Prioridade na distribuição
+  
+  queueId String
+  queue   Queue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  
+  agentId String
+  agent   User @relation("QueueAgents", fields: [agentId], references: [id])
+
+  @@unique([queueId, agentId]) // Um agente por fila (único)
+  @@map("queue_agents")
+}
+
+// ========================================
+// 🎯 SISTEMA DE STATUS PERSONALIZADOS
+// ========================================
+model ContactStatusConfig {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  name        String  @unique // "Novo Lead", "Em Negociação", "Fechado"
+  color       String  @default("#10B981") // Cor hex
+  description String?
+  isActive    Boolean @default(true)
+  order       Int     @default(1) // Ordem de exibição
+  isDefault   Boolean @default(false) // Status padrão para novos contatos
+  
+  // Relacionamentos
+  contacts Contact[] @relation("ContactStatus")
+
+  @@map("contact_status_configs")
+}
+
+// ========================================
+// 📋 KANBAN BOARDS
+// ========================================
+
+model KanbanBoard {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Dados básicos
+  name        String
+  description String?
+  color       String   @default("from-blue-500 to-cyan-500")
+
+  // Relacionamentos
+  createdById String?
+  createdBy   User? @relation("UserCreatedBoards", fields: [createdById], references: [id])
+  columns     KanbanColumn[]
+  clients     Contact[] @relation("KanbanBoardClients")
+
+  @@map("kanban_boards")
+}
+
+model KanbanColumn {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados básicos
+  title     String
+  color     String   @default("from-gray-500 to-slate-500")
+  position  Int      @default(0)
+
+  // Relacionamentos
+  boardId   String
+  board     KanbanBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  clients   Contact[] @relation("KanbanColumnClients")
+
+  @@map("kanban_columns")
+}
+
+// ========================================
+// 🎯 ATUALIZAÇÃO DO CONTACT
+// ========================================

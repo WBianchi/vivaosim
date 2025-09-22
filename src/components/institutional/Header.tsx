@@ -3,13 +3,15 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Menu, X, Sun, Moon, Phone, TrendingUp, Users, Calendar, Truck, Megaphone, Zap, DollarSign, BarChart3, FileText, BookOpen } from 'lucide-react'
+import { ChevronDown, Menu, X, Sun, Moon, Phone, TrendingUp, Users, Calendar, Truck, Megaphone, Zap, DollarSign, BarChart3, FileText, BookOpen, LogOut, User } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
+import { useAuth } from '@/contexts/AuthContext'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const { isDarkMode, toggleTheme } = useTheme()
+  const { user, logout } = useAuth()
 
   const solucoesItems = [
     { name: 'Vendas', description: 'Gerencie todo processo de vendas e propostas comerciais', icon: TrendingUp, anchor: 'inicio' },
@@ -263,20 +265,112 @@ const Header = () => {
                 {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </motion.button>
 
-              {/* Entrar Button */}
-              <Link href="/login">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`hidden md:block px-6 py-2 rounded-xl transition-all duration-300 ${
-                    isDarkMode 
-                      ? 'bg-white/10 text-white border border-white/20 hover:bg-white/20' 
-                      : 'bg-gray-100/80 text-gray-700 border border-gray-200/50 hover:bg-gray-200/80'
-                  } backdrop-blur-sm font-medium`}
+              {/* User Menu / Entrar Button */}
+              {user ? (
+                <div 
+                  className="relative hidden md:block"
+                  onMouseEnter={() => setActiveDropdown('user')}
+                  onMouseLeave={() => setActiveDropdown(null)}
                 >
-                  Entrar
-                </motion.button>
-              </Link>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-white/10 text-white border border-white/20 hover:bg-white/20' 
+                        : 'bg-gray-100/80 text-gray-700 border border-gray-200/50 hover:bg-gray-200/80'
+                    } backdrop-blur-sm font-medium`}
+                  >
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
+                    <span className="max-w-32 truncate">{user.name}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {activeDropdown === 'user' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className={`absolute top-full right-0 mt-2 w-48 ${
+                          isDarkMode ? 'bg-slate-800/95' : 'bg-white/95'
+                        } backdrop-blur-xl rounded-2xl shadow-2xl border ${
+                          isDarkMode ? 'border-white/10' : 'border-gray-200/50'
+                        } p-2`}
+                      >
+                        <div className={`px-3 py-2 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200/50'} mb-2`}>
+                          <p className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {user.name}
+                          </p>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {user.role}
+                          </p>
+                        </div>
+                        
+                        <Link href="/profile">
+                          <button className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
+                            isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                          }`}>
+                            <User className="w-4 h-4" />
+                            <span className="text-sm">Meu perfil</span>
+                          </button>
+                        </Link>
+
+                        {(user.role === 'ADMINISTRADOR' || user.role === 'ATENDENTE' || user.role === 'ASSINANTE') && (
+                          <Link href="/dashboard">
+                            <button className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
+                              isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                            }`}>
+                              <BarChart3 className="w-4 h-4" />
+                              <span className="text-sm">Dashboard</span>
+                            </button>
+                          </Link>
+                        )}
+
+                        {user.role === 'ADMINISTRADOR' && (
+                          <Link href="/admin">
+                            <button className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
+                              isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                            }`}>
+                              <Users className="w-4 h-4" />
+                              <span className="text-sm">Administração</span>
+                            </button>
+                          </Link>
+                        )}
+
+                        <button 
+                          onClick={logout}
+                          className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all text-red-500 hover:bg-red-50 ${
+                            isDarkMode ? 'hover:bg-red-900/20' : ''
+                          }`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span className="text-sm">Sair</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <Link href="/login">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`hidden md:block px-6 py-2 rounded-xl transition-all duration-300 ${
+                      isDarkMode 
+                        ? 'bg-white/10 text-white border border-white/20 hover:bg-white/20' 
+                        : 'bg-gray-100/80 text-gray-700 border border-gray-200/50 hover:bg-gray-200/80'
+                    } backdrop-blur-sm font-medium`}
+                  >
+                    Entrar
+                  </motion.button>
+                </Link>
+              )}
 
               {/* CTA Button */}
               <a href="#planos">

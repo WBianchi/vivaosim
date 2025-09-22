@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
+import { usePathname } from 'next/navigation'
 
 interface Message {
   id: string
@@ -13,6 +14,26 @@ interface Message {
 }
 
 const ChatWidget = () => {
+  const pathname = usePathname()
+  
+  // Páginas onde o ChatWidget NÃO deve aparecer
+  const excludedPages = [
+    '/admin',
+    '/dashboard', 
+    '/chat',
+    '/profile',
+    '/settings',
+    '/crm',
+    '/events',
+    '/leads'
+  ]
+
+  // Verificar se a página atual deve mostrar o ChatWidget
+  const shouldShow = !excludedPages.some(page => pathname.startsWith(page))
+  
+  // Se não deve mostrar, retorna null
+  if (!shouldShow) return null
+
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [message, setMessage] = useState('')

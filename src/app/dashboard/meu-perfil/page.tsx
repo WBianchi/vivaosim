@@ -1,0 +1,457 @@
+'use client'
+
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { 
+  User, Camera, Save, Lock, Bell, Shield,
+  Mail, Phone, MapPin, Calendar, Heart,
+  CreditCard, FileText, Settings, LogOut,
+  Check, Edit3, AlertTriangle
+} from 'lucide-react'
+
+export default function MeuPerfilClientePage() {
+  const [activeTab, setActiveTab] = useState<'personal' | 'event' | 'security' | 'notifications'>('personal')
+  const [isEditing, setIsEditing] = useState(false)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+
+  const profileData = {
+    name: 'João Silva',
+    email: 'joao.silva@email.com',
+    phone: '(11) 98765-4321',
+    cpf: '123.456.789-00',
+    address: 'Rua das Flores, 123 - São Paulo, SP',
+    birthDate: '1990-05-15',
+    partner: 'Maria Costa',
+    weddingDate: '2024-06-15',
+    venue: 'Espaço Celebration',
+    contractNumber: 'CTR-2024-0156',
+    plan: 'Premium',
+    status: 'active'
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-6">
+            {/* Profile Image */}
+            <div className="relative">
+              <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  'JS'
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 p-2 bg-orange-500 hover:bg-orange-600 rounded-full cursor-pointer transition-colors">
+                <Camera className="w-4 h-4 text-white" />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        setProfileImage(reader.result as string)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.name}</h1>
+              <p className="text-gray-600 dark:text-gray-400">{profileData.email}</p>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
+                  Conta Ativa
+                </span>
+                <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-sm font-medium">
+                  Plano {profileData.plan}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {isEditing ? (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancelar
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvar
+                </motion.button>
+              </>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Editar Perfil
+              </motion.button>
+            )}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+          <button
+            onClick={() => setActiveTab('personal')}
+            className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${
+              activeTab === 'personal'
+                ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Dados Pessoais
+          </button>
+          <button
+            onClick={() => setActiveTab('event')}
+            className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${
+              activeTab === 'event'
+                ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Dados do Evento
+          </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${
+              activeTab === 'security'
+                ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Segurança
+          </button>
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${
+              activeTab === 'notifications'
+                ? 'bg-white dark:bg-gray-600 text-orange-600 dark:text-orange-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Notificações
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {activeTab === 'personal' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Informações Pessoais</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nome Completo
+                </label>
+                <input
+                  type="text"
+                  value={profileData.name}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  E-mail
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    value={profileData.email}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Telefone
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="tel"
+                    value={profileData.phone}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  CPF
+                </label>
+                <input
+                  type="text"
+                  value={profileData.cpf}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Endereço
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={profileData.address}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Informações do Contrato</h3>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Número do Contrato</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{profileData.contractNumber}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Plano</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{profileData.plan}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
+                    Ativo
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button className="w-full p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-xl flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <span className="font-medium text-gray-900 dark:text-white">Ver Contrato</span>
+                  </div>
+                  <Check className="w-4 h-4 text-green-500" />
+                </button>
+
+                <button className="w-full p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-xl flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <span className="font-medium text-gray-900 dark:text-white">Pagamentos</span>
+                  </div>
+                  <span className="text-sm text-gray-500">3/6</span>
+                </button>
+
+                <button className="w-full p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-xl flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    <span className="font-medium text-gray-900 dark:text-white">Configurações</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'event' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Informações do Evento</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nome do(a) Parceiro(a)
+                </label>
+                <div className="relative">
+                  <Heart className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={profileData.partner}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Data do Casamento
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="date"
+                    value={profileData.weddingDate}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Local do Evento
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={profileData.venue}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Cronograma</h3>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Contrato Assinado</span>
+                </div>
+                <span className="text-xs text-gray-500">15/01/2024</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Local Reservado</span>
+                </div>
+                <span className="text-xs text-gray-500">20/01/2024</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Degustação</span>
+                </div>
+                <span className="text-xs text-gray-500">10/03/2024</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Ensaio</span>
+                </div>
+                <span className="text-xs text-gray-500">10/06/2024</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'security' && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Configurações de Segurança</h3>
+          
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-4">Alterar Senha</h4>
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  placeholder="Senha atual"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="password"
+                  placeholder="Nova senha"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="password"
+                  placeholder="Confirmar nova senha"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg">
+                  Atualizar Senha
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-4">Autenticação de Dois Fatores</h4>
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">2FA Desativado</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Adicione uma camada extra de segurança</p>
+                  </div>
+                </div>
+                <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+                  Ativar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'notifications' && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Preferências de Notificação</h3>
+          
+          <div className="space-y-4">
+            {[
+              { title: 'Atualizações do Evento', description: 'Receba notificações sobre mudanças no seu evento', enabled: true },
+              { title: 'Confirmações de Convidados', description: 'Seja notificado quando convidados confirmarem presença', enabled: true },
+              { title: 'Lembretes de Pagamento', description: 'Receba lembretes sobre pagamentos pendentes', enabled: false },
+              { title: 'Novidades da Plataforma', description: 'Fique por dentro das novidades e atualizações', enabled: false },
+              { title: 'Mensagens de Fornecedores', description: 'Receba mensagens dos seus fornecedores', enabled: true },
+            ].map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{item.title}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" defaultChecked={item.enabled} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

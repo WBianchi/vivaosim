@@ -1,0 +1,264 @@
+import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
+
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'webhook-secret'
+
+// Tipos para webhooks do WAHA
+interface WAHAWebhookPayload {
+  event: string
+  session: string
+  me?: {
+    id: string
+    pushName: string
+  }
+  payload?: any
+}
+
+interface WAHAMessagePayload {
+  id: string
+  timestamp: number
+  from: string
+  fromMe: boolean
+  to: string
+  body?: string
+  hasMedia?: boolean
+  media?: {
+    url: string
+    mimetype: string
+    filename: string
+    size: number
+  }
+  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker'
+  ack?: number
+  location?: {
+    latitude: number
+    longitude: number
+    description?: string
+  }
+}
+
+interface WAHAStateChangePayload {
+  state: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'DESTROYED'
+}
+
+// Verificar assinatura HMAC do webhook
+function verifyHMACSignature(payload: string, signature: string, secret: string): boolean {
+  try {
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(payload, 'utf8')
+      .digest('hex')
+    
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    )
+  } catch (error) {
+    console.error('HMAC verification error:', error)
+    return false
+  }
+}
+
+// POST - Receber webhooks do WAHA
+export async function POST(request: NextRequest) {
+  try {
+    // Ler o payload
+    const payload = await request.text()
+    
+    // Verificar assinatura HMAC (se configurada)
+    const signature = request.headers.get('X-Webhook-Signature') || 
+                     request.headers.get('x-hub-signature-256')
+    
+    if (signature && WEBHOOK_SECRET) {
+      const cleanSignature = signature.replace('sha256=', '')
+      if (!verifyHMACSignature(payload, cleanSignature, WEBHOOK_SECRET)) {
+        console.error('Invalid webhook signature')
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      }
+    }
+
+    // Parse do JSON
+    let webhookData: WAHAWebhookPayload
+    try {
+      webhookData = JSON.parse(payload)
+    } catch (parseError) {
+      console.error('Invalid JSON payload:', parseError)
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    console.log('Received webhook:', {
+      event: webhookData.event,
+      session: webhookData.session,
+      timestamp: new Date().toISOString()
+    })
+
+    // Processar diferentes tipos de eventos
+    switch (webhookData.event) {
+      case 'session.status':
+      case 'state.change':
+        await handleStateChange(webhookData)
+        break
+      
+      case 'message':
+      case 'message.any':
+        await handleMessage(webhookData)
+        break
+      
+      case 'group.join':
+      case 'group.leave':
+        await handleGroupEvent(webhookData)
+        break
+      
+      case 'presence.update':
+        await handlePresenceUpdate(webhookData)
+        break
+      
+      default:
+        console.log('Unhandled webhook event:', webhookData.event)
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Webhook processed successfully'
+    })
+
+  } catch (error) {
+    console.error('Webhook processing error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error.message 
+    }, { status: 500 })
+  }
+}
+
+// Processar mudanças de estado da sessão
+async function handleStateChange(webhook: WAHAWebhookPayload) {
+  try {
+    const { session, payload } = webhook
+    const stateData = payload as WAHAStateChangePayload
+    
+    console.log(`Session ${session} state changed to: ${stateData.state}`)
+    
+    // Atualizar status no banco de dados
+    let newStatus: string
+    switch (stateData.state) {
+      case 'CONNECTING':
+        newStatus = 'STARTING'
+        break
+      case 'CONNECTED':
+        newStatus = 'WORKING'
+        break
+      case 'DISCONNECTED':
+      case 'DESTROYED':
+        newStatus = 'STOPPED'
+        break
+      default:
+        newStatus = 'FAILED'
+    }
+
+    // Mock update - implementar com Prisma
+    console.log(`Updating session ${session} status to: ${newStatus}`)
+    
+    // await prisma.whatsAppSession.update({
+    //   where: { sessionId: session },
+    //   data: { 
+    //     status: newStatus,
+    //     connectedAt: stateData.state === 'CONNECTED' ? new Date() : undefined,
+    //     lastSeen: new Date()
+    //   }
+    // })
+
+  } catch (error) {
+    console.error('Error handling state change:', error)
+  }
+}
+
+// Processar mensagens recebidas
+async function handleMessage(webhook: WAHAWebhookPayload) {
+  try {
+    const { session, payload } = webhook
+    const messageData = payload as WAHAMessagePayload
+    
+    console.log(`New message in session ${session}:`, {
+      id: messageData.id,
+      from: messageData.from,
+      fromMe: messageData.fromMe,
+      type: messageData.type,
+      hasBody: !!messageData.body
+    })
+
+    // Verificar se é uma mensagem de entrada (não nossa)
+    if (!messageData.fromMe) {
+      // Processar contato se não existe
+      await processContact(session, messageData.from, messageData)
+      
+      // Processar chat se não existe  
+      await processChat(session, messageData.from, messageData)
+      
+      // Salvar mensagem
+      await saveMessage(session, messageData)
+      
+      // Trigger automações se configuradas
+      await triggerAutomations(session, messageData)
+    }
+
+  } catch (error) {
+    console.error('Error handling message:', error)
+  }
+}
+
+// Processar eventos de grupo
+async function handleGroupEvent(webhook: WAHAWebhookPayload) {
+  try {
+    const { session, event, payload } = webhook
+    console.log(`Group event ${event} in session ${session}:`, payload)
+    
+    // Implementar lógica de grupos se necessário
+    
+  } catch (error) {
+    console.error('Error handling group event:', error)
+  }
+}
+
+// Processar updates de presença
+async function handlePresenceUpdate(webhook: WAHAWebhookPayload) {
+  try {
+    const { session, payload } = webhook
+    console.log(`Presence update in session ${session}:`, payload)
+    
+    // Implementar lógica de presença se necessário
+    
+  } catch (error) {
+    console.error('Error handling presence update:', error)
+  }
+}
+
+// Funções auxiliares (implementar com Prisma)
+async function processContact(sessionId: string, contactId: string, messageData: WAHAMessagePayload) {
+  // Mock - implementar com Prisma
+  console.log(`Processing contact ${contactId} for session ${sessionId}`)
+}
+
+async function processChat(sessionId: string, chatId: string, messageData: WAHAMessagePayload) {
+  // Mock - implementar com Prisma
+  console.log(`Processing chat ${chatId} for session ${sessionId}`)
+}
+
+async function saveMessage(sessionId: string, messageData: WAHAMessagePayload) {
+  // Mock - implementar com Prisma
+  console.log(`Saving message ${messageData.id} for session ${sessionId}`)
+}
+
+async function triggerAutomations(sessionId: string, messageData: WAHAMessagePayload) {
+  // Mock - implementar automações
+  console.log(`Checking automations for session ${sessionId}`)
+}
+
+// GET - Health check do webhook
+export async function GET(request: NextRequest) {
+  return NextResponse.json({ 
+    status: 'ok',
+    message: 'WhatsApp webhook endpoint is active',
+    timestamp: new Date().toISOString()
+  })
+}
