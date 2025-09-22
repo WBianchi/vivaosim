@@ -3,6 +3,12 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs']
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.plugins = [...config.plugins]
+    }
+    return config
+  },
   images: {
     domains: ['localhost', 'via.placeholder.com', 'images.unsplash.com'],
   },

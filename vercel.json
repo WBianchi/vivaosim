@@ -1,0 +1,12 @@
+{
+  "buildCommand": "prisma generate && pnpm run build",
+  "installCommand": "pnpm install",
+  "env": {
+    "PRISMA_GENERATE_SKIP_POSTINSTALL": "false"
+  },
+  "functions": {
+    "app/api/**": {
+      "maxDuration": 30
+    }
+  }
+}
