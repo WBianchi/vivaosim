@@ -45,35 +45,45 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const agentData = {
-      ...formData,
-      id: `agent-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: {
-        id: 'u1',
-        name: 'Usuário Atual',
-        avatar: null
-      },
-      usage: {
-        totalInteractions: 0,
-        successRate: 0,
-        avgResponseTime: 0,
-        lastUsed: new Date().toISOString()
-      },
-      integrations: {
-        chat: { active: false, config: {} },
-        kanban: { active: false, config: {} },
-        columns: { active: false, config: {} }
-      }
-    }
+    try {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1]
 
-    console.log('💾 Salvando agente:', agentData)
-    onSave(agentData)
-    handleClose()
+      const response = await fetch('/api/agents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          ...formData,
+          integrations: {
+            chat: { active: false, config: {} },
+            kanban: { active: false, config: {} },
+            columns: { active: false, config: {} }
+          }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Agente criado:', data.agent)
+        onSave(data.agent)
+        handleClose()
+      } else {
+        const error = await response.json()
+        console.error('❌ Erro ao criar agente:', error)
+        alert('Erro ao criar agente: ' + (error.error || 'Erro desconhecido'))
+      }
+    } catch (error) {
+      console.error('❌ Erro ao criar agente:', error)
+      alert('Erro ao criar agente. Verifique sua conexão.')
+    }
   }
 
   const updateFormData = (key: string, value: any) => {

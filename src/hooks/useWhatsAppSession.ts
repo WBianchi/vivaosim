@@ -145,6 +145,8 @@ export const useWhatsAppSession = () => {
               : session
           )
         )
+        // Disparar evento de conexão
+        window.dispatchEvent(new CustomEvent('whatsapp-connected', { detail: { sessionId } }))
       }
     } catch (err) {
       console.error('Erro ao buscar QR Code:', err)
@@ -225,6 +227,11 @@ export const useWhatsAppSession = () => {
           : session
       )
     )
+    
+    // Disparar evento quando conectar
+    if (newStatus === 'WORKING') {
+      window.dispatchEvent(new CustomEvent('whatsapp-connected', { detail: { sessionId } }))
+    }
   }
 
   // Carregar sessões ao montar o componente
@@ -250,14 +257,37 @@ export const useWhatsAppSession = () => {
   useEffect(() => {
     if (!accessToken || sessions.length === 0) return
 
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       // Verificar status de sessões que estão em estados transitórios
-      sessions.forEach(session => {
+      for (const session of sessions) {
         if (session.status === 'STARTING' || session.status === 'SCAN_QR_CODE') {
-          fetchQRCode(session.sessionId)
+          // Verificar status atual via API
+          try {
+            const response = await fetch(`/api/whatsapp/sessions/${session.sessionId}/status`, {
+              headers: getHeaders()
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              const newStatus = data.status as WhatsAppSession['status']
+              
+              if (newStatus === 'WORKING' && session.status !== 'WORKING') {
+                // Status mudou para WORKING - disparar evento
+                updateSessionStatus(session.sessionId, 'WORKING', {
+                  phoneNumber: data.phoneNumber,
+                  profileName: data.profileName,
+                  connectedAt: new Date()
+                })
+              } else if (newStatus === 'SCAN_QR_CODE') {
+                fetchQRCode(session.sessionId)
+              }
+            }
+          } catch (err) {
+            console.error('Erro ao verificar status:', err)
+          }
         }
-      })
-    }, 10000) // Verificar a cada 10 segundos
+      }
+    }, 5000) // Verificar a cada 5 segundos (mais frequente)
 
     return () => clearInterval(interval)
   }, [sessions, accessToken])

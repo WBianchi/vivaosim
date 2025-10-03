@@ -14,6 +14,7 @@ export default function AgentesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showActivationModal, setShowActivationModal] = useState(false)
   const [activationAgent, setActivationAgent] = useState<any>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
     status: 'all',
     model: 'all',
@@ -50,6 +51,7 @@ export default function AgentesPage() {
 
         {/* Lista de Agentes */}
         <AgentsList 
+          key={refreshKey}
           filters={filters}
           searchTerm={searchTerm}
           viewMode={viewMode}
@@ -75,8 +77,9 @@ export default function AgentesPage() {
           <CreateAgentModal
             onClose={() => setShowCreateModal(false)}
             onSave={(agentData) => {
-              console.log('💾 Salvando agente:', agentData)
+              console.log('💾 Agente salvo:', agentData)
               setShowCreateModal(false)
+              setRefreshKey(prev => prev + 1) // Recarrega a lista
             }}
           />
         )}

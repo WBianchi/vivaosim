@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -28,41 +29,107 @@ export const AgentsHeader: React.FC<AgentsHeaderProps> = ({
   searchTerm,
   onSearchChange
 }) => {
-  // Mock stats - em produção viriam da API
-  const stats = [
+  const [stats, setStats] = useState([
     {
       label: 'Total de Agentes',
-      value: '24',
+      value: '0',
       icon: Bot,
       color: 'text-blue-600',
       bg: 'bg-blue-100',
-      change: '+3'
+      change: '+0'
     },
     {
       label: 'Ativos',
-      value: '18',
+      value: '0',
       icon: Activity,
       color: 'text-green-600',
       bg: 'bg-green-100',
-      change: '+2'
+      change: '+0'
     },
     {
       label: 'Em Uso',
-      value: '12',
+      value: '0',
       icon: MessageSquare,
       color: 'text-purple-600',
       bg: 'bg-purple-100',
-      change: '+5'
+      change: '+0'
     },
     {
       label: 'Usuários Ativos',
-      value: '67',
+      value: '0',
       icon: Users,
       color: 'text-orange-600',
       bg: 'bg-orange-100',
-      change: '+12'
+      change: '+0'
     }
-  ]
+  ])
+
+  // Buscar estatísticas da API
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('accessToken='))
+          ?.split('=')[1]
+
+        const response = await fetch('/api/agents/stats', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          
+          setStats([
+            {
+              label: 'Total de Agentes',
+              value: data.stats.totalAgents.value.toString(),
+              icon: Bot,
+              color: 'text-blue-600',
+              bg: 'bg-blue-100',
+              change: data.stats.totalAgents.change >= 0 
+                ? `+${data.stats.totalAgents.change}` 
+                : data.stats.totalAgents.change.toString()
+            },
+            {
+              label: 'Ativos',
+              value: data.stats.activeAgents.value.toString(),
+              icon: Activity,
+              color: 'text-green-600',
+              bg: 'bg-green-100',
+              change: data.stats.activeAgents.change >= 0 
+                ? `+${data.stats.activeAgents.change}` 
+                : data.stats.activeAgents.change.toString()
+            },
+            {
+              label: 'Em Uso',
+              value: data.stats.agentsInUse.value.toString(),
+              icon: MessageSquare,
+              color: 'text-purple-600',
+              bg: 'bg-purple-100',
+              change: data.stats.agentsInUse.change >= 0 
+                ? `+${data.stats.agentsInUse.change}` 
+                : data.stats.agentsInUse.change.toString()
+            },
+            {
+              label: 'Usuários Ativos',
+              value: data.stats.uniqueUsers.value.toString(),
+              icon: Users,
+              color: 'text-orange-600',
+              bg: 'bg-orange-100',
+              change: data.stats.uniqueUsers.change >= 0 
+                ? `+${data.stats.uniqueUsers.change}` 
+                : data.stats.uniqueUsers.change.toString()
+            }
+          ])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error)
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   return (
     <div className="mb-8">

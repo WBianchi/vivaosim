@@ -103,7 +103,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       <motion.div
         className={cn(
           'relative z-50',
-          isMobile ? 'fixed left-0 top-0 h-full' : 'sticky top-0'
+          isMobile ? 'fixed left-0 top-0 h-full' : 'sticky top-0 self-start h-screen overflow-y-auto'
         )}
         animate={{
           x: isMobile ? (sidebarExpanded ? 0 : -320) : 0

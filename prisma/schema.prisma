@@ -127,6 +127,9 @@ model User {
   createdBoards       KanbanBoard[] @relation("UserCreatedBoards")
   createdQueues       Queue[] @relation("CreatedQueues")
   queueAssignments    QueueAgent[] @relation("QueueAgents")
+  
+  // Agentes IA
+  createdAgents       Agent[] @relation("UserCreatedAgents")
 
   @@map("users")
 }
@@ -1197,6 +1200,54 @@ model KanbanColumn {
   clients   Contact[] @relation("KanbanColumnClients")
 
   @@map("kanban_columns")
+}
+
+// ========================================
+// 🤖 AGENTES IA
+// ========================================
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+  TRAINING
+  ERROR
+}
+
+model Agent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados básicos
+  name        String
+  description String
+  model       String // gpt-4, claude-3, gemini-pro, etc
+  niche       String // vendas, suporte, marketing, etc
+  role        String // assistant, consultant, specialist, etc
+  status      AgentStatus @default(ACTIVE)
+  
+  // Prompt e configuração
+  prompt      String  @db.Text
+  temperature Float?  @default(0.7)
+  maxTokens   Int?    @default(2000)
+  
+  // Controle de acesso
+  userTypes       Json // ['atendentes', 'admin', 'assinante']
+  activationModes Json // ['chat', 'kanban', 'columns']
+  
+  // Estatísticas de uso
+  totalInteractions Int     @default(0)
+  successRate       Float   @default(0)
+  avgResponseTime   Float   @default(0)
+  lastUsed          DateTime?
+  
+  // Integrações
+  integrations Json? // { chat: {...}, kanban: {...}, columns: {...} }
+  
+  // Relacionamentos
+  createdById String
+  createdBy   User @relation("UserCreatedAgents", fields: [createdById], references: [id])
+
+  @@map("agents")
 }
 
 // ========================================

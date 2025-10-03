@@ -58,24 +58,33 @@ export async function GET(
     const sessionData = await statusResponse.json()
     console.log('📊 Status WAHA:', sessionData.status)
 
-    // Mapear status WAHA para nosso formato
-    let mappedStatus = sessionData.status
-    if (sessionData.status === 'SCAN_QR_CODE') {
-      mappedStatus = 'SCAN_QR_CODE'  
-    } else if (sessionData.status === 'WORKING') {
-      mappedStatus = 'WORKING'
-    } else if (sessionData.status === 'FAILED') {
-      mappedStatus = 'FAILED'
-    } else if (sessionData.status === 'STARTING') {
-      mappedStatus = 'STARTING'
-    } else if (sessionData.status === 'STOPPED') {
-      mappedStatus = 'STOPPED'
+    // Buscar informações do perfil se estiver conectado
+    let profileData = null
+    if (sessionData.status === 'WORKING') {
+      try {
+        const meResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/${sessionId}/me`, {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': WAHA_API_KEY,
+          }
+        })
+        
+        if (meResponse.ok) {
+          profileData = await meResponse.json()
+          console.log('👤 Dados do perfil:', profileData)
+        }
+      } catch (err) {
+        console.error('Erro ao buscar dados do perfil:', err)
+      }
     }
 
     return NextResponse.json({
       success: true,
       sessionId: sessionId,
-      status: mappedStatus,
+      status: sessionData.status,
+      phoneNumber: profileData?.id || null,
+      profileName: profileData?.pushname || profileData?.name || null,
+      profilePicture: profileData?.profilePictureUrl || null,
       wahaData: sessionData
     })
 

@@ -53,24 +53,66 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Buscar sessões no banco de dados (mock por agora)
-    const sessions = [
-      {
-        id: 'session-1',
-        sessionId: `session-${user.id}`,
-        name: `WhatsApp ${user.name}`,
-        status: 'WORKING',
-        phoneNumber: '+5511999999999',
-        profileName: user.name,
-        connectedAt: new Date(),
-        lastSeen: new Date()
-      }
-    ]
+    console.log('📋 Buscando todas as sessões WAHA...')
 
-    return NextResponse.json({ sessions })
+    // Buscar TODAS as sessões do WAHA
+    const wahaResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/`, {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': WAHA_API_KEY,
+      }
+    })
+
+    if (!wahaResponse.ok) {
+      console.error('❌ Erro ao buscar sessões WAHA:', wahaResponse.status)
+      return NextResponse.json({ sessions: [] })
+    }
+
+    const wahaSessions = await wahaResponse.json()
+    console.log('📊 Sessões WAHA encontradas:', wahaSessions.length)
+
+    // Mapear sessões WAHA para nosso formato
+    const sessions = await Promise.all(
+      wahaSessions.map(async (wahaSession: any) => {
+        let profileData = null
+        
+        // Se estiver conectado, buscar dados do perfil
+        if (wahaSession.status === 'WORKING') {
+          try {
+            const meResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/${wahaSession.name}/me`, {
+              method: 'GET',
+              headers: {
+                'X-Api-Key': WAHA_API_KEY,
+              }
+            })
+            
+            if (meResponse.ok) {
+              profileData = await meResponse.json()
+            }
+          } catch (err) {
+            console.error('Erro ao buscar perfil:', err)
+          }
+        }
+
+        return {
+          id: wahaSession.name,
+          sessionId: wahaSession.name,
+          name: wahaSession.name,
+          status: wahaSession.status,
+          phoneNumber: profileData?.id || null,
+          profileName: profileData?.pushname || profileData?.name || null,
+          profilePicture: profileData?.profilePictureUrl || null,
+          connectedAt: wahaSession.status === 'WORKING' ? new Date() : null,
+          lastSeen: new Date()
+        }
+      })
+    )
+
+    console.log('✅ Sessões mapeadas:', sessions)
+    return NextResponse.json(sessions)
   } catch (error) {
     console.error('Error fetching sessions:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ sessions: [] })
   }
 }
 

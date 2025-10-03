@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeProvider'
@@ -13,8 +13,10 @@ import {
   MessageCircle, 
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Loader2
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface StatCardProps {
   title: string
@@ -84,9 +86,26 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, trend, icon }
   )
 }
 
+interface DashboardStats {
+  contacts: { value: number; change: string; trend: 'up' | 'down' }
+  events: { value: number; change: string; trend: 'up' | 'down' }
+  revenue: { value: number; change: string; trend: 'up' | 'down' }
+  quotes: { value: number; change: string; trend: 'up' | 'down' }
+  todaySchedules: number
+}
+
+interface Activity {
+  id: string
+  description: string
+  createdAt: string
+}
+
 const DashboardPage = () => {
   const { user } = useAuth()
   const { isDarkMode } = useTheme()
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [activities, setActivities] = useState<Activity[]>([])
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -95,36 +114,67 @@ const DashboardPage = () => {
     return 'Boa noite'
   }
 
-  const stats = [
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
+  }
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/dashboard/stats')
+        
+        if (!response.ok) {
+          throw new Error('Erro ao buscar dados')
+        }
+
+        const data = await response.json()
+        setStats(data.stats)
+        setActivities(data.activities || [])
+      } catch (error) {
+        console.error('Erro ao carregar dashboard:', error)
+        toast.error('Erro ao carregar dados do dashboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  const statsCards = stats ? [
     {
-      title: 'Vendas Total',
-      value: 'R$ 48.500',
-      change: '+12.5%',
-      trend: 'up' as const,
+      title: 'Orçamentos Aprovados',
+      value: formatCurrency(stats.quotes.value),
+      change: `${stats.quotes.change}%`,
+      trend: stats.quotes.trend,
       icon: <TrendingUp className="w-6 h-6" />
     },
     {
       title: 'Clientes Ativos',
-      value: '1.234',
-      change: '+8.2%',
-      trend: 'up' as const,
+      value: stats.contacts.value.toString(),
+      change: `${stats.contacts.change}%`,
+      trend: stats.contacts.trend,
       icon: <Users className="w-6 h-6" />
     },
     {
       title: 'Eventos do Mês',
-      value: '42',
-      change: '+15.3%',
-      trend: 'up' as const,
+      value: stats.events.value.toString(),
+      change: `${stats.events.change}%`,
+      trend: stats.events.trend,
       icon: <Calendar className="w-6 h-6" />
     },
     {
       title: 'Receita Mensal',
-      value: 'R$ 23.100',
-      change: '-2.4%',
-      trend: 'down' as const,
+      value: formatCurrency(stats.revenue.value),
+      change: `${stats.revenue.change}%`,
+      trend: stats.revenue.trend,
       icon: <DollarSign className="w-6 h-6" />
     }
-  ]
+  ] : []
 
   return (
     <div className="h-full w-full p-6">
@@ -150,18 +200,24 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <StatCard {...stat} />
-            </motion.div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {statsCards.map((stat, index) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
+                <StatCard {...stat} />
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* Quick Actions */}
         <motion.div
@@ -255,31 +311,39 @@ const DashboardPage = () => {
           </div>
           
           <div className="space-y-3">
-            {[
-              'Cliente Maria Silva aprovou orçamento #1234',
-              'Novo agendamento para João Santos amanhã às 14h',
-              'Contrato #5678 foi finalizado com sucesso',
-              'Amanda Costa enviou nova mensagem no chat'
-            ].map((activity, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
-                className={cn(
-                  'flex items-center gap-3 p-3 rounded-lg',
-                  isDarkMode ? 'hover:bg-slate-700/30' : 'hover:bg-gray-50/50'
-                )}
-              >
-                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                <span className={cn(
-                  'text-sm',
-                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                )}>
-                  {activity}
-                </span>
-              </motion.div>
-            ))}
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+              </div>
+            ) : activities.length > 0 ? (
+              activities.map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg',
+                    isDarkMode ? 'hover:bg-slate-700/30' : 'hover:bg-gray-50/50'
+                  )}
+                >
+                  <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                  <span className={cn(
+                    'text-sm',
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  )}>
+                    {activity.description}
+                  </span>
+                </motion.div>
+              ))
+            ) : (
+              <div className={cn(
+                'text-center py-8 text-sm',
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              )}>
+                Nenhuma atividade recente
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

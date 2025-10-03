@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Bell, 
@@ -36,6 +36,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { WhatsAppSimpleModal } from '@/components/whatsapp/WhatsAppSimpleModal'
+import { WhatsAppConnectionManager } from '@/components/whatsapp/WhatsAppConnectionManager'
 import { cn } from '@/lib/utils'
 
 interface WhatsAppStatusProps {
@@ -44,6 +45,95 @@ interface WhatsAppStatusProps {
 
 const WhatsAppStatus: React.FC<WhatsAppStatusProps> = ({ onOpenModal }) => {
   const { isDarkMode } = useTheme()
+  const [isConnected, setIsConnected] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Verificar status da sessão WhatsApp
+  React.useEffect(() => {
+    const checkWhatsAppStatus = async () => {
+      try {
+        // Buscar token do cookie ou localStorage
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('accessToken='))
+          ?.split('=')[1]
+
+        const response = await fetch('/api/whatsapp/sessions', {
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
+        })
+        
+        if (response.ok) {
+          const sessions = await response.json()
+          // Verificar se existe alguma sessão ativa (WORKING)
+          const hasActiveSession = Array.isArray(sessions) 
+            ? sessions.some((s: any) => s.status === 'WORKING')
+            : false
+          setIsConnected(hasActiveSession)
+          console.log('🔍 WhatsApp Status Check:', { sessions, hasActiveSession })
+        } else {
+          console.log('❌ Erro na resposta:', response.status)
+        }
+      } catch (error) {
+        console.error('Erro ao verificar status WhatsApp:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkWhatsAppStatus()
+    // Verificar a cada 15 segundos (otimizado)
+    const interval = setInterval(checkWhatsAppStatus, 15000)
+    
+    // Listener para atualização instantânea quando conectar
+    const handleWhatsAppConnected = () => {
+      console.log('✅ WhatsApp conectado - atualizando status')
+      setIsConnected(true)
+      setIsLoading(false)
+    }
+    
+    window.addEventListener('whatsapp-connected', handleWhatsAppConnected)
+    
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('whatsapp-connected', handleWhatsAppConnected)
+    }
+  }, [])
+
+  if (isLoading) {
+    return (
+      <motion.div
+        className={cn(
+          'flex items-center gap-2 px-4 py-2 rounded-xl',
+          isDarkMode ? 'bg-slate-800/50 text-slate-300' : 'bg-gray-100/80 text-gray-600'
+        )}
+      >
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-sm font-medium">Verificando...</span>
+      </motion.div>
+    )
+  }
+
+  if (isConnected) {
+    return (
+      <motion.button
+        onClick={onOpenModal}
+        className={cn(
+          'flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300',
+          isDarkMode
+            ? 'bg-green-900/30 text-green-300 hover:bg-green-900/50'
+            : 'bg-green-100/80 text-green-600 hover:bg-green-200/80'
+        )}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <Wifi className="w-4 h-4" />
+        <span className="text-sm font-medium">WhatsApp Conectado</span>
+        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+      </motion.button>
+    )
+  }
   
   return (
     <motion.button
@@ -78,12 +168,52 @@ const WhatsAppStatus: React.FC<WhatsAppStatusProps> = ({ onOpenModal }) => {
   )
 }
 
-interface ActiveAttendantsProps {
-  count: number
+interface WhatsAppChatsCountProps {
+  sessions: any[]
 }
 
-const ActiveAttendants: React.FC<ActiveAttendantsProps> = ({ count }) => {
+const WhatsAppChatsCount: React.FC<WhatsAppChatsCountProps> = ({ sessions }) => {
   const { isDarkMode } = useTheme()
+  const [totalChats, setTotalChats] = useState(0)
+  const [loading, setLoading] = useState(false)
+  
+  useEffect(() => {
+    const fetchChatsCount = async () => {
+      if (!sessions || sessions.length === 0) {
+        setTotalChats(0)
+        return
+      }
+
+      setLoading(true)
+      let count = 0
+
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1]
+
+      for (const session of sessions) {
+        if (session.status === 'WORKING') {
+          try {
+            const response = await fetch(`/api/whatsapp/sessions/${session.sessionId}/chats`, {
+              headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            })
+            if (response.ok) {
+              const chats = await response.json()
+              count += Array.isArray(chats) ? chats.length : 0
+            }
+          } catch (err) {
+            console.error('Erro ao buscar chats:', err)
+          }
+        }
+      }
+
+      setTotalChats(count)
+      setLoading(false)
+    }
+
+    fetchChatsCount()
+  }, [sessions])
   
   return (
     <motion.div
@@ -95,9 +225,11 @@ const ActiveAttendants: React.FC<ActiveAttendantsProps> = ({ count }) => {
       )}
       whileHover={{ scale: 1.02 }}
     >
-      <Users className="w-4 h-4" />
-      <span className="text-sm font-medium">{count}</span>
-      <div className="w-2 h-2 bg-green-400 rounded-full" />
+      <MessageCircle className="w-4 h-4" />
+      <span className="text-sm font-medium">
+        {loading ? '...' : totalChats}
+      </span>
+      {totalChats > 0 && <div className="w-2 h-2 bg-green-400 rounded-full" />}
     </motion.div>
   )
 }
@@ -208,52 +340,104 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
   const [showMobileOptions, setShowMobileOptions] = useState(false)
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [showConnectionManager, setShowConnectionManager] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState('pt')
   const [searchQuery, setSearchQuery] = useState('')
+  const [whatsappSessions, setWhatsappSessions] = useState<any[]>([])
   const { user, logout } = useAuth()
   const { isDarkMode, toggleTheme } = useTheme()
 
-  const notifications = [
-    {
-      id: 1,
-      type: 'message' as const,
-      title: 'Nova mensagem',
-      message: 'Cliente Maria enviou uma mensagem sobre o orçamento',
-      time: '2min',
-      isRead: false
-    },
-    {
-      id: 2,
-      type: 'appointment' as const,
-      title: 'Agendamento hoje',
-      message: 'Reunião com João Silva às 14h30',
-      time: '15min',
-      isRead: false
-    },
-    {
-      id: 3,
-      type: 'budget' as const,
-      title: 'Orçamento aprovado',
-      message: 'Orçamento #1234 foi aprovado pelo cliente',
-      time: '1h',
-      isRead: true
-    },
-    {
-      id: 4,
-      type: 'system' as const,
-      title: 'Sistema atualizado',
-      message: 'Nova versão com melhorias foi instalada',
-      time: '2h',
-      isRead: true
-    }
-  ]
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
 
-  const unreadCount = notifications.filter(n => !n.isRead).length
+  // Buscar notificações
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('accessToken='))
+          ?.split('=')[1]
+
+        const response = await fetch('/api/notifications', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setNotifications(data.notifications || [])
+          setUnreadCount(data.unreadCount || 0)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar notificações:', error)
+      }
+    }
+
+    fetchNotifications()
+    // Atualizar a cada 60 segundos
+    const interval = setInterval(fetchNotifications, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Buscar sessões WhatsApp
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('accessToken='))
+          ?.split('=')[1]
+
+        const response = await fetch('/api/whatsapp/sessions', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+
+        if (response.ok) {
+          const sessions = await response.json()
+          setWhatsappSessions(Array.isArray(sessions) ? sessions : [])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar sessões:', error)
+      }
+    }
+
+    fetchSessions()
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(fetchSessions, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleOpenWhatsAppModal = () => {
-    console.log('🚀 Abrindo modal WhatsApp')
-    setShowWhatsAppModal(true)
+    console.log('🚀 Abrindo gerenciador de conexões WhatsApp')
+    setShowConnectionManager(true)
+  }
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1]
+
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ notificationId })
+      })
+
+      // Atualizar localmente
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+      )
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Erro ao marcar notificação:', error)
+    }
   }
 
   const toggleFullscreen = () => {
@@ -364,7 +548,7 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
         />
         
         {(user?.role === 'ADMINISTRADOR' || user?.role === 'ASSINANTE') && (
-          <ActiveAttendants count={3} />
+          <WhatsAppChatsCount sessions={whatsappSessions} />
         )}
       </div>
 
@@ -524,16 +708,27 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
                 </div>
                 
                 <div className="max-h-80 overflow-y-auto p-2">
-                  {notifications.map((notification) => (
-                    <NotificationItem
-                      key={notification.id}
-                      {...notification}
-                      onClick={() => {
-                        console.log('Clicked notification:', notification.id)
-                        setShowNotifications(false)
-                      }}
-                    />
-                  ))}
+                  {notifications.length === 0 ? (
+                    <div className={cn(
+                      'text-center py-8 text-sm',
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    )}>
+                      Nenhuma notificação
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <NotificationItem
+                        key={notification.id}
+                        {...notification}
+                        onClick={() => {
+                          if (!notification.isRead) {
+                            markAsRead(notification.id)
+                          }
+                          setShowNotifications(false)
+                        }}
+                      />
+                    ))
+                  )}
                 </div>
                 
                 <div className="p-3 border-t border-gray-200/50 dark:border-slate-700/50">
@@ -926,10 +1121,10 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
         </div>
       </div>
       
-      {/* WhatsApp Connection Modal */}
-      <WhatsAppSimpleModal
-        isOpen={showWhatsAppModal}
-        onClose={() => setShowWhatsAppModal(false)}
+      {/* WhatsApp Connection Manager */}
+      <WhatsAppConnectionManager
+        isOpen={showConnectionManager}
+        onClose={() => setShowConnectionManager(false)}
       />
     </header>
   )

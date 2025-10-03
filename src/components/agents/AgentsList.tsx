@@ -205,8 +205,41 @@ export const AgentsList: React.FC<AgentsListProps> = ({
   onAgentSelect,
   onActivationRequest
 }) => {
-  const [agents, setAgents] = useState(mockAgents)
-  const [loading, setLoading] = useState(false)
+  const [agents, setAgents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Buscar agentes da API
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        setLoading(true)
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('accessToken='))
+          ?.split('=')[1]
+
+        const params = new URLSearchParams()
+        if (filters.status !== 'all') params.append('status', filters.status)
+        if (filters.model !== 'all') params.append('model', filters.model)
+        if (filters.niche !== 'all') params.append('niche', filters.niche)
+
+        const response = await fetch(`/api/agents?${params.toString()}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setAgents(data.agents || [])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar agentes:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAgents()
+  }, [filters.status, filters.model, filters.niche])
 
   // Simular filtros
   const filteredAgents = agents.filter((agent) => {
