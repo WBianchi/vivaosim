@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Menu, X, Sun, Moon, Phone, TrendingUp, Users, Calendar, Truck, Megaphone, Zap, DollarSign, BarChart3, FileText, BookOpen, LogOut, User } from 'lucide-react'
+import { ChevronDown, Menu, X, Sun, Moon, Phone, TrendingUp, Users, Calendar, Truck, Megaphone, Zap, DollarSign, BarChart3, FileText, LogOut, User, MessageSquare, Columns3, UserCircle, Wallet, Settings, Briefcase, GitBranch, MessageCircle, BookOpen, PieChart } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -14,15 +14,15 @@ const Header = () => {
   const { user, logout } = useAuth()
 
   const solucoesItems = [
-    { name: 'Vendas', description: 'Gerencie todo processo de vendas e propostas comerciais', icon: TrendingUp, anchor: 'inicio' },
-    { name: 'Relacionamento', description: 'CRM completo para gestão de clientes e leads', icon: Users, anchor: 'vantagens' },
-    { name: 'Planejamento', description: 'Organize e planeje seus eventos com eficiência', icon: Calendar, anchor: 'demo' },
-    { name: 'Logística', description: 'Controle operacional e gestão de recursos', icon: Truck, anchor: 'beneficios' },
-    { name: 'Marketing', description: 'Campanhas digitais e automação de marketing', icon: Megaphone, anchor: 'blog' },
-    { name: 'Automação', description: 'Processos automatizados e workflows inteligentes', icon: Zap, anchor: 'demo' },
-    { name: 'Finanças', description: 'Gestão financeira completa e controle de custos', icon: DollarSign, anchor: 'planos' },
-    { name: 'Análises', description: 'Relatórios avançados e dashboards em tempo real', icon: BarChart3, anchor: 'numeros' },
-    { name: 'Fiscal e Jurídico', description: 'Compliance, contratos e documentos legais', icon: FileText, anchor: 'sobre' }
+    { name: 'Vendas', description: 'Gerencie todo processo de vendas e propostas comerciais', icon: TrendingUp, href: '/solucoes/vendas' },
+    { name: 'Relacionamento', description: 'CRM completo para gestão de clientes e leads', icon: Users, href: '/solucoes/relacionamento' },
+    { name: 'Planejamento', description: 'Organize e planeje seus eventos com eficiência', icon: Calendar, href: '/solucoes/planejamento' },
+    { name: 'Logística', description: 'Controle operacional e gestão de recursos', icon: Truck, href: '/solucoes/logistica' },
+    { name: 'Marketing', description: 'Campanhas digitais e automação de marketing', icon: Megaphone, href: '/solucoes/marketing' },
+    { name: 'Automação', description: 'Processos automatizados e workflows inteligentes', icon: Zap, href: '/solucoes/automacao' },
+    { name: 'Finanças', description: 'Gestão financeira completa e controle de custos', icon: DollarSign, href: '/solucoes/financas' },
+    { name: 'Análises', description: 'Relatórios avançados e dashboards em tempo real', icon: BarChart3, href: '/solucoes/analises' },
+    { name: 'Fiscal e Jurídico', description: 'Compliance, contratos e documentos legais', icon: FileText, href: '/solucoes/fiscal' }
   ]
 
   const segmentosItems = [
@@ -41,6 +41,57 @@ const Header = () => {
   ]
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+
+  // Menu items baseado no role
+  const getMenuItems = () => {
+    const baseItems = [
+      { label: 'Meu Perfil', icon: User, href: '/profile', color: 'orange' }
+    ]
+
+    if (user?.role === 'ADMINISTRADOR') {
+      return [
+        { label: 'Visão Geral', icon: BarChart3, href: '/dashboard', color: 'orange' },
+        { label: 'Chat ao Vivo', icon: MessageSquare, href: '/chat', color: 'orange' },
+        { label: 'Kanban', icon: Columns3, href: '/kanban', color: 'orange' },
+        { label: 'Atendentes', icon: UserCircle, href: '/attendants', color: 'orange' },
+        { label: 'Financeiro', icon: Wallet, href: '/financial', color: 'orange' },
+        { label: 'Usuários', icon: Users, href: '/users', color: 'orange' },
+        { label: 'Sites', icon: Briefcase, href: '/sites', color: 'orange' },
+        { label: 'Marketing', icon: Megaphone, href: '/marketing', color: 'orange' },
+        { label: 'Fluxograma', icon: GitBranch, href: '/flowchart', color: 'orange' },
+        { label: 'Agentes', icon: MessageCircle, href: '/agents', color: 'orange' },
+        { label: 'Chat Interno', icon: MessageCircle, href: '/internal-chat', color: 'orange' },
+        { label: 'Blog', icon: BookOpen, href: '/blog', color: 'orange' },
+        { label: 'Relatórios', icon: PieChart, href: '/reports', color: 'orange' },
+        { label: 'Configurações', icon: Settings, href: '/settings', color: 'orange' },
+        ...baseItems
+      ]
+    }
+
+    if (user?.role === 'ATENDENTE') {
+      return [
+        { label: 'Dashboard', icon: BarChart3, href: '/dashboard', color: 'orange' },
+        { label: 'Chat ao Vivo', icon: MessageSquare, href: '/chat', color: 'orange' },
+        { label: 'Kanban', icon: Columns3, href: '/kanban', color: 'orange' },
+        { label: 'Chat Interno', icon: MessageCircle, href: '/internal-chat', color: 'orange' },
+        ...baseItems
+      ]
+    }
+
+    if (user?.role === 'ASSINANTE') {
+      return [
+        { label: 'Dashboard', icon: BarChart3, href: '/dashboard', color: 'orange' },
+        { label: 'Meus Eventos', icon: Calendar, href: '/events', color: 'orange' },
+        { label: 'Orçamentos', icon: DollarSign, href: '/quotes', color: 'orange' },
+        { label: 'Contratos', icon: FileText, href: '/contracts', color: 'orange' },
+        ...baseItems
+      ]
+    }
+
+    return baseItems
+  }
+
+  const menuItems = getMenuItems()
 
   return (
     <motion.header 
@@ -123,20 +174,22 @@ const Header = () => {
                         {solucoesItems.map((item, index) => {
                           const IconComponent = item.icon
                           return (
-                            <motion.a
+                            <Link
                               key={item.name}
-                              href={`#${item.anchor}`}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className={`p-3 rounded-xl transition-all duration-300 ${
-                                isDarkMode 
-                                  ? 'hover:bg-white/10 text-white' 
-                                  : 'hover:bg-gray-50 text-gray-900'
-                              } group border ${
-                                isDarkMode ? 'border-white/5' : 'border-gray-100'
-                              } hover:border-orange-200`}
+                              href={item.href}
                             >
+                              <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className={`p-3 rounded-xl transition-all duration-300 ${
+                                  isDarkMode 
+                                    ? 'hover:bg-white/10 text-white' 
+                                    : 'hover:bg-gray-50 text-gray-900'
+                                } group border ${
+                                  isDarkMode ? 'border-white/5' : 'border-gray-100'
+                                } hover:border-orange-200`}
+                              >
                               <div className="flex items-start space-x-2">
                                 <div className={`p-1.5 rounded-lg ${
                                   isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
@@ -154,7 +207,8 @@ const Header = () => {
                                   </div>
                                 </div>
                               </div>
-                            </motion.a>
+                              </motion.div>
+                            </Link>
                           )
                         })}
                       </div>
@@ -195,27 +249,37 @@ const Header = () => {
                       }}
                     >
                       <div className="grid grid-cols-3 gap-2">
-                        {segmentosItems.map((item, index) => (
-                          <motion.a
-                            key={item}
-                            href="#sobre"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            className={`p-2.5 rounded-xl transition-all duration-300 ${
-                              isDarkMode 
-                                ? 'hover:bg-white/10 text-white border border-white/5' 
-                                : 'hover:bg-gray-50 text-gray-900 border border-gray-100'
-                            } group text-xs font-medium hover:text-orange-500 hover:border-orange-200`}
-                          >
-                            <div className="flex items-center space-x-1.5">
-                              <div className={`w-1.5 h-1.5 rounded-full ${
-                                isDarkMode ? 'bg-orange-400' : 'bg-orange-500'
-                              } group-hover:scale-125 transition-transform`}></div>
-                              <span className="truncate">{item}</span>
-                            </div>
-                          </motion.a>
-                        ))}
+                        {segmentosItems.map((item, index) => {
+                          const slug = item.toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/\s+/g, '-')
+                          
+                          return (
+                            <Link
+                              key={item}
+                              href={`/segmentos/${slug}`}
+                            >
+                              <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.03 }}
+                                className={`p-2.5 rounded-xl transition-all duration-300 ${
+                                  isDarkMode 
+                                    ? 'hover:bg-white/10 text-white border border-white/5' 
+                                    : 'hover:bg-gray-50 text-gray-900 border border-gray-100'
+                                } group text-xs font-medium hover:text-orange-500 hover:border-orange-200`}
+                              >
+                                <div className="flex items-center space-x-1.5">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${
+                                    isDarkMode ? 'bg-orange-400' : 'bg-orange-500'
+                                  } group-hover:scale-125 transition-transform`}></div>
+                                  <span className="truncate">{item}</span>
+                                </div>
+                              </motion.div>
+                            </Link>
+                          )
+                        })}
                       </div>
                     </motion.div>
                   )}
@@ -233,13 +297,6 @@ const Header = () => {
               } backdrop-blur-sm font-medium`}>
                 Empresa
               </a>
-
-              <Link href="/blog" className={`flex items-center space-x-1 px-4 py-2 rounded-lg transition-all duration-300 ${
-                isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100/80'
-              } backdrop-blur-sm font-medium`}>
-                <BookOpen className="w-4 h-4" />
-                <span>Blog</span>
-              </Link>
             </nav>
 
             {/* Right Side Actions */}
@@ -297,61 +354,83 @@ const Header = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className={`absolute top-full right-0 mt-2 w-48 ${
+                        className={`absolute top-full right-0 mt-2 w-72 ${
                           isDarkMode ? 'bg-slate-800/95' : 'bg-white/95'
                         } backdrop-blur-xl rounded-2xl shadow-2xl border ${
                           isDarkMode ? 'border-white/10' : 'border-gray-200/50'
-                        } p-2`}
+                        } overflow-hidden`}
+                        style={{
+                          boxShadow: isDarkMode
+                            ? '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                            : '0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
+                        }}
                       >
-                        <div className={`px-3 py-2 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200/50'} mb-2`}>
-                          <p className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            {user.name}
-                          </p>
-                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {user.role}
-                          </p>
+                        {/* Header do Dropdown */}
+                        <div className={`px-4 py-4 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200/50'} bg-gradient-to-r from-orange-500/10 to-orange-600/10`}>
+                          <div className="flex items-center space-x-3">
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full ring-2 ring-orange-500/20" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600">
+                                <span className="text-white font-bold text-lg">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {user.name}
+                              </p>
+                              <p className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {user.email}
+                              </p>
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                                {user.role}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                         
-                        <Link href="/profile">
-                          <button className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
-                            isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                          }`}>
-                            <User className="w-4 h-4" />
-                            <span className="text-sm">Meu perfil</span>
-                          </button>
-                        </Link>
+                        {/* Menu Items */}
+                        <div className="p-2 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-orange-500 scrollbar-track-transparent">
+                          {menuItems.map((item, idx) => {
+                            const ItemIcon = item.icon
+                            return (
+                              <Link key={idx} href={item.href}>
+                                <motion.button 
+                                  whileHover={{ x: 4 }}
+                                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition-all ${
+                                    isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                    isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
+                                  }`}>
+                                    <ItemIcon className="w-4 h-4 text-orange-500" />
+                                  </div>
+                                  <span className="text-sm font-medium">{item.label}</span>
+                                </motion.button>
+                              </Link>
+                            )
+                          })}
 
-                        {(user.role === 'ADMINISTRADOR' || user.role === 'ATENDENTE' || user.role === 'ASSINANTE') && (
-                          <Link href="/dashboard">
-                            <button className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
-                              isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                          <div className={`my-2 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200/50'}`} />
+
+                          <motion.button 
+                            whileHover={{ x: 4 }}
+                            onClick={logout}
+                            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-xl transition-all text-red-500 ${
+                              isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              isDarkMode ? 'bg-red-500/20' : 'bg-red-50'
                             }`}>
-                              <BarChart3 className="w-4 h-4" />
-                              <span className="text-sm">Dashboard</span>
-                            </button>
-                          </Link>
-                        )}
-
-                        {user.role === 'ADMINISTRADOR' && (
-                          <Link href="/admin">
-                            <button className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
-                              isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                            }`}>
-                              <Users className="w-4 h-4" />
-                              <span className="text-sm">Administração</span>
-                            </button>
-                          </Link>
-                        )}
-
-                        <button 
-                          onClick={logout}
-                          className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all text-red-500 hover:bg-red-50 ${
-                            isDarkMode ? 'hover:bg-red-900/20' : ''
-                          }`}
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span className="text-sm">Sair</span>
-                        </button>
+                              <LogOut className="w-4 h-4 text-red-500" />
+                            </div>
+                            <span className="text-sm font-medium">Sair</span>
+                          </motion.button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -429,16 +508,11 @@ const Header = () => {
               } font-medium`}>
                 Planos
               </Link>
-              <Link href="/empresa" className={`block py-3 ${
+              <a href="#sobre" className={`block py-3 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               } font-medium`}>
                 Empresa
-              </Link>
-              <Link href="/blog" className={`block py-3 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              } font-medium`}>
-                Blog
-              </Link>
+              </a>
               <div className="pt-4 border-t border-gray-200/20">
                 <button className={`block w-full text-left py-3 ${
                   isDarkMode ? 'text-white' : 'text-gray-900'

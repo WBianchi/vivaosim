@@ -224,17 +224,17 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         break
       case 'queue':
         console.log('👥 Abrindo bottom sheet para alterar fila')
-        setBottomSheetType('change-queue')
+        setBottomSheetType('queue')
         setShowBottomSheet(true)
         break
       case 'agent':
         console.log('👤 Abrindo bottom sheet para atribuir atendente')
-        setBottomSheetType('assign-agent')
+        setBottomSheetType('agent')
         setShowBottomSheet(true)
         break
       case 'status':
         console.log('🔘 Abrindo bottom sheet para alterar status')
-        setBottomSheetType('change-status')
+        setBottomSheetType('status')
         setShowBottomSheet(true)
         break
       case 'contract':
@@ -559,21 +559,22 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
           initial={{ opacity: 0, y: 10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
-          className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600"
+          className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg"
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Paperclip className="w-4 h-4" />
               Anexar arquivo
             </h3>
             <button
               onClick={() => setShowAttachMenu(false)}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-5 gap-2">
             {attachmentOptions.map((option) => {
               const Icon = option.icon
               return (
@@ -583,12 +584,14 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={cn(
-                    'flex flex-col items-center p-3 rounded-xl transition-colors hover:bg-white dark:hover:bg-gray-600',
+                    'flex flex-col items-center gap-1.5 p-2.5 rounded-lg transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600',
                     option.bg
                   )}
                 >
-                  <Icon className={cn('w-6 h-6 mb-2', option.color)} />
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <div className={cn('w-8 h-8 rounded-full flex items-center justify-center', option.bg)}>
+                    <Icon className={cn('w-4 h-4', option.color)} />
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
                     {option.label}
                   </span>
                 </motion.button>
@@ -925,7 +928,16 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
             <div className="sticky top-0 bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {bottomSheetType === 'create-client' ? 'Converter Lead para Cliente' : 'Ação Business'}
+                  {bottomSheetType === 'create-client' && 'Converter Lead para Cliente'}
+                  {bottomSheetType === 'edit-client' && 'Editar Perfil do Cliente'}
+                  {bottomSheetType === 'create-ticket' && 'Criar Ticket'}
+                  {bottomSheetType === 'create-schedule' && 'Agendar Reunião'}
+                  {bottomSheetType === 'create-quote' && 'Criar Orçamento'}
+                  {bottomSheetType === 'add-tag' && 'Gerenciar Tags'}
+                  {bottomSheetType === 'create-contract' && 'Criar Contrato'}
+                  {bottomSheetType === 'queue' && 'Alterar Fila'}
+                  {bottomSheetType === 'agent' && 'Atribuir Atendente'}
+                  {bottomSheetType === 'status' && 'Alterar Status'}
                 </h2>
                 <button
                   onClick={() => setShowBottomSheet(false)}

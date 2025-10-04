@@ -59,13 +59,31 @@ export default function LoginPage() {
       
       if (data.success) {
         console.log('✅ LOGIN SUCESSO - redirecionando...')
+        console.log('👤 Role do usuário:', data.data.user.role)
         console.log('🍪 Setando cookies...')
         
         // Setar cookies manualmente (sem secure para localhost)
         document.cookie = `accessToken=${data.data.accessToken}; path=/; max-age=900; samesite=lax`
         
-        console.log('🔄 Fazendo redirect com window.location...')
-        window.location.href = '/dashboard'
+        // Redirecionar baseado no role
+        let redirectUrl = '/dashboard'
+        
+        if (data.data.user.role === 'CLIENTE') {
+          redirectUrl = '/' // Página inicial para clientes
+        } else if (data.data.user.role === 'ADMINISTRADOR' || data.data.user.role === 'ATENDENTE' || data.data.user.role === 'ASSINANTE') {
+          redirectUrl = '/dashboard'
+        }
+        
+        console.log('🔄 Redirecionando para:', redirectUrl)
+        
+        // Limpar cache antes de redirecionar
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => caches.delete(name))
+          })
+        }
+        
+        window.location.href = redirectUrl
       } else {
         console.error('❌ Login falhou:', data.error)
         setError(data.error)
