@@ -65,10 +65,28 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions 
     }
   }
 
-  const handleEditBoard = (boardId: string) => {
-    // TODO: Implementar modal de edição
-    console.log('✏️ Editar board:', boardId)
-    alert('🚧 Funcionalidade em desenvolvimento')
+  const handleUpdateName = async (boardId: string, newName: string) => {
+    try {
+      const response = await fetch(`/api/boards/${boardId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: newName })
+      })
+      
+      if (response.ok) {
+        // Atualizar localmente sem recarregar tudo
+        setBoards(prev => prev.map(board => 
+          board.id === boardId ? { ...board, name: newName } : board
+        ))
+      } else {
+        alert('❌ Erro ao atualizar nome')
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar nome:', error)
+      alert('❌ Erro ao atualizar nome')
+    }
   }
 
   if (selectedBoard) {
@@ -164,7 +182,7 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions 
               index={index}
               onClick={() => setSelectedBoard(board.id)}
               onDelete={handleDeleteBoard}
-              onEdit={handleEditBoard}
+              onUpdateName={handleUpdateName}
             />
           ))}
           

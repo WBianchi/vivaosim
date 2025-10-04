@@ -33,6 +33,18 @@ export const TagCard: React.FC<TagCardProps> = ({
   }
 
   const getColorConfig = (color: string) => {
+    // Aceita hex colors
+    const isHex = color.startsWith('#')
+    if (isHex) {
+      return {
+        bg: 'bg-orange-500',
+        lightBg: 'bg-orange-100',
+        text: 'text-orange-700',
+        border: 'border-orange-200',
+        hex: color
+      }
+    }
+
     switch (color) {
       case 'red':
         return {
@@ -100,25 +112,8 @@ export const TagCard: React.FC<TagCardProps> = ({
     }
   }
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'projeto':
-        return Hash
-      case 'cliente':
-        return User
-      case 'status':
-        return Activity
-      case 'prioridade':
-        return TrendingUp
-      case 'departamento':
-        return User
-      case 'servico':
-        return FileText
-      case 'produto':
-        return Tag
-      default:
-        return Tag
-    }
+  const getCategoryIcon = (category?: string) => {
+    return Tag
   }
 
   const getUsageLevel = (count: number) => {
@@ -130,8 +125,7 @@ export const TagCard: React.FC<TagCardProps> = ({
 
   const colorConfig = getColorConfig(tag.color)
   const CategoryIcon = getCategoryIcon(tag.category)
-  const usageLevel = getUsageLevel(tag.usageCount)
-  const totalItems = Object.values(tag.relatedItems).reduce((sum: number, count: any) => sum + count, 0)
+  const usageLevel = getUsageLevel(tag.usageCount || 0)
 
   return (
     <motion.div
@@ -155,11 +149,8 @@ export const TagCard: React.FC<TagCardProps> = ({
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <CategoryIcon className="w-3 h-3 text-gray-600" />
-                <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                  {tag.category}
-                </span>
-                <span className={`px-2 py-0.5 ${colorConfig.lightBg} ${colorConfig.text} rounded-full text-xs font-medium`}>
-                  {tag.status === 'active' ? 'Ativa' : 'Inativa'}
+                <span className="text-xs text-gray-600 dark:text-gray-400">
+                  {tag.usageCount || 0} usos
                 </span>
               </div>
             </div>
@@ -181,9 +172,11 @@ export const TagCard: React.FC<TagCardProps> = ({
         </div>
 
         {/* Descrição */}
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-          {tag.description}
-        </p>
+        {tag.description && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+            {tag.description}
+          </p>
+        )}
 
         {/* Estatísticas de Uso */}
         <div className={`${colorConfig.lightBg} p-4 rounded-xl mb-4`}>
@@ -200,7 +193,7 @@ export const TagCard: React.FC<TagCardProps> = ({
           </div>
           <div className="flex items-center justify-between">
             <span className={`text-2xl font-bold ${colorConfig.text}`}>
-              {tag.usageCount}
+              {tag.usageCount || 0}
             </span>
             <span className={`text-sm ${colorConfig.text}`}>
               usos
@@ -208,70 +201,30 @@ export const TagCard: React.FC<TagCardProps> = ({
           </div>
         </div>
 
-        {/* Itens Relacionados */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+        {/* Chats Relacionados */}
+        {tag.chats && tag.chats.length > 0 && (
+          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-4">
             <div className="flex items-center gap-2 mb-1">
-              <FileText className="w-3 h-3 text-gray-600" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">Contratos</span>
+              <Hash className="w-3 h-3 text-gray-600" />
+              <span className="text-xs text-gray-600 dark:text-gray-400">Chats</span>
             </div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {tag.relatedItems.contracts}
+              {tag.chats.length}
             </p>
           </div>
-          
-          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-3 h-3 text-gray-600" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">Orçamentos</span>
-            </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {tag.relatedItems.quotes}
-            </p>
-          </div>
-          
-          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-3 h-3 text-gray-600" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">Agendamentos</span>
-            </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {tag.relatedItems.schedules}
-            </p>
-          </div>
-          
-          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <Ticket className="w-3 h-3 text-gray-600" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">Tickets</span>
-            </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {tag.relatedItems.tickets}
-            </p>
-          </div>
-        </div>
-
-        {/* Total de Itens */}
-        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg mb-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-green-700 dark:text-green-300">
-              Total de Itens:
-            </span>
-            <span className="text-lg font-bold text-green-700 dark:text-green-300">
-              {totalItems}
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* Criador */}
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs">
-            {tag.createdBy.name.charAt(0).toUpperCase()}
+        {tag.createdBy && (
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-xs">
+              {tag.createdBy.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Criado por {tag.createdBy.name || 'Usuário'}
+            </span>
           </div>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            Criado por {tag.createdBy.name}
-          </span>
-        </div>
+        )}
 
         {/* Data */}
         <div className="flex items-center gap-2 mb-4">

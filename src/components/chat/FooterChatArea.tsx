@@ -26,7 +26,10 @@ import {
   Settings,
   Bot,
   Cpu,
-  Zap
+  Zap,
+  BarChart3,
+  List as ListIcon,
+  CalendarDays
 } from 'lucide-react'
 import { CreateClientSheet } from './bottom-sheets/CreateClientSheet'
 import { EditClientSheet } from './bottom-sheets/EditClientSheet'
@@ -38,6 +41,15 @@ import { CreateContractSheet } from './bottom-sheets/CreateContractSheet'
 import { ChangeQueueSheet } from './bottom-sheets/ChangeQueueSheet'
 import { AssignAgentSheet } from './bottom-sheets/AssignAgentSheet'
 import { ChangeStatusSheet } from './bottom-sheets/ChangeStatusSheet'
+import { SendPollModal } from './modals/SendPollModal'
+import { SendListModal } from './modals/SendListModal'
+import { SendEventModal } from './modals/SendEventModal'
+import { SendAudioModal } from './modals/SendAudioModal'
+import { SendImageModal } from './modals/SendImageModal'
+import { SendVideoModal } from './modals/SendVideoModal'
+import { SendDocumentModal } from './modals/SendDocumentModal'
+import { SendLocationModal } from './modals/SendLocationModal'
+import { SendContactModal } from './modals/SendContactModal'
 import { Chat } from '@/types/chat'
 import { cn } from '@/lib/utils'
 
@@ -57,6 +69,16 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
   const [clientData, setClientData] = useState<any>(null)
   const [isAgentActive, setIsAgentActive] = useState<boolean>(true) // Status do agente
   const [aiMode, setAiMode] = useState<'manual' | 'assistant' | 'auto'>('manual') // Modo da IA
+  const [showPollModal, setShowPollModal] = useState(false)
+  const [showListModal, setShowListModal] = useState(false)
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [showAudioModal, setShowAudioModal] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [showVideoModal, setShowVideoModal] = useState(false)
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -96,16 +118,32 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
     }
 
     try {
-      // Aqui integrará com WAHA
-      console.log('Enviando mensagem:', messageToSend, 'para:', chat.id)
+      console.log('📤 Enviando mensagem:', messageToSend, 'para:', chat.id)
       
-      // Simular envio
-      // await sendMessage(chat.id, messageToSend)
+      const response = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chatId: chat.id,
+          message: messageToSend,
+          type: 'text'
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      const result = await response.json()
+      console.log('✅ Mensagem enviada:', result.messageId)
       
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error)
+      console.error('❌ Erro ao enviar mensagem:', error)
       // Restaurar mensagem em caso de erro
       setMessage(messageToSend)
+      alert('Erro ao enviar mensagem. Tente novamente.')
     }
   }
 
@@ -222,18 +260,41 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
   const handleFileUpload = (type: string) => {
     setShowAttachMenu(false)
     
-    // Configurar input file baseado no tipo
+    // Abrir modais para tipos especiais (sem arquivo)
+    switch (type) {
+      case 'poll':
+        setShowPollModal(true)
+        return
+      case 'list':
+        setShowListModal(true)
+        return
+      case 'event':
+        setShowEventModal(true)
+        return
+      case 'audio':
+        setShowAudioModal(true)
+        return
+      case 'location':
+        setShowLocationModal(true)
+        return
+      case 'contact':
+        setShowContactModal(true)
+        return
+    }
+    
+    // Configurar input file baseado no tipo e abrir seletor
     const input = fileInputRef.current
     if (input) {
+      // Armazenar tipo para usar no handleFileSelected
+      input.dataset.fileType = type
+      
       switch (type) {
         case 'image':
+        case 'camera':
           input.accept = 'image/*'
           break
         case 'video':
           input.accept = 'video/*'
-          break
-        case 'audio':
-          input.accept = 'audio/*'
           break
         case 'document':
           input.accept = '.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx'
@@ -247,10 +308,25 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      console.log('Arquivo selecionado:', file.name, file.size, file.type)
-      // Aqui processaria o arquivo e enviaria via WAHA
+    if (!file) return
+
+    const fileType = e.target.dataset.fileType || ''
+    console.log('📎 Arquivo selecionado:', file.name, file.size, file.type, 'Tipo:', fileType)
+
+    // Armazenar arquivo e abrir modal apropriado
+    setSelectedFile(file)
+
+    // Determinar qual modal abrir baseado no tipo
+    if (file.type.startsWith('image/')) {
+      setShowImageModal(true)
+    } else if (file.type.startsWith('video/')) {
+      setShowVideoModal(true)
+    } else {
+      setShowDocumentModal(true)
     }
+
+    // Limpar input
+    e.target.value = ''
   }
 
   const startRecording = () => {
@@ -263,6 +339,62 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
     setIsRecording(false)
     console.log('Parando gravação de áudio...')
     // Implementar parar gravação
+  }
+
+  // Função auxiliar para enviar arquivo com upload
+  const sendFileWithUpload = async (file: File, caption: string = '') => {
+    try {
+      // 1. Upload do arquivo
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('chatId', chat.id)
+
+      console.log('⬆️ Fazendo upload do arquivo...')
+      const uploadResponse = await fetch('/api/messages/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json()
+        throw new Error(error.error || 'Erro ao fazer upload')
+      }
+
+      const uploadResult = await uploadResponse.json()
+      console.log('✅ Upload concluído:', uploadResult.data)
+
+      // 2. Enviar via WAHA
+      const { fileUrl, mediaType, fileName } = uploadResult.data
+
+      console.log('📤 Enviando via WAHA...')
+      const sendResponse = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chatId: chat.id,
+          message: caption || fileName,
+          type: mediaType,
+          mediaUrl: fileUrl,
+          fileName: fileName,
+          caption: caption
+        })
+      })
+
+      if (!sendResponse.ok) {
+        throw new Error('Erro ao enviar mensagem')
+      }
+
+      const sendResult = await sendResponse.json()
+      console.log('✅ Arquivo enviado com sucesso:', sendResult.messageId)
+      
+      alert(`✅ ${mediaType === 'image' ? 'Imagem' : mediaType === 'video' ? 'Vídeo' : mediaType === 'audio' ? 'Áudio' : 'Documento'} enviado com sucesso!`)
+
+    } catch (error) {
+      console.error('❌ Erro ao enviar arquivo:', error)
+      alert(`Erro ao enviar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+    }
   }
 
   // Ações para LEAD FRESCO (não é cliente ainda)
@@ -369,6 +501,13 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
       bg: 'bg-purple-100 dark:bg-purple-900/30'
     },
     {
+      id: 'audio',
+      icon: Mic,
+      label: 'Áudio',
+      color: 'text-red-500',
+      bg: 'bg-red-100 dark:bg-red-900/30'
+    },
+    {
       id: 'document',
       icon: FileText,
       label: 'Documento',
@@ -379,8 +518,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
       id: 'location',
       icon: MapPin,
       label: 'Local',
-      color: 'text-red-500',
-      bg: 'bg-red-100 dark:bg-red-900/30'
+      color: 'text-yellow-500',
+      bg: 'bg-yellow-100 dark:bg-yellow-900/30'
     },
     {
       id: 'contact',
@@ -388,6 +527,27 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
       label: 'Contato',
       color: 'text-indigo-500',
       bg: 'bg-indigo-100 dark:bg-indigo-900/30'
+    },
+    {
+      id: 'poll',
+      icon: BarChart3,
+      label: 'Enquete',
+      color: 'text-pink-500',
+      bg: 'bg-pink-100 dark:bg-pink-900/30'
+    },
+    {
+      id: 'list',
+      icon: ListIcon,
+      label: 'Lista',
+      color: 'text-cyan-500',
+      bg: 'bg-cyan-100 dark:bg-cyan-900/30'
+    },
+    {
+      id: 'event',
+      icon: CalendarDays,
+      label: 'Evento',
+      color: 'text-rose-500',
+      bg: 'bg-rose-100 dark:bg-rose-900/30'
     }
   ]
 
@@ -1368,6 +1528,162 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
           </motion.div>
         </motion.div>
       )}
+
+      {/* Modais de Envio */}
+      <SendPollModal
+        isOpen={showPollModal}
+        onClose={() => setShowPollModal(false)}
+        onSend={async (pollData) => {
+          console.log('📊 Enviando enquete:', pollData)
+          // TODO: Implementar envio de enquete via WAHA
+          alert('Enquete enviada! (implementação pendente)')
+        }}
+        chatName={chat.name}
+      />
+
+      <SendListModal
+        isOpen={showListModal}
+        onClose={() => setShowListModal(false)}
+        onSend={async (listData) => {
+          console.log('📋 Enviando lista:', listData)
+          // TODO: Implementar envio de lista via WAHA
+          alert('Lista enviada! (implementação pendente)')
+        }}
+        chatName={chat.name}
+      />
+
+      <SendEventModal
+        isOpen={showEventModal}
+        onClose={() => setShowEventModal(false)}
+        onSend={async (eventData) => {
+          console.log('📅 Enviando evento:', eventData)
+          // TODO: Implementar envio de evento via WAHA
+          alert('Evento enviado! (implementação pendente)')
+        }}
+        chatName={chat.name}
+      />
+
+      <SendAudioModal
+        isOpen={showAudioModal}
+        onClose={() => setShowAudioModal(false)}
+        onSend={async (audioBlob, duration) => {
+          console.log('🎤 Enviando áudio:', { size: audioBlob.size, duration })
+          
+          try {
+            // Converter blob para file
+            const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
+            await sendFileWithUpload(audioFile, '')
+          } catch (error) {
+            console.error('Erro ao enviar áudio:', error)
+            alert('Erro ao enviar áudio')
+          }
+        }}
+        chatName={chat.name}
+      />
+
+      {/* Modais de Arquivo com Preview */}
+      <SendImageModal
+        isOpen={showImageModal}
+        onClose={() => {
+          setShowImageModal(false)
+          setSelectedFile(null)
+        }}
+        onSend={async (file, caption) => {
+          await sendFileWithUpload(file, caption)
+          setSelectedFile(null)
+        }}
+        file={selectedFile}
+        chatName={chat.name}
+      />
+
+      <SendVideoModal
+        isOpen={showVideoModal}
+        onClose={() => {
+          setShowVideoModal(false)
+          setSelectedFile(null)
+        }}
+        onSend={async (file, caption) => {
+          await sendFileWithUpload(file, caption)
+          setSelectedFile(null)
+        }}
+        file={selectedFile}
+        chatName={chat.name}
+      />
+
+      <SendDocumentModal
+        isOpen={showDocumentModal}
+        onClose={() => {
+          setShowDocumentModal(false)
+          setSelectedFile(null)
+        }}
+        onSend={async (file, caption) => {
+          await sendFileWithUpload(file, caption)
+          setSelectedFile(null)
+        }}
+        file={selectedFile}
+        chatName={chat.name}
+      />
+
+      {/* Modais de Localização e Contato */}
+      <SendLocationModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        onSend={async (locationData) => {
+          console.log('📍 Enviando localização:', locationData)
+          
+          try {
+            const response = await fetch('/api/messages/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId: chat.id,
+                message: locationData.name || 'Localização',
+                type: 'location',
+                latitude: locationData.latitude,
+                longitude: locationData.longitude
+              })
+            })
+
+            if (!response.ok) throw new Error('Erro ao enviar localização')
+            
+            alert('✅ Localização enviada com sucesso!')
+          } catch (error) {
+            console.error('Erro ao enviar localização:', error)
+            alert('Erro ao enviar localização')
+          }
+        }}
+        chatName={chat.name}
+      />
+
+      <SendContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        onSend={async (contactData) => {
+          console.log('👤 Enviando contato:', contactData)
+          
+          try {
+            const response = await fetch('/api/messages/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId: chat.id,
+                message: contactData.name,
+                type: 'contact',
+                contactName: contactData.name,
+                contactPhone: contactData.phone
+              })
+            })
+
+            if (!response.ok) throw new Error('Erro ao enviar contato')
+            
+            alert('✅ Contato enviado com sucesso!')
+          } catch (error) {
+            console.error('Erro ao enviar contato:', error)
+            alert('Erro ao enviar contato')
+          }
+        }}
+        chatName={chat.name}
+      />
     </div>
   )
 }

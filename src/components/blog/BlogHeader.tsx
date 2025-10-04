@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Search, Grid3X3, List, FileText, Eye, TrendingUp, Clock, Star, MessageSquare } from 'lucide-react'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface BlogHeaderProps {
   onCreatePost: () => void
@@ -14,13 +16,42 @@ interface BlogHeaderProps {
 export const BlogHeader: React.FC<BlogHeaderProps> = ({
   onCreatePost, onSearchChange, searchTerm, viewMode, onViewModeChange
 }) => {
-  const stats = {
-    totalPosts: 156,
-    publishedPosts: 124,
-    draftPosts: 32,
-    totalViews: 45890,
-    avgReadTime: 4.5,
-    totalComments: 892
+  const [stats, setStats] = useState({
+    totalPosts: 0,
+    publishedPosts: 0,
+    draftPosts: 0,
+    totalViews: 0,
+    avgReadTime: 0,
+    totalComments: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/blog/stats', {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setStats({
+          totalPosts: data.stats.totalPosts.value,
+          publishedPosts: data.stats.publishedPosts.value,
+          draftPosts: data.stats.draftPosts.value,
+          totalViews: data.stats.totalViews.value,
+          avgReadTime: 4.5,
+          totalComments: data.stats.totalComments.value
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

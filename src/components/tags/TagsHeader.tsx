@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -12,6 +13,7 @@ import {
   Palette,
   BarChart3
 } from 'lucide-react'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface TagsHeaderProps {
   onCreateTag: () => void
@@ -28,41 +30,103 @@ export const TagsHeader: React.FC<TagsHeaderProps> = ({
   searchTerm,
   onSearchChange
 }) => {
-  // Mock stats - em produção viriam da API
-  const stats = [
+  const [stats, setStats] = useState([
     {
       label: 'Total de Tags',
-      value: '156',
+      value: '0',
       icon: Tag,
       color: 'text-blue-600',
       bg: 'bg-blue-100',
-      change: '+12'
+      change: '+0'
     },
     {
       label: 'Mais Usadas',
-      value: '24',
+      value: '0',
       icon: TrendingUp,
       color: 'text-green-600',
       bg: 'bg-green-100',
-      change: '+5'
+      change: '+0'
     },
     {
-      label: 'Categorias',
-      value: '8',
-      icon: Hash,
+      label: 'Uso Total',
+      value: '0',
+      icon: BarChart3,
       color: 'text-purple-600',
       bg: 'bg-purple-100',
-      change: '+2'
+      change: '+0'
     },
     {
       label: 'Cores Ativas',
-      value: '12',
+      value: '0',
       icon: Palette,
       color: 'text-orange-600',
       bg: 'bg-orange-100',
-      change: '+1'
+      change: '+0'
     }
-  ]
+  ])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/tags/stats', {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setStats([
+          {
+            label: 'Total de Tags',
+            value: data.stats.totalTags.value.toString(),
+            icon: Tag,
+            color: 'text-blue-600',
+            bg: 'bg-blue-100',
+            change: data.stats.totalTags.change >= 0 
+              ? `+${data.stats.totalTags.change}` 
+              : data.stats.totalTags.change.toString()
+          },
+          {
+            label: 'Mais Usadas',
+            value: data.stats.mostUsedTags.value.toString(),
+            icon: TrendingUp,
+            color: 'text-green-600',
+            bg: 'bg-green-100',
+            change: data.stats.mostUsedTags.change >= 0 
+              ? `+${data.stats.mostUsedTags.change}` 
+              : data.stats.mostUsedTags.change.toString()
+          },
+          {
+            label: 'Uso Total',
+            value: data.stats.totalUsage.value.toString(),
+            icon: BarChart3,
+            color: 'text-purple-600',
+            bg: 'bg-purple-100',
+            change: data.stats.totalUsage.change >= 0 
+              ? `+${data.stats.totalUsage.change}` 
+              : data.stats.totalUsage.change.toString()
+          },
+          {
+            label: 'Cores Ativas',
+            value: data.stats.activeColors.value.toString(),
+            icon: Palette,
+            color: 'text-orange-600',
+            bg: 'bg-orange-100',
+            change: data.stats.activeColors.change >= 0 
+              ? `+${data.stats.activeColors.change}` 
+              : data.stats.activeColors.change.toString()
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="mb-8">

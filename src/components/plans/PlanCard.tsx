@@ -80,27 +80,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({
     }
   }
 
-  const getCategoryConfig = (category: string) => {
-    switch (category) {
-      case 'basic':
-        return { label: 'Básico', color: 'text-gray-600', bg: 'bg-gray-100' }
-      case 'professional':
-        return { label: 'Profissional', color: 'text-blue-600', bg: 'bg-blue-100' }
-      case 'premium':
-        return { label: 'Premium', color: 'text-purple-600', bg: 'bg-purple-100' }
-      case 'enterprise':
-        return { label: 'Enterprise', color: 'text-orange-600', bg: 'bg-orange-100' }
-      case 'custom':
-        return { label: 'Personalizado', color: 'text-indigo-600', bg: 'bg-indigo-100' }
-      default:
-        return { label: 'Padrão', color: 'text-gray-600', bg: 'bg-gray-100' }
-    }
-  }
-
   const statusConfig = getStatusConfig(plan.status)
-  const categoryConfig = getCategoryConfig(plan.category)
-  const isActive = plan.status === 'active'
-  const hasDiscount = plan.discount > 0
+  const isActive = plan.status === 'ACTIVE'
   const isFree = plan.price === 0
 
   return (
@@ -124,11 +105,10 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         </div>
       )}
 
-      {/* Discount Badge */}
-      {hasDiscount && !isFree && (
-        <div className="absolute top-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-          <Gift className="w-3 h-3" />
-          -{plan.discount}%
+      {/* Featured Badge */}
+      {plan.isFeatured && (
+        <div className="absolute top-4 left-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-2 py-1 rounded-lg text-xs font-bold">
+          Destaque
         </div>
       )}
 
@@ -147,8 +127,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({
                 <span className={`px-2 py-0.5 ${statusConfig.bg} ${statusConfig.color} rounded-full text-xs font-medium`}>
                   {statusConfig.label}
                 </span>
-                <span className={`px-2 py-0.5 ${categoryConfig.bg} ${categoryConfig.color} rounded-full text-xs font-medium`}>
-                  {categoryConfig.label}
+                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs font-medium">
+                  {formatPeriod(plan.period)}
                 </span>
               </div>
             </div>
@@ -168,16 +148,6 @@ export const PlanCard: React.FC<PlanCardProps> = ({
             )}
           </div>
           
-          {hasDiscount && !isFree && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-500 line-through">
-                {formatPrice(plan.originalPrice)}
-              </span>
-              <span className="text-sm text-green-600 font-medium">
-                Economize {plan.discount}%
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Descrição */}
@@ -185,15 +155,12 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           {plan.description}
         </p>
 
-        {/* Trial Info */}
-        {plan.trial.enabled && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl mb-4">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                Teste grátis por {plan.trial.days} dias
-              </span>
-            </div>
+        {/* Status Badge */}
+        {plan.status === 'INACTIVE' && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg mb-4">
+            <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+              Plano Inativo
+            </span>
           </div>
         )}
 

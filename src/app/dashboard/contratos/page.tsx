@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ContractsHeader } from '@/components/contracts/ContractsHeader'
+import { ContractsStats } from '@/components/contracts/ContractsStats'
 import { ContractsFilters } from '@/components/contracts/ContractsFilters'
 import { ContractsList } from '@/components/contracts/ContractsList'
 import { ContractDetailsModal } from '@/components/contracts/ContractDetailsModal'
@@ -14,6 +15,7 @@ export default function ContratosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureContract, setSignatureContract] = useState<any>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
     status: 'all',
     dateRange: 'all',
@@ -31,6 +33,14 @@ export default function ContratosPage() {
     setShowSignatureModal(true)
   }
 
+  const handleEdit = (contract: any) => {
+    console.log('🔄 Editar contrato:', contract.id)
+  }
+
+  const handleDelete = () => {
+    setRefreshKey(prev => prev + 1)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="w-full p-8">
@@ -43,6 +53,9 @@ export default function ContratosPage() {
           onSearchChange={setSearchTerm}
         />
 
+        {/* Estatísticas */}
+        <ContractsStats refreshTrigger={refreshKey} />
+
         {/* Filtros */}
         <ContractsFilters 
           filters={filters}
@@ -51,11 +64,14 @@ export default function ContratosPage() {
 
         {/* Lista de Contratos */}
         <ContractsList 
+          key={refreshKey}
           filters={filters}
           searchTerm={searchTerm}
           viewMode={viewMode}
           onContractSelect={setSelectedContract}
           onSignatureRequest={handleSignature}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
 
         {/* Modal de Detalhes */}
@@ -75,9 +91,9 @@ export default function ContratosPage() {
         {showCreateModal && (
           <CreateContractModal
             onClose={() => setShowCreateModal(false)}
-            onSave={(contractData) => {
-              console.log('💾 Salvando contrato:', contractData)
+            onSave={() => {
               setShowCreateModal(false)
+              setRefreshKey(prev => prev + 1)
             }}
           />
         )}

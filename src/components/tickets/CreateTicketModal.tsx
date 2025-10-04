@@ -14,10 +14,11 @@ import {
   Trash2,
   Tag
 } from 'lucide-react'
+import { getAuthToken, getAuthHeaders } from '@/lib/auth-token'
 
 interface CreateTicketModalProps {
   onClose: () => void
-  onSave: (ticketData: any) => void
+  onSave: () => void
 }
 
 export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
@@ -28,52 +29,103 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    priority: 'medium',
+    priority: 'normal',
     category: 'general',
-    clientId: '',
-    clientName: '',
-    clientEmail: '',
-    agentId: '',
+    contactId: '',
+    contactName: '',
+    contactEmail: '',
+    assignedToId: '',
     tags: [] as string[]
   })
   const [newTag, setNewTag] = useState('')
   const [attachments, setAttachments] = useState<any[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
+  const [agents, setAgents] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     setIsVisible(true)
+    fetchContacts()
+    fetchAgents()
   }, [])
+
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('/api/contacts', {
+        headers: getAuthHeaders()
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setContacts(data.contacts || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contatos:', error)
+    }
+  }
+
+  const fetchAgents = async () => {
+    try {
+      const response = await fetch('/api/users?role=ATENDENTE', {
+        headers: getAuthHeaders()
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setAgents(data.users || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar agentes:', error)
+    }
+  }
 
   const handleClose = () => {
     setIsVisible(false)
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    const ticketData = {
-      ...formData,
-      id: `TK-${String(Date.now()).slice(-3).padStart(3, '0')}`,
-      status: 'open',
-      client: {
-        id: formData.clientId || Date.now().toString(),
-        name: formData.clientName,
-        email: formData.clientEmail
-      },
-      agent: formData.agentId ? {
-        id: formData.agentId,
-        name: agentOptions.find(a => a.value === formData.agentId)?.label || null
-      } : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      resolvedAt: null,
-      attachments: attachments,
-      comments: []
-    }
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        setError('Token de autenticação não encontrado. Faça login novamente.')
+        setLoading(false)
+        return
+      }
 
-    console.log('💾 Salvando ticket:', ticketData)
-    onSave(ticketData)
-    handleClose()
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          category: formData.category,
+          contactId: formData.contactId,
+          assignedToId: formData.assignedToId || undefined
+        })
+      })
+
+      if (response.ok) {
+        onSave()
+        handleClose()
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Erro ao criar ticket')
+      }
+    } catch (error) {
+      console.error('❌ Erro ao criar ticket:', error)
+      setError('Erro ao criar ticket')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateFormData = (key: string, value: any) => {
@@ -131,13 +183,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
     { value: 'other', label: 'Outros', description: 'Outras categorias não listadas' }
   ]
 
-  const agentOptions = [
-    { value: '', label: 'Não atribuir agora' },
-    { value: 'a1', label: 'João Silva' },
-    { value: 'a2', label: 'Maria Santos' },
-    { value: 'a3', label: 'Pedro Costa' },
-    { value: 'a4', label: 'Ana Lima' }
-  ]
+  // Removido agentOptions mockado - agora busca da API
 
   const selectedPriority = priorityOptions.find(p => p.value === formData.priority)
   const selectedCategory = categoryOptions.find(c => c.value === formData.category)
@@ -278,53 +324,34 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   </div>
                 </div>
 
-                {/* Informações do Cliente */}
+                {/* Informações do Contato */}
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <User className="w-5 h-5" />
-                    Cliente
+                    Contato
                   </h3>
                   
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Nome do Cliente *
+                        Selecionar Contato *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         required
-                        value={formData.clientName}
-                        onChange={(e) => updateFormData('clientName', e.target.value)}
+                        value={formData.contactId}
+                        onChange={(e) => updateFormData('contactId', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Nome completo do cliente"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email do Cliente *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.clientEmail}
-                        onChange={(e) => updateFormData('clientEmail', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="email@exemplo.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        ID do Cliente (opcional)
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.clientId}
-                        onChange={(e) => updateFormData('clientId', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="ID único do cliente"
-                      />
+                      >
+                        <option value="">Selecione um contato</option>
+                        {contacts.map((contact) => (
+                          <option key={contact.id} value={contact.id}>
+                            {contact.name} {contact.email ? `(${contact.email})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Selecione o contato relacionado ao ticket
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -340,13 +367,14 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                       Agente Responsável
                     </label>
                     <select
-                      value={formData.agentId}
-                      onChange={(e) => updateFormData('agentId', e.target.value)}
+                      value={formData.assignedToId}
+                      onChange={(e) => updateFormData('assignedToId', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
-                      {agentOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      <option value="">Não atribuir agora</option>
+                      {agents.map((agent) => (
+                        <option key={agent.id} value={agent.id}>
+                          {agent.name}
                         </option>
                       ))}
                     </select>
@@ -454,6 +482,13 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                 </div>
               </div>
 
+              {/* Mensagem de Erro */}
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+              )}
+
               {/* Ações */}
               <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <motion.button
@@ -461,7 +496,8 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleClose}
-                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </motion.button>
@@ -470,10 +506,20 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  Criar Ticket
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Criando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Criar Ticket
+                    </>
+                  )}
                 </motion.button>
               </div>
             </form>

@@ -5,143 +5,107 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { QuoteCard } from './QuoteCard'
 import { QuotesTable } from './QuotesTable'
 import { EmptyState } from './EmptyState'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface QuotesListProps {
   filters: any
   searchTerm: string
   viewMode: 'grid' | 'table'
   onQuoteSelect: (quote: any) => void
+  onEdit?: (quote: any) => void
+  onDelete?: (quoteId: string) => void
 }
-
-// Mock data - em produção viria da API
-const mockQuotes = [
-  {
-    id: '1',
-    title: 'Website Institucional',
-    description: 'Desenvolvimento de website moderno com CMS',
-    client: {
-      id: 'c1',
-      name: 'Empresa ABC Ltda',
-      email: 'contato@empresaabc.com',
-      avatar: null
-    },
-    agent: {
-      id: 'a1',
-      name: 'João Silva',
-      avatar: null
-    },
-    value: 15000,
-    status: 'pending',
-    priority: 'high',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-20T14:30:00Z',
-    expiresAt: '2024-02-15T23:59:59Z',
-    items: [
-      { name: 'Design UI/UX', quantity: 1, price: 5000 },
-      { name: 'Desenvolvimento Frontend', quantity: 1, price: 6000 },
-      { name: 'Desenvolvimento Backend', quantity: 1, price: 4000 }
-    ],
-    notes: 'Cliente solicitou entrega em 30 dias',
-    tags: ['Website', 'Urgente']
-  },
-  {
-    id: '2',
-    title: 'App Mobile E-commerce',
-    description: 'Aplicativo mobile para vendas online',
-    client: {
-      id: 'c2',
-      name: 'Tech Solutions',
-      email: 'dev@techsolutions.com',
-      avatar: null
-    },
-    agent: {
-      id: 'a2',
-      name: 'Maria Santos',
-      avatar: null
-    },
-    value: 25000,
-    status: 'approved',
-    priority: 'medium',
-    createdAt: '2024-01-10T09:00:00Z',
-    updatedAt: '2024-01-18T16:00:00Z',
-    expiresAt: '2024-02-10T23:59:59Z',
-    items: [
-      { name: 'Design Mobile', quantity: 1, price: 8000 },
-      { name: 'Desenvolvimento iOS', quantity: 1, price: 8500 },
-      { name: 'Desenvolvimento Android', quantity: 1, price: 8500 }
-    ],
-    notes: 'Incluir sistema de pagamento integrado',
-    tags: ['Mobile', 'E-commerce']
-  },
-  {
-    id: '3',
-    title: 'Sistema CRM',
-    description: 'Plataforma de gerenciamento de clientes',
-    client: {
-      id: 'c3',
-      name: 'Vendas Pro',
-      email: 'admin@vendaspro.com',
-      avatar: null
-    },
-    agent: {
-      id: 'a3',
-      name: 'Pedro Costa',
-      avatar: null
-    },
-    value: 35000,
-    status: 'rejected',
-    priority: 'low',
-    createdAt: '2024-01-05T08:00:00Z',
-    updatedAt: '2024-01-12T10:30:00Z',
-    expiresAt: '2024-02-05T23:59:59Z',
-    items: [
-      { name: 'Análise de Requisitos', quantity: 1, price: 5000 },
-      { name: 'Desenvolvimento Sistema', quantity: 1, price: 20000 },
-      { name: 'Integração APIs', quantity: 1, price: 10000 }
-    ],
-    notes: 'Cliente solicitou revisão de escopo',
-    tags: ['CRM', 'Integração']
-  },
-  {
-    id: '4',
-    title: 'Landing Page',
-    description: 'Página de captura para campanha',
-    client: {
-      id: 'c4',
-      name: 'Marketing Digital',
-      email: 'contato@marketing.com',
-      avatar: null
-    },
-    agent: {
-      id: 'a1',
-      name: 'João Silva',
-      avatar: null
-    },
-    value: 3500,
-    status: 'pending',
-    priority: 'medium',
-    createdAt: '2024-01-20T11:00:00Z',
-    updatedAt: '2024-01-22T09:15:00Z',
-    expiresAt: '2024-02-20T23:59:59Z',
-    items: [
-      { name: 'Design Landing Page', quantity: 1, price: 2000 },
-      { name: 'Implementação', quantity: 1, price: 1500 }
-    ],
-    notes: 'Prazo de entrega: 1 semana',
-    tags: ['Landing Page', 'Marketing']
-  }
-]
 
 export const QuotesList: React.FC<QuotesListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onQuoteSelect
+  onQuoteSelect,
+  onEdit,
+  onDelete
 }) => {
-  const [quotes, setQuotes] = useState(mockQuotes)
-  const [loading, setLoading] = useState(false)
+  const [quotes, setQuotes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Simular filtros
+  const handleDelete = async (quoteId: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const response = await fetch(`/api/quotes?id=${quoteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setQuotes(prev => prev.filter(q => q.id !== quoteId))
+        onDelete?.(quoteId)
+      }
+    } catch (error) {
+      console.error('Erro ao excluir orçamento:', error)
+    }
+  }
+
+  // Buscar orçamentos da API
+  useEffect(() => {
+    const fetchQuotes = async () => {
+      try {
+        setLoading(true)
+        const token = getAuthToken()
+        
+        if (!token) {
+          console.error('Token não encontrado')
+          setQuotes([])
+          return
+        }
+
+        const params = new URLSearchParams()
+        if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+
+        const response = await fetch(`/api/quotes?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Transformar dados da API para o formato esperado
+          const transformedQuotes = data.quotes.map((quote: any) => ({
+            id: quote.id,
+            title: quote.title,
+            description: quote.description,
+            client: quote.contact || { id: '', name: 'Sem cliente', email: '' },
+            agent: quote.createdBy || { id: '', name: 'Não atribuído' },
+            value: parseFloat(quote.total || quote.amount),
+            status: quote.status,
+            priority: 'medium',
+            createdAt: quote.createdAt,
+            updatedAt: quote.updatedAt,
+            expiresAt: quote.validUntil,
+            items: quote.items || [],
+            notes: quote.description,
+            tags: []
+          }))
+          setQuotes(transformedQuotes)
+        } else {
+          console.error('Erro ao buscar orçamentos')
+          setQuotes([])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar orçamentos:', error)
+        setQuotes([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchQuotes()
+  }, [filters.status])
+
+  // Filtros locais
   const filteredQuotes = quotes.filter((quote) => {
     // Filtro por status
     if (filters.status !== 'all' && quote.status !== filters.status) {
@@ -225,6 +189,8 @@ export const QuotesList: React.FC<QuotesListProps> = ({
                 quote={quote}
                 index={index}
                 onClick={() => onQuoteSelect(quote)}
+                onEdit={onEdit}
+                onDelete={handleDelete}
               />
             ))}
           </AnimatePresence>

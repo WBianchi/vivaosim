@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { TagsHeader } from '@/components/tags/TagsHeader'
 import { TagsFilters } from '@/components/tags/TagsFilters'
@@ -19,6 +19,17 @@ export default function TagsPage() {
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const tagsListRef = useRef<any>(null)
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1)
+  }
+
+  const handleSaveTag = () => {
+    setShowCreateModal(false)
+    handleRefresh()
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -40,10 +51,12 @@ export default function TagsPage() {
 
         {/* Lista de Tags */}
         <TagsList 
+          key={refreshKey}
           filters={filters}
           searchTerm={searchTerm}
           viewMode={viewMode}
           onTagSelect={setSelectedTag}
+          onRefresh={handleRefresh}
         />
 
         {/* Modal de Detalhes */}
@@ -62,10 +75,7 @@ export default function TagsPage() {
         {showCreateModal && (
           <CreateTagModal
             onClose={() => setShowCreateModal(false)}
-            onSave={(tagData) => {
-              console.log('💾 Salvando tag:', tagData)
-              setShowCreateModal(false)
-            }}
+            onSave={handleSaveTag}
           />
         )}
       </div>

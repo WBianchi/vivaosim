@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -15,8 +16,10 @@ import {
   DollarSign,
   Calendar,
   FileText,
-  Target
+  Target,
+  Filter
 } from 'lucide-react'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface ClientsHeaderProps {
   onCreateClient: () => void
@@ -24,6 +27,8 @@ interface ClientsHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  showFilters: boolean
+  onToggleFilters: () => void
 }
 
 export const ClientsHeader: React.FC<ClientsHeaderProps> = ({
@@ -31,20 +36,43 @@ export const ClientsHeader: React.FC<ClientsHeaderProps> = ({
   onSearchChange,
   searchTerm,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  showFilters,
+  onToggleFilters
 }) => {
-  // Mock statistics - em produção viria da API
-  const stats = {
-    totalClients: 1247,
-    activeClients: 892,
-    newThisMonth: 156,
-    totalRevenue: 89750.50,
-    avgTicketValue: 245.80,
-    activeContracts: 234,
-    pendingQuotes: 67,
-    openTickets: 89,
-    scheduledMeetings: 23,
-    conversionRate: 68.5
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    activeClients: 0,
+    newThisMonth: 0,
+    totalRevenue: 0,
+    avgTicketValue: 0,
+    activeContracts: 0,
+    pendingQuotes: 0,
+    openTickets: 0,
+    scheduledMeetings: 0,
+    conversionRate: 0
+  })
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch('/api/contacts/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data.stats || stats)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error)
+    }
   }
 
   const formatCurrency = (value: number) => {
@@ -92,7 +120,7 @@ export const ClientsHeader: React.FC<ClientsHeaderProps> = ({
               onClick={() => onViewModeChange('grid')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-gray-600 text-green-600 shadow-sm'
+                  ? 'bg-white dark:bg-gray-600 text-orange-600 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -104,7 +132,7 @@ export const ClientsHeader: React.FC<ClientsHeaderProps> = ({
               onClick={() => onViewModeChange('table')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'table'
-                  ? 'bg-white dark:bg-gray-600 text-green-600 shadow-sm'
+                  ? 'bg-white dark:bg-gray-600 text-orange-600 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -112,15 +140,30 @@ export const ClientsHeader: React.FC<ClientsHeaderProps> = ({
             </motion.button>
           </div>
 
+          {/* Botão Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onToggleFilters}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+              showFilters
+                ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25'
+                : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
+
           {/* Botão Criar Cliente */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onCreateClient}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-500/25"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Novo Cliente
+            Adicionar Cliente
           </motion.button>
         </div>
       </div>

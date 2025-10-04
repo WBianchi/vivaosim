@@ -17,11 +17,17 @@ import {
   MessageSquare,
   Users,
   Clock,
-  Target
+  Target,
+  Sun,
+  Moon,
+  Palette
 } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeProvider'
 import { Chat } from '@/types/chat'
-import { SidebarType } from '@/app/dashboard/chat/page'
 import { cn } from '@/lib/utils'
+import { ChatNotifications } from './ChatNotifications'
+
+export type SidebarType = 'schedule' | 'quote' | 'contract' | 'contact' | 'ticket' | null
 
 interface TopbarChatProps {
   user: any
@@ -40,6 +46,18 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   onSidebarToggle,
   activeSidebar
 }) => {
+  const { isDarkMode, toggleTheme } = useTheme()
+  const [showColorPicker, setShowColorPicker] = React.useState(false)
+  
+  const colors = [
+    { name: 'Azul', value: 'blue', class: 'bg-blue-500' },
+    { name: 'Verde', value: 'green', class: 'bg-green-500' },
+    { name: 'Roxo', value: 'purple', class: 'bg-purple-500' },
+    { name: 'Rosa', value: 'pink', class: 'bg-pink-500' },
+    { name: 'Laranja', value: 'orange', class: 'bg-orange-500' },
+    { name: 'Vermelho', value: 'red', class: 'bg-red-500' },
+  ]
+  
   const sidebarButtons = [
     {
       id: 'schedule' as SidebarType,
@@ -202,15 +220,80 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
           />
         </div>
 
+        {/* Status de Conexão WAHA */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+            isConnected
+              ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+              : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+          }`}
+        >
+          {isConnected ? (
+            <Wifi className="w-4 h-4" />
+          ) : (
+            <WifiOff className="w-4 h-4" />
+          )}
+          <span className="text-xs font-medium">
+            {isConnected ? 'Conectado' : 'Desconectado'}
+          </span>
+        </motion.div>
+
         {/* Notificações */}
+        <ChatNotifications />
+
+        {/* Toggle Dark/Light */}
         <motion.button
+          onClick={toggleTheme}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="relative p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          title={isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
         >
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+          {isDarkMode ? (
+            <Sun className="w-5 h-5" />
+          ) : (
+            <Moon className="w-5 h-5" />
+          )}
         </motion.button>
+
+        {/* Color Picker */}
+        <div className="relative">
+          <motion.button
+            onClick={() => setShowColorPicker(!showColorPicker)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Customizar Cores"
+          >
+            <Palette className="w-5 h-5" />
+          </motion.button>
+
+          {showColorPicker && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute right-0 top-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 z-50"
+            >
+              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cor do Tema
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {colors.map((color) => (
+                  <button
+                    key={color.value}
+                    onClick={() => {
+                      // Por enquanto só visual, depois implementar lógica
+                      setShowColorPicker(false)
+                    }}
+                    className={`w-8 h-8 rounded-full ${color.class} hover:scale-110 transition-transform`}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
 
         {/* Configurações */}
         <motion.button

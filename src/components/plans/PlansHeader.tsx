@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -12,6 +13,7 @@ import {
   DollarSign,
   Filter
 } from 'lucide-react'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface PlansHeaderProps {
   onCreatePlan: () => void
@@ -28,12 +30,42 @@ export const PlansHeader: React.FC<PlansHeaderProps> = ({
   viewMode,
   onViewModeChange
 }) => {
-  // Mock statistics - em produção viria da API
-  const stats = {
-    totalPlans: 8,
-    activePlans: 6,
-    totalSubscribers: 247,
-    monthlyRevenue: 18750.00
+  const [stats, setStats] = useState({
+    totalPlans: 0,
+    activePlans: 0,
+    totalSubscribers: 0,
+    monthlyRevenue: 0,
+    changePercent: 0,
+    averageTicket: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/plans/stats', {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setStats({
+          totalPlans: data.stats.totalPlans.value,
+          activePlans: data.stats.activePlans.value,
+          totalSubscribers: data.stats.totalSubscribers.value,
+          monthlyRevenue: data.stats.monthlyRevenue.value,
+          changePercent: data.stats.totalSubscribers.changePercent || 0,
+          averageTicket: data.stats.averageTicket.value
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -160,7 +192,7 @@ export const PlansHeader: React.FC<PlansHeaderProps> = ({
           <div className="mt-4 flex items-center">
             <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
             <span className="text-sm text-green-600 dark:text-green-400">
-              +12% este mês
+              {stats.changePercent > 0 ? '+' : ''}{stats.changePercent}% este mês
             </span>
           </div>
         </motion.div>
@@ -204,7 +236,7 @@ export const PlansHeader: React.FC<PlansHeaderProps> = ({
                 Ticket Médio
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                R$ {(stats.monthlyRevenue / stats.totalSubscribers).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {stats.averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">

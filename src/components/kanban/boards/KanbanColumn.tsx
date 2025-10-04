@@ -11,7 +11,10 @@ import {
   Check,
   X,
   Edit3,
-  User
+  User,
+  Settings,
+  Trash2,
+  Archive
 } from 'lucide-react'
 import { ClientCard } from '../cards/ClientCard'
 
@@ -49,33 +52,30 @@ interface KanbanColumnProps {
   column: Column
   kanbanActions?: any
   onUpdateColumn?: (columnId: string, updates: Partial<Column>) => void
+  agents?: any[]
+  onAddClient?: () => void
 }
 
 const colorOptions = [
-  { name: 'Laranja', value: 'from-orange-500 to-orange-600' },
-  { name: 'Azul', value: 'from-blue-500 to-blue-600' },
-  { name: 'Verde', value: 'from-green-500 to-green-600' },
-  { name: 'Roxo', value: 'from-purple-500 to-purple-600' },
-  { name: 'Rosa', value: 'from-pink-500 to-pink-600' },
-  { name: 'Vermelho', value: 'from-red-500 to-red-600' },
-  { name: 'Ciano', value: 'from-cyan-500 to-cyan-600' },
-  { name: 'Amarelo', value: 'from-yellow-500 to-yellow-600' },
-  { name: 'Índigo', value: 'from-indigo-500 to-indigo-600' },
-  { name: 'Cinza', value: 'from-gray-500 to-gray-600' }
+  { name: 'Laranja', value: '#F97316' },
+  { name: 'Azul', value: '#3B82F6' },
+  { name: 'Verde', value: '#10B981' },
+  { name: 'Roxo', value: '#8B5CF6' },
+  { name: 'Rosa', value: '#EC4899' },
+  { name: 'Vermelho', value: '#EF4444' },
+  { name: 'Ciano', value: '#06B6D4' },
+  { name: 'Amarelo', value: '#F59E0B' },
+  { name: 'Índigo', value: '#6366F1' },
+  { name: 'Cinza', value: '#6B7280' }
 ]
 
-const agentOptions = [
-  { id: '1', name: 'João Silva', active: true },
-  { id: '2', name: 'Maria Santos', active: false },
-  { id: '3', name: 'Pedro Costa', active: true },
-  { id: '4', name: 'Ana Lima', active: false }
-]
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanActions, onUpdateColumn }) => {
+export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanActions, onUpdateColumn, agents = [], onAddClient }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(column.title)
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showAgentPicker, setShowAgentPicker] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
 
   const handleTitleSave = () => {
     if (editedTitle.trim() && editedTitle !== column.title) {
@@ -97,13 +97,16 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
     setShowAgentPicker(false)
   }
 
+  const headerColor = column.color || '#6B7280'
+  
   return (
     <div className="flex flex-col h-full relative">
       {/* Header da Coluna */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`p-5 rounded-t-3xl bg-gradient-to-r ${column.color} shadow-sm relative`}
+        style={{ backgroundColor: headerColor }}
+        className="p-5 rounded-t-2xl shadow-sm relative"
       >
         <div className="flex items-center justify-between text-white mb-2">
           {/* Título Editável */}
@@ -157,7 +160,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
           
           <div className="flex items-center gap-2">
             <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
-              {column.clients.length}
+              {column.clients?.length || 0}
             </span>
             
             {/* Botão de Cor */}
@@ -185,6 +188,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              onClick={() => setShowMenu(!showMenu)}
               className="p-1 hover:bg-white/20 rounded transition-colors"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -219,13 +223,60 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleColorChange(color.value)}
-                className={`w-8 h-8 rounded-full bg-gradient-to-r ${color.value} border-2 ${
+                style={{ backgroundColor: color.value }}
+                className={`w-8 h-8 rounded-full border-2 ${
                   column.color === color.value ? 'border-gray-900 dark:border-white' : 'border-transparent'
                 }`}
                 title={color.name}
               />
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* Menu Dropdown */}
+      {showMenu && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-20 right-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-50 min-w-48"
+        >
+          <button
+            onClick={() => {
+              setShowMenu(false)
+              // TODO: Abrir modal de configurações
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-left"
+          >
+            <Settings className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-sm text-gray-900 dark:text-white">Configurações</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              setShowMenu(false)
+              // TODO: Arquivar coluna
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-left"
+          >
+            <Archive className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-sm text-gray-900 dark:text-white">Arquivar</span>
+          </button>
+          
+          <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
+          
+          <button
+            onClick={() => {
+              setShowMenu(false)
+              if (confirm(`Deseja excluir a coluna "${column.title}"?`)) {
+                // TODO: Excluir coluna
+              }
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-left"
+          >
+            <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <span className="text-sm text-red-600 dark:text-red-400">Excluir</span>
+          </button>
         </motion.div>
       )}
 
@@ -249,7 +300,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
               </div>
               <span className="text-sm text-gray-600 dark:text-gray-400">Remover agente</span>
             </button>
-            {agentOptions.map((agent) => (
+            {agents.map((agent) => (
               <button
                 key={agent.id}
                 onClick={() => handleAgentChange(agent)}
@@ -263,9 +314,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
                     {agent.name}
                   </span>
                   <div className="flex items-center gap-1">
-                    <div className={`w-2 h-2 rounded-full ${agent.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                    <div className={`w-2 h-2 rounded-full ${agent.status === 'ATIVO' ? 'bg-green-500' : 'bg-gray-400'}`} />
                     <span className="text-xs text-gray-500">
-                      {agent.active ? 'Ativo' : 'Inativo'}
+                      {agent.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
                 </div>
@@ -331,7 +382,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 rounded-2xl transition-all group bg-gray-50/50 dark:bg-gray-800/50 hover:bg-orange-50/50 dark:hover:bg-orange-900/10"
+              onClick={onAddClient}
+              className="w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-orange-400 dark:hover:border-orange-500 rounded-xl transition-all group bg-gray-50/50 dark:bg-gray-800/50 hover:bg-orange-50/50 dark:hover:bg-orange-900/10"
             >
               <div className="flex flex-col items-center text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                 <Plus className="w-6 h-6 mb-2" />

@@ -5,16 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PlanCard } from './PlanCard'
 import { PlansTable } from './PlansTable'
 import { EmptyState } from './EmptyState'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface PlansListProps {
   filters: any
   searchTerm: string
   viewMode: 'grid' | 'table'
   onPlanSelect: (plan: any) => void
+  onRefresh?: () => void
 }
 
-// Mock data - em produção viria da API
-const mockPlans = [
+// Mock data DEPRECATED
+const mockPlans_DEPRECATED = [
   {
     id: 'plan-001',
     name: 'Plano Básico',
@@ -329,30 +331,45 @@ export const PlansList: React.FC<PlansListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onPlanSelect
+  onPlanSelect,
+  onRefresh
 }) => {
-  const [plans, setPlans] = useState(mockPlans)
-  const [loading, setLoading] = useState(false)
+  const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Simular filtros
+  useEffect(() => {
+    fetchPlans()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.period])
+
+  const fetchPlans = async () => {
+    try {
+      setLoading(true)
+      
+      const params = new URLSearchParams()
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+      if (filters.period && filters.period !== 'all') params.append('period', filters.period)
+      if (searchTerm) params.append('search', searchTerm)
+
+      const response = await fetch(`/api/plans?${params.toString()}`, {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setPlans(data.plans || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar planos:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filtro local
   const filteredPlans = plans.filter((plan) => {
-    // Filtro por status
-    if (filters.status !== 'all' && plan.status !== filters.status) {
-      return false
-    }
-
-    // Filtro por período
-    if (filters.period !== 'all' && plan.period !== filters.period) {
-      return false
-    }
-
-    // Filtro por categoria
-    if (filters.category !== 'all' && plan.category !== filters.category) {
-      return false
-    }
-
     // Filtro por faixa de preço
-    if (filters.priceRange !== 'all') {
+    if (filters.priceRange && filters.priceRange !== 'all') {
       const price = plan.price
       switch (filters.priceRange) {
         case '0-50':

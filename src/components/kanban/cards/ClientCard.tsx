@@ -362,19 +362,6 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation()
-              onChangeQueue?.(client)
-            }}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
-            title="Filas"
-          >
-            <Target className="w-4 h-4" />
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
               onEditClient?.(client)
             }}
             className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"

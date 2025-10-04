@@ -56,7 +56,8 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     return new Date(date).toLocaleString('pt-BR')
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value?: number) => {
+    if (!value) return 'R$ 0,00'
     return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   }
 

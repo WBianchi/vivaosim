@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 const createColumnSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
-  color: z.string().default('from-gray-500 to-slate-500'),
+  color: z.string().default('#6B7280'),
   position: z.number().optional()
 })
 

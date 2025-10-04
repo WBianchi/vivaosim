@@ -224,17 +224,17 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           {ticket.description}
         </p>
 
-        {/* Cliente */}
+        {/* Contato */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-            {ticket.client.name.charAt(0).toUpperCase()}
+            {ticket.contact?.name?.charAt(0).toUpperCase() || 'C'}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-900 dark:text-white truncate text-sm">
-              {ticket.client.name}
+              {ticket.contact?.name || 'Sem contato'}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-              {ticket.client.email}
+              {ticket.contact?.email || ticket.contact?.phone || 'Sem informações'}
             </p>
           </div>
         </div>
@@ -243,7 +243,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
         <div className="flex items-center gap-2 mb-4">
           <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            {ticket.agent ? ticket.agent.name : 'Não atribuído'}
+            {ticket.assignedTo ? ticket.assignedTo.name : 'Não atribuído'}
           </span>
         </div>
 

@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { HiCalendarDays, HiUsers, HiEllipsisVertical, HiStar, HiTrash, HiPencil } from 'react-icons/hi2'
+import { FiUsers, FiTrash2, FiColumns, FiFileText, FiCalendar, FiTag, FiAlertCircle } from 'react-icons/fi'
+import { HiOutlineDocumentText } from 'react-icons/hi2'
 
 interface Board {
   id: string
@@ -13,7 +15,13 @@ interface Board {
   createdBy?: {
     name: string
     email: string
-  } | string // Pode ser objeto ou string para compatibilidade
+  } | string
+  columnsCount?: number
+  quotesCount?: number
+  appointmentsCount?: number
+  tagsCount?: number
+  ticketsCount?: number
+  contractsCount?: number
 }
 
 interface BoardCardProps {
@@ -21,139 +29,196 @@ interface BoardCardProps {
   index: number
   onClick: () => void
   onDelete?: (boardId: string) => void
-  onEdit?: (boardId: string) => void
+  onUpdateName?: (boardId: string, newName: string) => void
 }
 
-export const BoardCard: React.FC<BoardCardProps> = ({ board, index, onClick, onDelete, onEdit }) => {
+export const BoardCard: React.FC<BoardCardProps> = ({ board, index, onClick, onDelete, onUpdateName }) => {
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState(board.name)
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsEditingName(true)
+  }
+
+  const handleNameBlur = () => {
+    setIsEditingName(false)
+    if (editedName.trim() && editedName !== board.name) {
+      onUpdateName?.(board.id, editedName.trim())
+    } else {
+      setEditedName(board.name)
+    }
+  }
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameBlur()
+    } else if (e.key === 'Escape') {
+      setEditedName(board.name)
+      setIsEditingName(false)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return ''
+      return date.toLocaleDateString('pt-BR')
+    } catch {
+      return ''
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       onClick={onClick}
-      className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md hover:border-orange-200 dark:hover:border-orange-800 transition-all cursor-pointer group overflow-hidden"
+      className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-orange-300 dark:hover:border-orange-700 transition-all cursor-pointer group overflow-hidden"
     >
-      {/* Header colorido */}
-      <div className={`h-32 bg-gradient-to-br ${board.color} p-6 relative`}>
-        <div className="flex items-start justify-between text-white">
-          <div className="flex-1">
-            <h3 className="text-xl font-bold mb-2 line-clamp-2">
-              {board.name}
-            </h3>
+      {/* Accent Bar */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      {/* Header */}
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 pr-4">
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={handleNameBlur}
+                onKeyDown={handleNameKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                autoFocus
+                className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-orange-500 outline-none w-full pb-1"
+              />
+            ) : (
+              <h3 
+                onDoubleClick={handleDoubleClick}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 hover:text-orange-600 transition-colors cursor-text"
+                title="Duplo clique para editar"
+              >
+                {board.name}
+              </h3>
+            )}
+            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+              {board.description}
+            </p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <HiStar className="w-4 h-4" />
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <HiEllipsisVertical className="w-4 h-4" />
-            </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (confirm(`Deseja excluir o quadro "${board.name}"?`)) {
+                onDelete?.(board.id)
+              }
+            }}
+            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+            title="Excluir"
+          >
+            <FiTrash2 className="w-4 h-4" />
+          </motion.button>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                <FiColumns className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.columnsCount || 0}</p>
+                <p className="text-xs text-gray-500">colunas</p>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Padrão decorativo */}
-        <div className="absolute -bottom-1 -right-6 opacity-20">
-          <div className="w-24 h-24 rounded-full bg-white/10" />
-        </div>
-        <div className="absolute -bottom-6 -right-12 opacity-10">
-          <div className="w-32 h-32 rounded-full bg-white/10" />
-        </div>
-      </div>
-
-      {/* Conteúdo */}
-      <div className="p-6">
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-          {board.description}
-        </p>
-
-        {/* Stats */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-sm">
-            <HiUsers className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-700 dark:text-gray-300">
-              {board.clientCount} clientes
-            </span>
+          
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+                <FiUsers className="w-4 h-4 text-green-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.clientCount}</p>
+                <p className="text-xs text-gray-500">clientes</p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <HiCalendarDays className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-500 text-xs">
-              {new Date(board.lastUpdated).toLocaleDateString('pt-BR')}
-            </span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+                <FiFileText className="w-4 h-4 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.quotesCount || 0}</p>
+                <p className="text-xs text-gray-500">orçamentos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                <FiCalendar className="w-4 h-4 text-purple-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.appointmentsCount || 0}</p>
+                <p className="text-xs text-gray-500">agendamentos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                <HiOutlineDocumentText className="w-4 h-4 text-red-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.contractsCount || 0}</p>
+                <p className="text-xs text-gray-500">contratos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center">
+                <FiTag className="w-4 h-4 text-pink-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.tagsCount || 0}</p>
+                <p className="text-xs text-gray-500">tags</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-              {(() => {
-                if (!board.createdBy) return 'S'
-                if (typeof board.createdBy === 'string') return board.createdBy.charAt(0).toUpperCase()
-                return board.createdBy.name.charAt(0).toUpperCase()
-              })()}
-            </div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">
-              por {(() => {
-                if (!board.createdBy) return 'Sistema'
-                if (typeof board.createdBy === 'string') return board.createdBy
-                return board.createdBy.name
-              })()}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+          {formatDate(board.lastUpdated) ? (
+            <span className="text-xs text-gray-500">
+              Atualizado {formatDate(board.lastUpdated)}
             </span>
-          </div>
+          ) : (
+            <span className="text-xs text-gray-500">Novo quadro</span>
+          )}
 
-          <div className="flex items-center gap-1">
-            {onEdit && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit(board.id)
-                }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
-                title="Editar quadro"
-              >
-                <HiPencil className="w-4 h-4" />
-              </motion.button>
-            )}
-            
-            {onDelete && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (confirm(`Deseja deletar o quadro "${board.name}"?`)) {
-                    onDelete(board.id)
-                  }
-                }}
-                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-500 dark:text-red-400 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-red-200 dark:hover:border-red-800"
-                title="Deletar quadro"
-              >
-                <HiTrash className="w-4 h-4" />
-              </motion.button>
-            )}
-            
-            <motion.div
-              whileHover={{ x: 3 }}
-              className="text-orange-500 group-hover:text-orange-600 transition-colors ml-2"
-            >
-              <span className="text-sm font-medium">Abrir →</span>
-            </motion.div>
-          </div>
+          <motion.div
+            whileHover={{ x: 3 }}
+            className="flex items-center gap-1.5 text-orange-500 group-hover:text-orange-600 transition-colors"
+          >
+            <span className="text-sm font-medium">Abrir</span>
+            <span>→</span>
+          </motion.div>
         </div>
       </div>
     </motion.div>

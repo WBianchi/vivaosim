@@ -1,19 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BlogCard } from './BlogCard'
 import { BlogTable } from './BlogTable'
 import { EmptyState } from './EmptyState'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface BlogListProps {
   filters: any
   searchTerm: string
   viewMode: 'grid' | 'table'
   onPostSelect: (post: any) => void
+  onRefresh?: () => void
 }
 
-const mockPosts = [
+const mockPosts_DEPRECATED = [
   {
     id: 'post-001',
     title: 'Como Implementar IA no Atendimento ao Cliente',
@@ -95,23 +97,48 @@ const mockPosts = [
 ]
 
 export const BlogList: React.FC<BlogListProps> = ({
-  filters, searchTerm, viewMode, onPostSelect
+  filters, searchTerm, viewMode, onPostSelect, onRefresh
 }) => {
-  const [posts] = useState(mockPosts)
-  const [loading] = useState(false)
+  const [posts, setPosts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchPosts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.visibility, filters.category, filters.author])
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true)
+      
+      const params = new URLSearchParams()
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+      if (filters.visibility && filters.visibility !== 'all') params.append('visibility', filters.visibility)
+      if (filters.category && filters.category !== 'all') params.append('category', filters.category)
+      if (filters.author && filters.author !== 'all') params.append('author', filters.author)
+      if (searchTerm) params.append('search', searchTerm)
+
+      const response = await fetch(`/api/blog?${params.toString()}`, {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(data.posts || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar posts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredPosts = posts.filter((post) => {
-    if (filters.status !== 'all' && post.status !== filters.status) return false
-    if (filters.category !== 'all' && post.category !== filters.category) return false
-    if (filters.author !== 'all' && post.author.toLowerCase() !== filters.author) return false
-    if (filters.visibility !== 'all' && post.visibility !== filters.visibility) return false
-
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
       const matchesTitle = post.title.toLowerCase().includes(searchLower)
-      const matchesExcerpt = post.excerpt.toLowerCase().includes(searchLower)
-      const matchesTags = post.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      if (!matchesTitle && !matchesExcerpt && !matchesTags) return false
+      const matchesExcerpt = post.excerpt?.toLowerCase().includes(searchLower)
+      if (!matchesTitle && !matchesExcerpt) return false
     }
 
     return true

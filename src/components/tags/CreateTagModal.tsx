@@ -10,10 +10,11 @@ import {
   Hash,
   Eye
 } from 'lucide-react'
+import { getAuthToken, getAuthHeaders } from '@/lib/auth-token'
 
 interface CreateTagModalProps {
   onClose: () => void
-  onSave: (tagData: any) => void
+  onSave: () => void
 }
 
 export const CreateTagModal: React.FC<CreateTagModalProps> = ({
@@ -24,10 +25,10 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    color: 'orange',
-    category: 'geral',
-    status: 'active'
+    color: '#f97316' // orange-500
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     setIsVisible(true)
@@ -38,31 +39,46 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    const tagData = {
-      ...formData,
-      id: Date.now().toString(),
-      usageCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: {
-        id: 'u1',
-        name: 'Usuário Atual',
-        avatar: null
-      },
-      relatedItems: {
-        contracts: 0,
-        quotes: 0,
-        schedules: 0,
-        tickets: 0
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        setError('Token de autenticação não encontrado. Faça login novamente.')
+        setLoading(false)
+        return
       }
-    }
 
-    console.log('💾 Salvando tag:', tagData)
-    onSave(tagData)
-    handleClose()
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          color: formData.color
+        })
+      })
+
+      if (response.ok) {
+        onSave()
+        handleClose()
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Erro ao criar tag')
+      }
+    } catch (error) {
+      console.error('Erro ao criar tag:', error)
+      setError('Erro ao criar tag')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateFormData = (key: string, value: any) => {
@@ -73,29 +89,17 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
   }
 
   const colorOptions = [
-    { value: 'red', label: 'Vermelho', bg: 'bg-red-500', preview: 'bg-red-100 text-red-700' },
-    { value: 'orange', label: 'Laranja', bg: 'bg-orange-500', preview: 'bg-orange-100 text-orange-700' },
-    { value: 'yellow', label: 'Amarelo', bg: 'bg-yellow-500', preview: 'bg-yellow-100 text-yellow-700' },
-    { value: 'green', label: 'Verde', bg: 'bg-green-500', preview: 'bg-green-100 text-green-700' },
-    { value: 'blue', label: 'Azul', bg: 'bg-blue-500', preview: 'bg-blue-100 text-blue-700' },
-    { value: 'purple', label: 'Roxo', bg: 'bg-purple-500', preview: 'bg-purple-100 text-purple-700' },
-    { value: 'pink', label: 'Rosa', bg: 'bg-pink-500', preview: 'bg-pink-100 text-pink-700' },
-    { value: 'gray', label: 'Cinza', bg: 'bg-gray-500', preview: 'bg-gray-100 text-gray-700' }
-  ]
-
-  const categoryOptions = [
-    { value: 'projeto', label: 'Projeto', description: 'Tags relacionadas a projetos específicos' },
-    { value: 'cliente', label: 'Cliente', description: 'Tags para categorizar clientes' },
-    { value: 'status', label: 'Status', description: 'Tags de status e estados' },
-    { value: 'prioridade', label: 'Prioridade', description: 'Tags de priorização' },
-    { value: 'departamento', label: 'Departamento', description: 'Tags organizacionais' },
-    { value: 'servico', label: 'Serviço', description: 'Tags de tipos de serviço' },
-    { value: 'produto', label: 'Produto', description: 'Tags de produtos' },
-    { value: 'geral', label: 'Geral', description: 'Tags de uso geral' }
+    { value: '#ef4444', label: 'Vermelho', bg: 'bg-red-500', preview: 'bg-red-100 text-red-700', hex: '#ef4444' },
+    { value: '#f97316', label: 'Laranja', bg: 'bg-orange-500', preview: 'bg-orange-100 text-orange-700', hex: '#f97316' },
+    { value: '#eab308', label: 'Amarelo', bg: 'bg-yellow-500', preview: 'bg-yellow-100 text-yellow-700', hex: '#eab308' },
+    { value: '#22c55e', label: 'Verde', bg: 'bg-green-500', preview: 'bg-green-100 text-green-700', hex: '#22c55e' },
+    { value: '#3b82f6', label: 'Azul', bg: 'bg-blue-500', preview: 'bg-blue-100 text-blue-700', hex: '#3b82f6' },
+    { value: '#a855f7', label: 'Roxo', bg: 'bg-purple-500', preview: 'bg-purple-100 text-purple-700', hex: '#a855f7' },
+    { value: '#ec4899', label: 'Rosa', bg: 'bg-pink-500', preview: 'bg-pink-100 text-pink-700', hex: '#ec4899' },
+    { value: '#6b7280', label: 'Cinza', bg: 'bg-gray-500', preview: 'bg-gray-100 text-gray-700', hex: '#6b7280' }
   ]
 
   const selectedColor = colorOptions.find(c => c.value === formData.color)
-  const selectedCategory = categoryOptions.find(c => c.value === formData.category)
 
   return (
     <AnimatePresence>
@@ -176,29 +180,6 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                   />
                 </div>
 
-                {/* Categoria */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Categoria *
-                  </label>
-                  <select
-                    required
-                    value={formData.category}
-                    onChange={(e) => updateFormData('category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    {categoryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedCategory && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {selectedCategory.description}
-                    </p>
-                  )}
-                </div>
 
                 {/* Cor */}
                 <div>
@@ -228,34 +209,6 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                   </div>
                 </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Status
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        value="active"
-                        checked={formData.status === 'active'}
-                        onChange={(e) => updateFormData('status', e.target.value)}
-                        className="text-orange-600 focus:ring-orange-500"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Ativa</span>
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        value="inactive"
-                        checked={formData.status === 'inactive'}
-                        onChange={(e) => updateFormData('status', e.target.value)}
-                        className="text-orange-600 focus:ring-orange-500"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Inativa</span>
-                    </label>
-                  </div>
-                </div>
 
                 {/* Preview da Tag */}
                 {formData.name && (
@@ -274,12 +227,16 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                             <Hash className="w-3 h-3" />
                             {formData.name}
                           </span>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            Categoria: {selectedCategory?.label}
-                          </p>
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Mensagem de Erro */}
+                {error && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                   </div>
                 )}
               </div>
@@ -291,7 +248,8 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleClose}
-                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </motion.button>
@@ -300,10 +258,20 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  Criar Tag
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Criando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Criar Tag
+                    </>
+                  )}
                 </motion.button>
               </div>
             </form>

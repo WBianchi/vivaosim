@@ -182,6 +182,7 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
       </div>
+
     </div>
   )
 }

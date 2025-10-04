@@ -55,6 +55,7 @@ interface MenuItemProps {
   isActive?: boolean
   badge?: number
   isNew?: boolean
+  newColor?: string
   onExpandChange?: (expanded: boolean) => void
   hasSubmenu?: boolean
   submenuItems?: SubMenuItemProps[]
@@ -67,6 +68,7 @@ interface SubMenuItemProps {
   label: string
   href: string
   isNew?: boolean
+  color?: string
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({ 
@@ -77,10 +79,16 @@ const MenuItem: React.FC<MenuItemProps> = ({
   isExpanded, 
   badge,
   isNew,
+  newColor,
   hasSubmenu,
-  onToggleSubmenu 
+  onToggleSubmenu,
+  submenuItems 
 }) => {
   const { isDarkMode } = useTheme()
+  const pathname = usePathname()
+  
+  // Verifica se algum submenu está ativo
+  const hasActiveSubmenu = submenuItems?.some(sub => pathname === sub.href)
   
   const content = (
       <motion.div
@@ -133,7 +141,10 @@ const MenuItem: React.FC<MenuItemProps> = ({
           {/* New indicator */}
           {isNew && (
             <motion.div
-              className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"
+              className={cn(
+                "absolute -top-1 -right-1 w-3 h-3 rounded-full",
+                newColor ? `bg-gradient-to-r ${newColor}` : 'bg-gradient-to-r from-green-400 to-emerald-500'
+              )}
               animate={{
                 scale: [1, 1.2, 1],
                 opacity: [1, 0.7, 1]
@@ -158,11 +169,14 @@ const MenuItem: React.FC<MenuItemProps> = ({
                 duration: 0.3, 
                 ease: [0.4, 0, 0.2, 1] 
               }}
-              className="whitespace-nowrap overflow-hidden"
+              className="flex-1 flex items-center justify-between whitespace-nowrap overflow-hidden"
             >
               <span className="font-medium text-sm">
                 {label}
               </span>
+              {hasSubmenu && (
+                <ChevronRight className="w-4 h-4 transition-transform duration-200" />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -235,7 +249,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
         icon: <LayoutDashboard />,
         label: 'Visão Geral',
         href: '/dashboard',
-        badge: 0,
         isNew: false
       }
     ]
@@ -247,98 +260,177 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
           icon: <MessageCircle />,
           label: 'Chat ao Vivo',
           href: '/chat',
-          badge: 3,
-          isNew: true
+          hasSubmenu: true,
+          submenuItems: [
+            {
+              icon: <MessageCircle />,
+              label: 'Conversas',
+              href: '/chat',
+              isNew: false,
+              color: 'text-blue-500'
+            },
+            {
+              icon: <Hash />,
+              label: 'Tags',
+              href: '/dashboard/tags',
+              isNew: false,
+              color: 'text-purple-500'
+            },
+            {
+              icon: <Ticket />,
+              label: 'Tickets',
+              href: '/dashboard/tickets',
+              isNew: false,
+              color: 'text-yellow-500'
+            },
+            {
+              icon: <Calendar />,
+              label: 'Agendamentos',
+              href: '/dashboard/agendamentos',
+              isNew: false,
+              color: 'text-green-500'
+            },
+            {
+              icon: <Receipt />,
+              label: 'Orçamentos',
+              href: '/dashboard/orcamentos',
+              isNew: false,
+              color: 'text-orange-500'
+            },
+            {
+              icon: <FileContract />,
+              label: 'Contratos',
+              href: '/dashboard/contratos',
+              isNew: false,
+              color: 'text-red-500'
+            }
+          ]
         },
         {
           icon: <Kanban />,
           label: 'Kanban',
           href: '/dashboard/kanban',
-          badge: 7,
-          isNew: false
-        },
-        {
-          icon: <TrendingUp />,
-          label: 'Vendas',
-          href: '/dashboard/vendas',
-          badge: 5,
-          isNew: false
+          hasSubmenu: true,
+          submenuItems: [
+            {
+              icon: <Kanban />,
+              label: 'Quadro',
+              href: '/dashboard/kanban',
+              isNew: false,
+              color: 'text-indigo-500'
+            },
+            {
+              icon: <Hash />,
+              label: 'Tags',
+              href: '/dashboard/tags',
+              isNew: false,
+              color: 'text-purple-500'
+            },
+            {
+              icon: <Ticket />,
+              label: 'Tickets',
+              href: '/dashboard/tickets',
+              isNew: false,
+              color: 'text-yellow-500'
+            },
+            {
+              icon: <Calendar />,
+              label: 'Agendamentos',
+              href: '/dashboard/agendamentos',
+              isNew: false,
+              color: 'text-green-500'
+            },
+            {
+              icon: <Receipt />,
+              label: 'Orçamentos',
+              href: '/dashboard/orcamentos',
+              isNew: false,
+              color: 'text-orange-500'
+            },
+            {
+              icon: <FileContract />,
+              label: 'Contratos',
+              href: '/dashboard/contratos',
+              isNew: false,
+              color: 'text-red-500'
+            }
+          ]
         },
         {
           icon: <DollarSign />,
           label: 'Financeiro',
           href: '/dashboard/financeiro',
-          badge: 12,
-          isNew: false
+          hasSubmenu: true,
+          submenuItems: [
+            {
+              icon: <DollarSign />,
+              label: 'Visão Geral',
+              href: '/dashboard/financeiro',
+              isNew: false,
+              color: 'text-green-500'
+            },
+            {
+              icon: <TrendingUp />,
+              label: 'Vendas',
+              href: '/dashboard/vendas',
+              isNew: false,
+              color: 'text-blue-500'
+            },
+            {
+              icon: <Package />,
+              label: 'Planos',
+              href: '/dashboard/planos',
+              isNew: true,
+              color: 'text-purple-500'
+            }
+          ]
         },
         {
-          icon: <HeadphonesIcon />,
-          label: 'Atendentes',
-          href: '/dashboard/atendentes',
-          badge: 1,
-          isNew: false
-        },
-        {
-          icon: <Package />,
-          label: 'Planos',
-          href: '/dashboard/planos',
-          badge: 3,
-          isNew: true
-        },
-        {
-          icon: <UserPlus />,
-          label: 'Assinantes',
-          href: '/dashboard/assinantes',
-          badge: 8,
-          isNew: false
-        },
-        {
-          icon: <Users />,
-          label: 'Clientes',
-          href: '/dashboard/clientes',
-          badge: 24,
-          isNew: false
-        },
-        {
-          icon: <UserCheck />,
-          label: 'Afiliados',
-          href: '/dashboard/afiliados',
-          badge: 3,
-          isNew: false
-        },
-        {
-          icon: <Calendar />,
-          label: 'Agendamentos',
-          href: '/dashboard/agendamentos',
-          badge: 2,
-          isNew: false
-        },
-        {
-          icon: <Receipt />,
-          label: 'Orçamentos',
-          href: '/dashboard/orcamentos',
-          badge: 4,
-          isNew: false
-        },
-        {
-          icon: <FileContract />,
-          label: 'Contratos',
-          href: '/dashboard/contratos',
-          badge: 1,
-          isNew: false
+          icon: <Users2 />,
+          label: 'Usuários',
+          hasSubmenu: true,
+          submenuItems: [
+            {
+              icon: <UserPlus />,
+              label: 'Assinantes',
+              href: '/dashboard/assinantes',
+              isNew: false,
+              color: 'text-blue-500'
+            },
+            {
+              icon: <UserCheck />,
+              label: 'Afiliados',
+              href: '/dashboard/afiliados',
+              isNew: false,
+              color: 'text-green-500'
+            },
+            {
+              icon: <HeadphonesIcon />,
+              label: 'Atendentes',
+              href: '/dashboard/atendentes',
+              isNew: false,
+              color: 'text-purple-500'
+            },
+            {
+              icon: <Users />,
+              label: 'Clientes',
+              href: '/dashboard/clientes',
+              isNew: false,
+              color: 'text-orange-500'
+            }
+          ]
         },
         {
           icon: <Globe />,
           label: 'Sites',
           href: '/dashboard/sites',
-          badge: 4,
-          isNew: true
+          isNew: true,
+          newColor: 'from-blue-400 to-blue-500'
         },
         {
           icon: <Megaphone />,
           label: 'Marketing',
           hasSubmenu: true,
-          badge: 22,
           isNew: false,
           submenuItems: [
             {
@@ -377,56 +469,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
           icon: <GitBranch />,
           label: 'Fluxograma',
           href: '/dashboard/fluxograma',
-          badge: 1,
-          isNew: true
+          isNew: true,
+          newColor: 'from-purple-400 to-purple-500'
         },
         {
           icon: <Users2 />,
           label: 'Agentes',
           href: '/dashboard/agentes',
-          badge: 3,
-          isNew: true
+          isNew: true,
+          newColor: 'from-pink-400 to-pink-500'
         },
         {
           icon: <MessageCircleMore />,
           label: 'Chat Interno',
           href: '/dashboard/chat-interno',
-          badge: 5,
-          isNew: true
-        },
-        {
-          icon: <Hash />,
-          label: 'Tags',
-          href: '/dashboard/tags',
-          badge: 12,
-          isNew: false
-        },
-        {
-          icon: <Ticket />,
-          label: 'Tickets',
-          href: '/dashboard/tickets',
-          badge: 8,
-          isNew: false
+          isNew: true,
+          newColor: 'from-cyan-400 to-cyan-500'
         },
         {
           icon: <BookOpen />,
           label: 'Blog',
           href: '/dashboard/blog',
-          badge: 2,
-          isNew: true
+          isNew: true,
+          newColor: 'from-yellow-400 to-yellow-500'
         },
         {
           icon: <BarChart3 />,
           label: 'Relatórios',
           href: '/dashboard/relatorios',
-          badge: 5,
-          isNew: true
+          isNew: true,
+          newColor: 'from-red-400 to-red-500'
         },
         {
           icon: <Settings />,
           label: 'Configurações',
           href: '/dashboard/configuracoes',
-          badge: 2,
           isNew: false
         }
       ]
@@ -439,56 +516,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
           icon: <MessageCircle />,
           label: 'Chat ao Vivo',
           href: '/chat',
-          badge: 2,
           isNew: false
         },
         {
           icon: <Kanban />,
           label: 'Kanban',
           href: '/dashboard/kanban',
-          badge: 0,
           isNew: false
         },
         {
           icon: <FileText />,
           label: 'Contratos',
           href: '/dashboard/contratos',
-          badge: 0,
           isNew: false
         },
         {
           icon: <CreditCard />,
           label: 'Orçamentos',
           href: '/dashboard/orcamentos',
-          badge: 1,
           isNew: false
         },
         {
           icon: <Calendar />,
           label: 'Agendamentos',
           href: '/dashboard/agendamentos',
-          badge: 0,
-          isNew: false
-        },
-        {
-          icon: <Users />,
-          label: 'Clientes',
-          href: '/dashboard/clientes',
-          badge: 0,
           isNew: false
         },
         {
           icon: <BarChart3 />,
           label: 'Relatórios',
           href: '/dashboard/relatorios',
-          badge: 0,
           isNew: false
         },
         {
           icon: <Settings />,
           label: 'Configurações',
           href: '/dashboard/configuracoes',
-          badge: 0,
           isNew: false
         }
       ]
@@ -500,49 +563,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
         icon: <FileText />,
         label: 'Meu Contrato',
         href: '/dashboard/contrato',
-        badge: null,
         isNew: false
       },
       {
         icon: <DollarSign />,
         label: 'Custos',
         href: '/dashboard/custos',
-        badge: null,
         isNew: false
       },
       {
         icon: <Globe />,
         label: 'Meu Site',
         href: '/dashboard/site',
-        badge: null,
-        isNew: true
+        isNew: true,
+        newColor: 'from-blue-400 to-blue-500'
       },
       {
         icon: <ShoppingCart />,
         label: 'Lista de Presentes',
         href: '/dashboard/compras',
-        badge: 12,
         isNew: false
       },
       {
         icon: <TrendingUp />,
         label: 'Recebimentos',
         href: '/dashboard/recebimentos',
-        badge: 8,
-        isNew: true
+        isNew: true,
+        newColor: 'from-green-400 to-green-500'
       },
       {
         icon: <Users />,
         label: 'Convidados',
         href: '/dashboard/convidados',
-        badge: 150,
         isNew: false
       },
       {
         icon: <User />,
         label: 'Meu Perfil',
         href: '/dashboard/meu-perfil',
-        badge: null,
         isNew: false
       }
     ]
@@ -553,13 +611,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
   return (
     <motion.div
       className={cn(
-        'relative h-screen flex flex-col transition-all duration-500 ease-in-out',
+        'relative h-screen flex flex-col overflow-hidden',
         'border-r border-gray-200/50 dark:border-slate-700/50',
         isDarkMode 
           ? 'bg-gradient-to-b from-slate-900/95 via-slate-800/95 to-slate-900/95' 
           : 'bg-gradient-to-b from-white/95 via-gray-50/95 to-white/95',
         'backdrop-blur-xl',
-        isExpanded ? 'w-64' : 'w-20',
         className
       )}
       onMouseEnter={() => {
@@ -572,6 +629,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
         if (!isMobile) {
           setIsExpanded(false)
           onExpandChange?.(false)
+          setExpandedMenus([]) // Fecha submenus ao colapsar
         }
       }}
       animate={{ 
@@ -583,7 +641,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
           : '5px 0 20px rgba(0, 0, 0, 0.05)'
       }}
       transition={{ 
-        duration: 0.4, 
+        duration: 0.3, 
         ease: [0.4, 0, 0.2, 1] 
       }}
     >
@@ -634,7 +692,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 px-2 py-4 space-y-2 overflow-y-auto scrollbar-hide">
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <AnimatePresence>
           {menuItems.map((item, index) => (
             <motion.div
@@ -646,22 +704,71 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
                 duration: 0.3
               }}
             >
-              <MenuItem
-                icon={item.icon}
-                label={item.label}
-                href={'href' in item ? item.href : undefined}
-                hasSubmenu={'hasSubmenu' in item ? item.hasSubmenu : false}
-                submenuItems={'submenuItems' in item ? item.submenuItems : undefined}
-                onToggleSubmenu={() => {
-                  if ('hasSubmenu' in item && item.hasSubmenu) {
-                    // Toggle submenu logic here
-                  }
-                }}
-                isActive={'href' in item && pathname === item.href}
-                isExpanded={isExpanded}
-                badge={item.badge}
-                isNew={item.isNew}
-              />
+              <>
+                <MenuItem
+                  icon={item.icon}
+                  label={item.label}
+                  href={'href' in item ? item.href : undefined}
+                  hasSubmenu={'hasSubmenu' in item ? item.hasSubmenu : false}
+                  submenuItems={'submenuItems' in item && Array.isArray(item.submenuItems) ? item.submenuItems : undefined}
+                  onToggleSubmenu={() => {
+                    if ('hasSubmenu' in item && item.hasSubmenu) {
+                      setExpandedMenus(prev => 
+                        prev.includes(item.label)
+                          ? prev.filter(label => label !== item.label)
+                          : [...prev, item.label]
+                      )
+                    }
+                  }}
+                  isActive={'href' in item && pathname === item.href}
+                  isExpanded={isExpanded}
+                  badge={'badge' in item ? item.badge as number : undefined}
+                  isNew={item.isNew}
+                />
+                
+                {/* Submenu Items */}
+                {'hasSubmenu' in item && item.hasSubmenu && expandedMenus.includes(item.label) && isExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="ml-4 mt-1 space-y-1"
+                  >
+                    {item.submenuItems?.map((subItem: SubMenuItemProps) => (
+                      <Link key={subItem.href} href={subItem.href}>
+                        <motion.div
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-2 mx-2 rounded-xl transition-all duration-200',
+                            pathname === subItem.href
+                              ? isDarkMode
+                                ? 'bg-orange-500/10 text-orange-400'
+                                : 'bg-orange-50 text-orange-600'
+                              : isDarkMode
+                                ? 'hover:bg-slate-700/30 text-slate-400 hover:text-slate-200'
+                                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                          )}
+                          whileHover={{ x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {React.cloneElement(subItem.icon as React.ReactElement, {
+                            className: cn('w-4 h-4', subItem.color || '')
+                          })}
+                          <span className="text-sm font-medium">{subItem.label}</span>
+                          {subItem.isNew && (
+                            <span className={cn(
+                              "ml-auto px-2 py-0.5 text-xs text-white rounded-full",
+                              subItem.color?.replace('text-', 'bg-') || 'bg-green-500'
+                            )}>
+                              Novo
+                            </span>
+                          )}
+                        </motion.div>
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </>
             </motion.div>
           ))}
         </AnimatePresence>

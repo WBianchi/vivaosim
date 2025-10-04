@@ -198,22 +198,54 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 {chat.name}
               </h3>
-              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                {chat.isGroup ? (
-                  <span>{chat.participants?.length} participantes</span>
-                ) : (
-                  <>
-                    <span>{chat.contact?.phone}</span>
+              
+              {/* Linha 1: Atendente, Status, Visto por último */}
+              <div className="flex items-center gap-2 text-xs mt-1">
+                {/* Atendente */}
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full">
+                  <User className="w-3 h-3" />
+                  <span className="font-medium">João Silva</span>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                  <span className="font-medium">Em Atendimento</span>
+                </div>
+
+                {/* Visto por último */}
+                {!chat.isGroup && (
+                  <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                    <Clock className="w-3 h-3" />
                     {chat.contact?.isOnline ? (
-                      <span className="text-green-500">• online</span>
+                      <span className="text-green-500 font-medium">online</span>
                     ) : (
                       chat.contact?.lastSeen && (
-                        <span>• visto por último {formatMessageTime(chat.contact.lastSeen)}</span>
+                        <span>há 5min</span>
                       )
                     )}
-                  </>
+                  </div>
                 )}
               </div>
+
+              {/* Linha 2: Tags */}
+              {chat.labels && chat.labels.length > 0 && (
+                <div className="flex items-center gap-1 mt-1">
+                  {chat.labels.slice(0, 3).map((label, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-[10px] font-medium"
+                    >
+                      <Tag className="w-2.5 h-2.5" />
+                      {label}
+                    </span>
+                  ))}
+                  {chat.labels.length > 3 && (
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                      +{chat.labels.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -331,11 +363,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
       {/* Área de Mensagens */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-1 min-h-0"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f3f4f6' fill-opacity='0.1'%3E%3Cpath d='m0 40 40-40h-40v40zm40 0v-40h-40l40 40z'/%3E%3C/g%3E%3C/svg%3E")`,
-          backgroundSize: '40px 40px'
-        }}
+        className="flex-1 overflow-y-auto px-6 py-4 space-y-1 min-h-0 bg-gray-50 dark:bg-gray-900"
       >
         {messagesError ? (
           <div className="flex items-center justify-center h-full">

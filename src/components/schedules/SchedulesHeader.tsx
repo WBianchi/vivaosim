@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -10,8 +11,10 @@ import {
   CalendarDays,
   Clock,
   Users,
-  CheckCircle2
+  CheckCircle2,
+  Filter
 } from 'lucide-react'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface SchedulesHeaderProps {
   onCreateSchedule: () => void
@@ -19,6 +22,8 @@ interface SchedulesHeaderProps {
   onViewModeChange: (mode: 'grid' | 'table' | 'calendar') => void
   searchTerm: string
   onSearchChange: (term: string) => void
+  onToggleFilters?: () => void
+  showFilters?: boolean
 }
 
 export const SchedulesHeader: React.FC<SchedulesHeaderProps> = ({
@@ -26,41 +31,78 @@ export const SchedulesHeader: React.FC<SchedulesHeaderProps> = ({
   viewMode,
   onViewModeChange,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  onToggleFilters,
+  showFilters = false
 }) => {
-  // Mock stats - em produção viriam da API
+  const [statsData, setStatsData] = useState({
+    totalAppointments: 0,
+    appointmentsToday: 0,
+    uniqueClients: 0,
+    completedAppointments: 0,
+    changePercent: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/appointments/stats', {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setStatsData({
+          totalAppointments: data.stats.totalAppointments.value,
+          appointmentsToday: data.stats.appointmentsToday.value,
+          uniqueClients: data.stats.uniqueClients.value,
+          completedAppointments: data.stats.completedAppointments.value,
+          changePercent: data.stats.totalAppointments.change
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const stats = [
     {
       label: 'Total de Agendamentos',
-      value: '847',
+      value: statsData.totalAppointments.toString(),
       icon: CalendarDays,
       color: 'text-blue-600',
       bg: 'bg-blue-100',
-      change: '+18%'
+      change: `${statsData.changePercent > 0 ? '+' : ''}${statsData.changePercent}%`
     },
     {
       label: 'Hoje',
-      value: '12',
+      value: statsData.appointmentsToday.toString(),
       icon: Clock,
       color: 'text-orange-600',
       bg: 'bg-orange-100',
-      change: '+3'
+      change: `${statsData.appointmentsToday}`
     },
     {
       label: 'Clientes Únicos',
-      value: '156',
+      value: statsData.uniqueClients.toString(),
       icon: Users,
       color: 'text-purple-600',
       bg: 'bg-purple-100',
-      change: '+7%'
+      change: '+0%'
     },
     {
       label: 'Concluídos',
-      value: '689',
+      value: statsData.completedAppointments.toString(),
       icon: CheckCircle2,
       color: 'text-green-600',
       bg: 'bg-green-100',
-      change: '+15%'
+      change: '+0%'
     }
   ]
 
@@ -132,6 +174,21 @@ export const SchedulesHeader: React.FC<SchedulesHeaderProps> = ({
               <Calendar className="w-4 h-4" />
             </motion.button>
           </div>
+
+          {/* Botão Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onToggleFilters}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors shadow-sm ${
+              showFilters
+                ? 'bg-orange-500 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
 
           {/* Botão Criar Agendamento */}
           <motion.button

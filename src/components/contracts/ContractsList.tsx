@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ContractCard } from './ContractCard'
 import { ContractsTable } from './ContractsTable'
 import { EmptyState } from './EmptyState'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface ContractsListProps {
   filters: any
@@ -12,9 +13,10 @@ interface ContractsListProps {
   viewMode: 'grid' | 'table'
   onContractSelect: (contract: any) => void
   onSignatureRequest: (contract: any) => void
+  onEdit?: (contract: any) => void
+  onDelete?: (contractId: string) => void
 }
 
-// Mock data - em produção viria da API
 const mockContracts = [
   {
     id: '1',
@@ -279,12 +281,98 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   searchTerm,
   viewMode,
   onContractSelect,
-  onSignatureRequest
+  onSignatureRequest,
+  onEdit,
+  onDelete
 }) => {
-  const [contracts, setContracts] = useState(mockContracts)
-  const [loading, setLoading] = useState(false)
+  const [contracts, setContracts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Simular filtros
+  const handleDelete = async (contractId: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const response = await fetch(`/api/contracts?id=${contractId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setContracts(prev => prev.filter(c => c.id !== contractId))
+        onDelete?.(contractId)
+      }
+    } catch (error) {
+      console.error('Erro ao excluir contrato:', error)
+    }
+  }
+
+  // Buscar contratos da API
+  useEffect(() => {
+    const fetchContracts = async () => {
+      try {
+        setLoading(true)
+        const token = getAuthToken()
+        
+        if (!token) {
+          console.error('Token não encontrado')
+          setContracts([])
+          return
+        }
+
+        const params = new URLSearchParams()
+        if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+
+        const response = await fetch(`/api/contracts?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const transformedContracts = data.contracts.map((contract: any) => ({
+            id: contract.id,
+            title: contract.title,
+            description: contract.description,
+            client: contract.contact || { id: '', name: 'Sem cliente', email: '' },
+            agent: contract.createdBy || { id: '', name: 'Não atribuído' },
+            value: parseFloat(contract.amount),
+            status: contract.status,
+            signatureProvider: 'docusign',
+            signatureUrl: null,
+            createdAt: contract.createdAt,
+            updatedAt: contract.updatedAt,
+            signedAt: contract.signedAt,
+            expiresAt: contract.endDate,
+            terms: {
+              duration: contract.startDate && contract.endDate ? 'Período definido' : 'Não definido',
+              paymentTerms: 'A combinar',
+              deliveryDate: contract.endDate
+            },
+            attachments: [],
+            signatures: [],
+            tags: []
+          }))
+          setContracts(transformedContracts)
+        } else {
+          console.error('Erro ao buscar contratos')
+          setContracts([])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar contratos:', error)
+        setContracts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchContracts()
+  }, [filters.status])
+
+  // Filtros locais
   const filteredContracts = contracts.filter((contract) => {
     // Filtro por status
     if (filters.status !== 'all' && contract.status !== filters.status) {

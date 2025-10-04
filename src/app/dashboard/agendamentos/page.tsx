@@ -11,6 +11,8 @@ import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal'
 export default function AgendamentosPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
     status: 'all',
     dateRange: 'all',
@@ -20,7 +22,7 @@ export default function AgendamentosPage() {
     format: 'all'
   })
   const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'calendar'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'calendar'>('calendar')
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -32,16 +34,28 @@ export default function AgendamentosPage() {
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          showFilters={showFilters}
         />
 
-        {/* Filtros */}
-        <SchedulesFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        {/* Filtros Colapsáveis */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <SchedulesFilters 
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+          </motion.div>
+        )}
 
         {/* Lista de Agendamentos */}
         <SchedulesList 
+          key={refreshKey}
           filters={filters}
           searchTerm={searchTerm}
           viewMode={viewMode}
@@ -64,9 +78,9 @@ export default function AgendamentosPage() {
         {showCreateModal && (
           <CreateScheduleModal
             onClose={() => setShowCreateModal(false)}
-            onSave={(scheduleData) => {
-              console.log('💾 Salvando agendamento:', scheduleData)
+            onSave={() => {
               setShowCreateModal(false)
+              setRefreshKey(prev => prev + 1)
             }}
           />
         )}

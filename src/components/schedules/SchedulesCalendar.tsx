@@ -201,33 +201,33 @@ export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules,
             </div>
 
             {/* Agendamentos do dia */}
-            <div className="space-y-1">
+            <div className="space-y-2">
               {day.schedules.slice(0, 3).map((schedule) => {
                 const FormatIcon = getFormatIcon(schedule.format)
                 
                 return (
                   <motion.button
                     key={schedule.id}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onScheduleSelect(schedule)}
-                    className={`w-full text-left p-1.5 rounded text-xs ${getStatusColor(schedule.status)} text-white hover:opacity-80 transition-opacity`}
+                    className="w-full text-left p-2 rounded-lg bg-white dark:bg-gray-700 border-l-3 border-orange-500 shadow-sm hover:shadow-md transition-all duration-200"
                   >
-                    <div className="flex items-center gap-1 mb-1">
-                      <Clock className="w-3 h-3" />
-                      <span>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Clock className="w-3 h-3 text-orange-500" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                         {new Date(schedule.dateTime).toLocaleTimeString('pt-BR', {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
                       </span>
                     </div>
-                    <div className="font-medium truncate">
+                    <div className="font-semibold text-xs text-gray-900 dark:text-white truncate mb-1">
                       {schedule.title}
                     </div>
-                    <div className="flex items-center gap-1 opacity-80">
-                      <FormatIcon className="w-3 h-3" />
-                      <span className="truncate">
+                    <div className="flex items-center gap-1.5">
+                      <FormatIcon className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                         {schedule.client.name}
                       </span>
                     </div>

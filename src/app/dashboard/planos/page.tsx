@@ -29,9 +29,12 @@ export default function PlansPage() {
     setShowCreateModal(true)
   }
 
-  const handleSavePlan = (planData: any) => {
-    console.log('💾 Salvando plano:', planData)
-    // Aqui você faria a chamada para a API
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handleSavePlan = () => {
+    setShowCreateModal(false)
+    setSelectedPlan(null)
+    setRefreshKey(prev => prev + 1)
   }
 
   const handleFiltersChange = (newFilters: any) => {
@@ -54,6 +57,7 @@ export default function PlansPage() {
       />
 
       <PlansList
+        key={refreshKey}
         filters={filters}
         searchTerm={searchTerm}
         viewMode={viewMode}

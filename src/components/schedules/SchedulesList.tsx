@@ -6,6 +6,7 @@ import { ScheduleCard } from './ScheduleCard'
 import { SchedulesTable } from './SchedulesTable'
 import { SchedulesCalendar } from './SchedulesCalendar'
 import { EmptyState } from './EmptyState'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface SchedulesListProps {
   filters: any
@@ -14,7 +15,7 @@ interface SchedulesListProps {
   onScheduleSelect: (schedule: any) => void
 }
 
-// Mock data - em produção viria da API
+// Mock data - fallback se API falhar
 const mockSchedules = [
   {
     id: '1',
@@ -169,8 +170,70 @@ export const SchedulesList: React.FC<SchedulesListProps> = ({
   viewMode,
   onScheduleSelect
 }) => {
-  const [schedules, setSchedules] = useState(mockSchedules)
-  const [loading, setLoading] = useState(false)
+  const [schedules, setSchedules] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Buscar agendamentos da API
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        setLoading(true)
+        const token = getAuthToken()
+        
+        if (!token) {
+          console.error('Token não encontrado')
+          setSchedules(mockSchedules)
+          return
+        }
+
+        const params = new URLSearchParams()
+        if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+        if (filters.type && filters.type !== 'all') params.append('type', filters.type)
+        if (filters.agent && filters.agent !== 'all') params.append('assignedToId', filters.agent)
+
+        const response = await fetch(`/api/appointments?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Transformar dados da API para o formato esperado pelos componentes
+          const transformedSchedules = data.appointments.map((apt: any) => ({
+            id: apt.id,
+            title: apt.title,
+            description: apt.description,
+            client: apt.client || { id: '', name: 'Sem cliente', email: '', phone: '' },
+            agent: apt.assignedTo || { id: '', name: 'Não atribuído' },
+            dateTime: apt.startDateTime,
+            duration: apt.duration || 60,
+            status: apt.status.toLowerCase(),
+            type: apt.type.toLowerCase(),
+            format: apt.isOnline ? 'online' : 'in_person',
+            location: apt.location || '',
+            meetingUrl: apt.meetingUrl,
+            notes: apt.notes,
+            priority: 'medium',
+            createdAt: apt.createdAt,
+            updatedAt: apt.updatedAt,
+            tags: []
+          }))
+          setSchedules(transformedSchedules)
+        } else {
+          console.error('Erro ao buscar agendamentos')
+          setSchedules(mockSchedules)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar agendamentos:', error)
+        setSchedules(mockSchedules)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSchedules()
+  }, [filters.status, filters.type, filters.agent])
 
   // Simular filtros
   const filteredSchedules = schedules.filter((schedule) => {

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -12,6 +13,7 @@ import {
   CheckCircle,
   Users
 } from 'lucide-react'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface TicketsHeaderProps {
   onCreateTicket: () => void
@@ -28,41 +30,103 @@ export const TicketsHeader: React.FC<TicketsHeaderProps> = ({
   searchTerm,
   onSearchChange
 }) => {
-  // Mock stats - em produção viriam da API
-  const stats = [
+  const [stats, setStats] = useState([
     {
       label: 'Total de Tickets',
-      value: '284',
+      value: '0',
       icon: Ticket,
       color: 'text-blue-600',
       bg: 'bg-blue-100',
-      change: '+18'
+      change: '+0'
     },
     {
       label: 'Urgentes',
-      value: '12',
+      value: '0',
       icon: AlertTriangle,
       color: 'text-red-600',
       bg: 'bg-red-100',
-      change: '+3'
+      change: '+0'
     },
     {
       label: 'Em Andamento',
-      value: '47',
+      value: '0',
       icon: Clock,
       color: 'text-yellow-600',
       bg: 'bg-yellow-100',
-      change: '+8'
+      change: '+0'
     },
     {
       label: 'Resolvidos',
-      value: '225',
+      value: '0',
       icon: CheckCircle,
       color: 'text-green-600',
       bg: 'bg-green-100',
-      change: '+15'
+      change: '+0'
     }
-  ]
+  ])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/tickets/stats', {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setStats([
+          {
+            label: 'Total de Tickets',
+            value: data.stats.totalTickets.value.toString(),
+            icon: Ticket,
+            color: 'text-blue-600',
+            bg: 'bg-blue-100',
+            change: data.stats.totalTickets.change >= 0 
+              ? `+${data.stats.totalTickets.change}` 
+              : data.stats.totalTickets.change.toString()
+          },
+          {
+            label: 'Urgentes',
+            value: data.stats.urgentTickets.value.toString(),
+            icon: AlertTriangle,
+            color: 'text-red-600',
+            bg: 'bg-red-100',
+            change: data.stats.urgentTickets.change >= 0 
+              ? `+${data.stats.urgentTickets.change}` 
+              : data.stats.urgentTickets.change.toString()
+          },
+          {
+            label: 'Em Andamento',
+            value: data.stats.inProgressTickets.value.toString(),
+            icon: Clock,
+            color: 'text-yellow-600',
+            bg: 'bg-yellow-100',
+            change: data.stats.inProgressTickets.change >= 0 
+              ? `+${data.stats.inProgressTickets.change}` 
+              : data.stats.inProgressTickets.change.toString()
+          },
+          {
+            label: 'Resolvidos',
+            value: data.stats.resolvedTickets.value.toString(),
+            icon: CheckCircle,
+            color: 'text-green-600',
+            bg: 'bg-green-100',
+            change: data.stats.resolvedTickets.change >= 0 
+              ? `+${data.stats.resolvedTickets.change}` 
+              : data.stats.resolvedTickets.change.toString()
+          }
+        ])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="mb-8">

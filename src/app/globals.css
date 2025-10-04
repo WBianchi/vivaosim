@@ -189,4 +189,51 @@
   .scrollbar-chat::-webkit-scrollbar-thumb:active {
     background: #1e2442;
   }
+  
+  /* Scrollbar cinza claro para SideChat */
+  .scrollbar-orange::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .scrollbar-orange::-webkit-scrollbar-track {
+    background: #f9fafb;
+    border-radius: 10px;
+  }
+  
+  .dark .scrollbar-orange::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+  
+  .scrollbar-orange::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: all 0.3s ease;
+  }
+  
+  .scrollbar-orange::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+    background-clip: content-box;
+  }
+  
+  /* Firefox */
+  .scrollbar-orange {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f9fafb;
+  }
+  
+  .dark .scrollbar-orange {
+    scrollbar-color: #6b7280 #1f2937;
+  }
+
+  /* Ocultar scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }

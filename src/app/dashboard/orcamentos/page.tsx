@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { QuotesHeader } from '@/components/quotes/QuotesHeader'
+import { QuotesStats } from '@/components/quotes/QuotesStats'
 import { QuotesFilters } from '@/components/quotes/QuotesFilters'
 import { QuotesList } from '@/components/quotes/QuotesList'
 import { QuoteDetailsModal } from '@/components/quotes/QuoteDetailsModal'
@@ -11,6 +12,9 @@ import { CreateQuoteModal } from '@/components/quotes/CreateQuoteModal'
 export default function OrcamentosPage() {
   const [selectedQuote, setSelectedQuote] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingQuote, setEditingQuote] = useState<any>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
     status: 'all',
     dateRange: 'all',
@@ -21,6 +25,15 @@ export default function OrcamentosPage() {
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+
+  const handleEdit = (quote: any) => {
+    setEditingQuote(quote)
+    setShowEditModal(true)
+  }
+
+  const handleDelete = () => {
+    setRefreshKey(prev => prev + 1)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -34,6 +47,9 @@ export default function OrcamentosPage() {
           onSearchChange={setSearchTerm}
         />
 
+        {/* Estatísticas */}
+        <QuotesStats refreshTrigger={refreshKey} />
+
         {/* Filtros */}
         <QuotesFilters 
           filters={filters}
@@ -42,10 +58,13 @@ export default function OrcamentosPage() {
 
         {/* Lista de Orçamentos */}
         <QuotesList 
+          key={refreshKey}
           filters={filters}
           searchTerm={searchTerm}
           viewMode={viewMode}
           onQuoteSelect={setSelectedQuote}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
 
         {/* Modal de Detalhes */}
@@ -64,9 +83,9 @@ export default function OrcamentosPage() {
         {showCreateModal && (
           <CreateQuoteModal
             onClose={() => setShowCreateModal(false)}
-            onSave={(quoteData) => {
-              console.log('💾 Salvando orçamento:', quoteData)
+            onSave={() => {
               setShowCreateModal(false)
+              setRefreshKey(prev => prev + 1)
             }}
           />
         )}

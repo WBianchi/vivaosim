@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getAuthToken } from '@/lib/auth-token'
 import { 
   X, 
   DollarSign, 
@@ -16,7 +17,7 @@ import {
 
 interface CreateQuoteModalProps {
   onClose: () => void
-  onSave: (quoteData: any) => void
+  onSave: () => void
 }
 
 interface QuoteItem {
@@ -30,32 +31,54 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
   onSave
 }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    clientId: '',
-    clientName: '',
-    clientEmail: '',
-    agentId: 'a1',
-    expiresAt: '',
-    notes: '',
-    priority: 'medium',
-    tags: [] as string[]
+    contactId: '',
+    validUntil: '',
+    discount: 0,
+    chatId: ''
   })
   const [items, setItems] = useState<QuoteItem[]>([
     { name: '', quantity: 1, price: 0 }
   ])
-  const [newTag, setNewTag] = useState('')
+  const [contacts, setContacts] = useState<any[]>([])
 
   useEffect(() => {
     setIsVisible(true)
-    // Definir data de expiração padrão para 30 dias
+    
+    // Definir data de validade padrão para 30 dias
     const expireDate = new Date()
     expireDate.setDate(expireDate.getDate() + 30)
     setFormData(prev => ({
       ...prev,
-      expiresAt: expireDate.toISOString().slice(0, 10)
+      validUntil: expireDate.toISOString().slice(0, 10)
     }))
+
+    // Buscar contatos
+    const fetchContacts = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const response = await fetch('/api/contacts', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setContacts(data.contacts || [])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar contatos:', error)
+      }
+    }
+
+    fetchContacts()
   }, [])
 
   const handleClose = () => {
@@ -63,33 +86,61 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
-    
-    const quoteData = {
-      ...formData,
-      id: Date.now().toString(),
-      client: {
-        id: formData.clientId || Date.now().toString(),
-        name: formData.clientName,
-        email: formData.clientEmail
-      },
-      agent: {
-        id: formData.agentId,
-        name: agentOptions.find(a => a.value === formData.agentId)?.label || 'João Silva'
-      },
-      value: totalValue,
-      items: items.filter(item => item.name.trim() !== ''),
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        setError('Token de autenticação não encontrado')
+        setLoading(false)
+        return
+      }
 
-    console.log('💾 Salvando orçamento:', quoteData)
-    onSave(quoteData)
-    handleClose()
+      const quoteItems = items
+        .filter(item => item.name.trim() !== '')
+        .map(item => ({
+          name: item.name,
+          description: '',
+          quantity: item.quantity,
+          unitPrice: item.price,
+          total: item.quantity * item.price
+        }))
+
+      const payload = {
+        title: formData.title,
+        description: formData.description || null,
+        contactId: formData.contactId,
+        validUntil: formData.validUntil ? new Date(formData.validUntil).toISOString() : null,
+        discount: formData.discount || null,
+        chatId: formData.chatId || null,
+        items: quoteItems
+      }
+
+      const response = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (response.ok) {
+        onSave()
+        handleClose()
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Erro ao criar orçamento')
+      }
+    } catch (error) {
+      console.error('Erro ao criar orçamento:', error)
+      setError('Erro ao criar orçamento')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateFormData = (key: string, value: any) => {
@@ -114,36 +165,6 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
       setItems(prev => prev.filter((_, i) => i !== index))
     }
   }
-
-  const addTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, newTag.trim()]
-      }))
-      setNewTag('')
-    }
-  }
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }))
-  }
-
-  const agentOptions = [
-    { value: 'a1', label: 'João Silva' },
-    { value: 'a2', label: 'Maria Santos' },
-    { value: 'a3', label: 'Pedro Costa' },
-    { value: 'a4', label: 'Ana Lima' }
-  ]
-
-  const priorityOptions = [
-    { value: 'low', label: 'Baixa', color: 'text-green-600' },
-    { value: 'medium', label: 'Média', color: 'text-yellow-600' },
-    { value: 'high', label: 'Alta', color: 'text-red-600' }
-  ]
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -229,29 +250,26 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Prioridade
+                        Data de Validade
                       </label>
-                      <select
-                        value={formData.priority}
-                        onChange={(e) => updateFormData('priority', e.target.value)}
+                      <input
+                        type="date"
+                        value={formData.validUntil}
+                        onChange={(e) => updateFormData('validUntil', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        {priorityOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Data de Expiração
+                        Desconto (R$)
                       </label>
                       <input
-                        type="date"
-                        value={formData.expiresAt}
-                        onChange={(e) => updateFormData('expiresAt', e.target.value)}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.discount}
+                        onChange={(e) => updateFormData('discount', parseFloat(e.target.value) || 0)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       />
                     </div>
@@ -271,57 +289,30 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
                   </div>
                 </div>
 
-                {/* Informações do Cliente */}
+                {/* Cliente */}
                 <div className="md:col-span-2">
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <User className="w-5 h-5" />
                     Cliente
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Nome do Cliente *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.clientName}
-                        onChange={(e) => updateFormData('clientName', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Nome completo do cliente"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email do Cliente
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.clientEmail}
-                        onChange={(e) => updateFormData('clientEmail', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="email@exemplo.com"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Agente Responsável
-                      </label>
-                      <select
-                        value={formData.agentId}
-                        onChange={(e) => updateFormData('agentId', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      >
-                        {agentOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Selecionar Cliente *
+                    </label>
+                    <select
+                      required
+                      value={formData.contactId}
+                      onChange={(e) => updateFormData('contactId', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="">Selecione um cliente</option>
+                      {contacts.map((contact) => (
+                        <option key={contact.id} value={contact.id}>
+                          {contact.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -405,68 +396,6 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
                       </span>
                     </div>
                   </div>
-                </div>
-
-                {/* Tags */}
-                <div className="md:col-span-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Tag className="w-5 h-5" />
-                    Tags
-                  </h3>
-                  
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Adicionar tag..."
-                    />
-                    <motion.button
-                      type="button"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={addTag}
-                      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-                    >
-                      Adicionar
-                    </motion.button>
-                  </div>
-
-                  {formData.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {formData.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="flex items-center gap-1 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-sm"
-                        >
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="hover:text-orange-900 dark:hover:text-orange-100"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Observações */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Observações
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => updateFormData('notes', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Observações adicionais, condições especiais, etc..."
-                  />
                 </div>
               </div>
 

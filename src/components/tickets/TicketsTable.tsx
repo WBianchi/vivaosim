@@ -57,8 +57,8 @@ export const TicketsTable: React.FC<TicketsTableProps> = ({
         bValue = b.title.toLowerCase()
         break
       case 'client':
-        aValue = a.client.name.toLowerCase()
-        bValue = b.client.name.toLowerCase()
+        aValue = a.contact?.name?.toLowerCase() || 'zzz'
+        bValue = b.contact?.name?.toLowerCase() || 'zzz'
         break
       case 'priority':
         const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 }
@@ -70,8 +70,8 @@ export const TicketsTable: React.FC<TicketsTableProps> = ({
         bValue = b.status
         break
       case 'agent':
-        aValue = a.agent?.name?.toLowerCase() || 'zzz'
-        bValue = b.agent?.name?.toLowerCase() || 'zzz'
+        aValue = a.assignedTo?.name?.toLowerCase() || 'zzz'
+        bValue = b.assignedTo?.name?.toLowerCase() || 'zzz'
         break
       case 'createdAt':
         aValue = new Date(a.createdAt).getTime()
@@ -229,7 +229,7 @@ export const TicketsTable: React.FC<TicketsTableProps> = ({
                 <SortButton field="id">Ticket</SortButton>
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-gray-600 dark:text-gray-400">
-                <SortButton field="client">Cliente</SortButton>
+                <SortButton field="client">Contato</SortButton>
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-gray-600 dark:text-gray-400">
                 <SortButton field="priority">Prioridade</SortButton>
@@ -289,18 +289,18 @@ export const TicketsTable: React.FC<TicketsTableProps> = ({
                     </div>
                   </td>
 
-                  {/* Cliente */}
+                  {/* Contato */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                        {ticket.client.name.charAt(0).toUpperCase()}
+                        {ticket.contact?.name?.charAt(0).toUpperCase() || 'C'}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {ticket.client.name}
+                          {ticket.contact?.name || 'Sem contato'}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {ticket.client.email}
+                          {ticket.contact?.email || ticket.contact?.phone || 'Sem informações'}
                         </p>
                       </div>
                     </div>
@@ -334,7 +334,7 @@ export const TicketsTable: React.FC<TicketsTableProps> = ({
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {ticket.agent ? ticket.agent.name : 'Não atribuído'}
+                        {ticket.assignedTo ? ticket.assignedTo.name : 'Não atribuído'}
                       </span>
                     </div>
                   </td>

@@ -5,16 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { TicketCard } from './TicketCard'
 import { TicketsTable } from './TicketsTable'
 import { EmptyState } from './EmptyState'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface TicketsListProps {
   filters: any
   searchTerm: string
   viewMode: 'grid' | 'table'
   onTicketSelect: (ticket: any) => void
+  onRefresh?: () => void
 }
 
-// Mock data - em produção viria da API
-const mockTickets = [
+// Removido mock data - agora busca da API
+const mockTickets_DEPRECATED = [
   {
     id: 'TK-001',
     title: 'Sistema não carrega após atualização',
@@ -211,47 +213,54 @@ export const TicketsList: React.FC<TicketsListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onTicketSelect
+  onTicketSelect,
+  onRefresh
 }) => {
-  const [tickets, setTickets] = useState(mockTickets)
-  const [loading, setLoading] = useState(false)
+  const [tickets, setTickets] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Simular filtros
+  useEffect(() => {
+    fetchTickets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.priority, filters.category, filters.agent])
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true)
+      
+      // Construir query params
+      const params = new URLSearchParams()
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+      if (filters.priority && filters.priority !== 'all') params.append('priority', filters.priority)
+      if (filters.category && filters.category !== 'all') params.append('category', filters.category)
+      if (filters.agent && filters.agent !== 'all') params.append('assignedToId', filters.agent)
+
+      const response = await fetch(`/api/tickets?${params.toString()}`, {
+        headers: getAuthHeaders()
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTickets(data.tickets || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar tickets:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filtrar por busca local
   const filteredTickets = tickets.filter((ticket) => {
-    // Filtro por status
-    if (filters.status !== 'all' && ticket.status !== filters.status) {
-      return false
-    }
-
-    // Filtro por prioridade
-    if (filters.priority !== 'all' && ticket.priority !== filters.priority) {
-      return false
-    }
-
-    // Filtro por categoria
-    if (filters.category !== 'all' && ticket.category !== filters.category) {
-      return false
-    }
-
-    // Filtro por agente
-    if (filters.agent !== 'all') {
-      if (filters.agent === 'unassigned' && ticket.agent !== null) {
-        return false
-      }
-      if (filters.agent !== 'unassigned' && (!ticket.agent || ticket.agent.id !== filters.agent)) {
-        return false
-      }
-    }
-
-    // Busca geral
+    // Busca geral (filtros já aplicados na API)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
       const matchesId = ticket.id.toLowerCase().includes(searchLower)
       const matchesTitle = ticket.title.toLowerCase().includes(searchLower)
-      const matchesDescription = ticket.description.toLowerCase().includes(searchLower)
-      const matchesClient = ticket.client.name.toLowerCase().includes(searchLower)
+      const matchesDescription = ticket.description?.toLowerCase().includes(searchLower)
+      const matchesContact = ticket.contact?.name.toLowerCase().includes(searchLower)
       
-      if (!matchesId && !matchesTitle && !matchesDescription && !matchesClient) {
+      if (!matchesId && !matchesTitle && !matchesDescription && !matchesContact) {
         return false
       }
     }

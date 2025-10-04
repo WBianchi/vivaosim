@@ -248,7 +248,29 @@ export async function GET(request: NextRequest) {
     console.log(`✅ WAHA retornou ${wahaChats.length} chats`)
 
     // Transformar dados WAHA para nosso formato
-    const chats = wahaChats.map(wahaChat => ({
+    const chats = await Promise.all(wahaChats.map(async (wahaChat) => {
+      // Buscar URL real da foto diretamente da WAHA
+      let profilePictureUrl: string | undefined
+      
+      try {
+        const pictureResponse = await fetch(
+          `${WAHA_BASE_URL}/api/${finalSessionId}/chats/${wahaChat.id}/picture`,
+          {
+            headers: {
+              'X-Api-Key': WAHA_API_KEY
+            }
+          }
+        )
+        
+        if (pictureResponse.ok) {
+          const pictureData = await pictureResponse.json()
+          profilePictureUrl = pictureData.url
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao buscar foto:', wahaChat.id)
+      }
+      
+      return {
       id: wahaChat.id,
       name: wahaChat.name || wahaChat.contact?.name || wahaChat.contact?.pushName || wahaChat.id,
       contact: wahaChat.contact ? {
@@ -257,7 +279,7 @@ export async function GET(request: NextRequest) {
         firstName: wahaChat.contact.name?.split(' ')[0],
         lastName: wahaChat.contact.name?.split(' ').slice(1).join(' '),
         phone: wahaChat.contact.id.replace('@c.us', ''),
-        profilePicture: wahaChat.contact.profilePictureUrl || `${WAHA_BASE_URL}/api/${finalSessionId}/chats/${wahaChat.id}/picture`,
+        profilePicture: profilePictureUrl,
         isBlocked: wahaChat.contact.isBlocked,
         isBusiness: wahaChat.contact.isBusiness,
         isEnterprise: wahaChat.contact.isEnterprise,
@@ -291,7 +313,7 @@ export async function GET(request: NextRequest) {
       lastMessageTimestamp: wahaChat.lastMessage ? 
         new Date(wahaChat.lastMessage.timestamp * 1000) : 
         wahaChat.timestamp ? new Date(wahaChat.timestamp * 1000) : undefined,
-      profilePicture: wahaChat.contact?.profilePictureUrl || `${WAHA_BASE_URL}/api/${finalSessionId}/chats/${wahaChat.id}/picture`,
+      profilePicture: profilePictureUrl,
       participants: wahaChat.isGroup ? [] : undefined, // TODO: buscar participantes para grupos
       description: undefined, // TODO: buscar descrição do grupo
       groupMetadata: wahaChat.isGroup ? {
@@ -304,6 +326,7 @@ export async function GET(request: NextRequest) {
       } : undefined,
       labels: [], // TODO: implementar labels
       ticket: undefined // TODO: buscar tickets associados
+      }
     }))
 
     // Aplicar paginação

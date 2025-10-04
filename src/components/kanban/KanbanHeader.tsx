@@ -18,11 +18,11 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard }) => 
       {/* Título e Botões */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            📋 Kanban Dashboard
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Kanban
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Gerencie seus quadros de projetos e clientes com inteligência artificial
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Gerencie seus quadros de projetos e clientes
           </p>
         </div>
 
@@ -31,9 +31,9 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard }) => 
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl shadow-sm hover:shadow-md transition-all font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors shadow-sm"
           >
-            <HiSparkles className="w-5 h-5" />
+            <HiSparkles className="w-4 h-4" />
             Criar com IA
           </motion.button>
 
@@ -42,9 +42,9 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard }) => 
             onClick={onCreateBoard}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
           >
-            <HiPlus className="w-5 h-5" />
+            <HiPlus className="w-4 h-4" />
             Novo Quadro
           </motion.button>
         </div>
@@ -53,15 +53,15 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard }) => 
       {/* Filtros e Busca */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <HiMagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <HiMagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar quadros..."
-            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
           />
         </div>
         
-        <select className="px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 min-w-40">
+        <select className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 min-w-40">
           <option>Todos os quadros</option>
           <option>Favoritos</option>
           <option>Recentes</option>

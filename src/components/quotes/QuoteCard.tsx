@@ -19,9 +19,11 @@ interface QuoteCardProps {
   quote: any
   index: number
   onClick: () => void
+  onEdit?: (quote: any) => void
+  onDelete?: (quoteId: string) => void
 }
 
-export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick }) => {
+export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onEdit, onDelete }) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -212,7 +214,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick }) =
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('✏️ Editar orçamento:', quote.id)
+              onEdit?.(quote)
             }}
             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 rounded transition-colors"
             title="Editar"
@@ -239,7 +241,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick }) =
             onClick={(e) => {
               e.stopPropagation()
               if (confirm(`Deseja excluir o orçamento "${quote.title}"?`)) {
-                console.log('🗑️ Excluir orçamento:', quote.id)
+                onDelete?.(quote.id)
               }
             }}
             className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors"

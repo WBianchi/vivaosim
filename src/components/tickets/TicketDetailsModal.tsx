@@ -340,22 +340,22 @@ export const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
 
                 {/* Sidebar */}
                 <div className="space-y-6">
-                  {/* Informações do Cliente */}
+                  {/* Informações do Contato */}
                   <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      Cliente
+                      Contato
                     </h4>
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold">
-                        {ticket.client.name.charAt(0).toUpperCase()}
+                        {ticket.contact?.name?.charAt(0).toUpperCase() || 'C'}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {ticket.client.name}
+                          {ticket.contact?.name || 'Sem contato'}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {ticket.client.email}
+                          {ticket.contact?.email || ticket.contact?.phone || 'Sem informações'}
                         </p>
                       </div>
                     </div>
@@ -367,14 +367,14 @@ export const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
                       <UserCheck className="w-4 h-4" />
                       Agente
                     </h4>
-                    {ticket.agent ? (
+                    {ticket.assignedTo ? (
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-semibold">
-                          {ticket.agent.name.charAt(0).toUpperCase()}
+                          {ticket.assignedTo.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {ticket.agent.name}
+                            {ticket.assignedTo.name}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             Agente Responsável

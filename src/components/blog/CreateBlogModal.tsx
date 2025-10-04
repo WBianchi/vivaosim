@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, FileText, Save, Sparkles, Tag, Search, Link, Image, Calendar, Eye, Lock, Users, Globe } from 'lucide-react'
+import { getAuthToken, getAuthHeaders } from '@/lib/auth-token'
 
 interface CreateBlogModalProps {
   onClose: () => void
-  onSave: (postData: any) => void
+  onSave: () => void
   post?: any
 }
 
@@ -15,43 +16,31 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
   const [activeTab, setActiveTab] = useState<'content' | 'seo' | 'settings'>('content')
   const [formData, setFormData] = useState({
     title: '',
-    slug: '',
     excerpt: '',
     content: '',
-    category: 'technology',
-    tags: '',
-    status: 'draft',
-    visibility: 'public',
-    featuredImage: '',
-    author: 'Admin',
-    seo: {
-      title: '',
-      description: '',
-      keywords: '',
-      ogImage: ''
-    }
+    status: 'DRAFT',
+    visibility: 'PUBLIC',
+    coverImage: '',
+    metaTitle: '',
+    metaDescription: '',
+    metaKeywords: ''
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     setIsVisible(true)
     if (post) {
       setFormData({
         title: post.title || '',
-        slug: post.slug || '',
         excerpt: post.excerpt || '',
         content: post.content || '',
-        category: post.category || 'technology',
-        tags: post.tags?.join(', ') || '',
-        status: post.status || 'draft',
-        visibility: post.visibility || 'public',
-        featuredImage: post.featuredImage || '',
-        author: post.author || 'Admin',
-        seo: {
-          title: post.seo?.title || '',
-          description: post.seo?.description || '',
-          keywords: post.seo?.keywords?.join(', ') || '',
-          ogImage: post.seo?.ogImage || ''
-        }
+        status: post.status || 'DRAFT',
+        visibility: post.visibility || 'PUBLIC',
+        coverImage: post.coverImage || '',
+        metaTitle: post.metaTitle || '',
+        metaDescription: post.metaDescription || '',
+        metaKeywords: post.metaKeywords || ''
       })
     }
   }, [post])
@@ -61,27 +50,47 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    const postData = {
-      id: post?.id || `post-${Date.now()}`,
-      ...formData,
-      tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      seo: {
-        ...formData.seo,
-        keywords: formData.seo.keywords.split(',').map(k => k.trim()).filter(k => k)
-      },
-      views: post?.views || 0,
-      likes: post?.likes || 0,
-      comments: post?.comments || 0,
-      readTime: Math.ceil(formData.content.split(' ').length / 200),
-      publishedAt: formData.status === 'published' ? new Date().toISOString() : null,
-      updatedAt: new Date().toISOString()
-    }
+    try {
+      const token = getAuthToken()
+      
+      if (!token) {
+        setError('Token de autenticação não encontrado. Faça login novamente.')
+        setLoading(false)
+        return
+      }
 
-    onSave(postData)
-    handleClose()
+      const method = post?.id ? 'PATCH' : 'POST'
+      const body = post?.id 
+        ? { id: post.id, ...formData }
+        : formData
+
+      const response = await fetch('/api/blog', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      })
+
+      if (response.ok) {
+        onSave()
+        handleClose()
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Erro ao salvar post')
+      }
+    } catch (error) {
+      console.error('Erro ao salvar post:', error)
+      setError('Erro ao salvar post')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const generateWithAI = (field: string) => {
@@ -89,12 +98,11 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
     // Aqui você integraria com a API do DeepSeek
   }
 
-  const generateSlug = () => {
-    const slug = formData.title.toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-    setFormData(prev => ({ ...prev, slug }))
+  const updateFormData = (key: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [key]: value
+    }))
   }
 
   return (
@@ -157,26 +165,6 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Slug</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.slug}
-                        onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                        placeholder="url-do-post"
-                      />
-                      <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        onClick={generateSlug}
-                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg"
-                      >
-                        Gerar
-                      </motion.button>
-                    </div>
-                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Resumo *</label>
@@ -226,43 +214,6 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Categoria</label>
-                      <select
-                        value={formData.category}
-                        onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="technology">Tecnologia</option>
-                        <option value="marketing">Marketing</option>
-                        <option value="business">Negócios</option>
-                        <option value="tutorial">Tutorial</option>
-                        <option value="news">Notícias</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={formData.tags}
-                          onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                          placeholder="tag1, tag2, tag3"
-                        />
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.05 }}
-                          onClick={() => generateWithAI('tags')}
-                          className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -280,8 +231,8 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={formData.seo.title}
-                        onChange={(e) => setFormData(prev => ({ ...prev, seo: { ...prev.seo, title: e.target.value } }))}
+                        value={formData.metaTitle}
+                        onChange={(e) => updateFormData('metaTitle', e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                         placeholder="Título otimizado para SEO"
                       />
@@ -301,8 +252,8 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                     <div className="flex gap-2">
                       <textarea
                         rows={3}
-                        value={formData.seo.description}
-                        onChange={(e) => setFormData(prev => ({ ...prev, seo: { ...prev.seo, description: e.target.value } }))}
+                        value={formData.metaDescription}
+                        onChange={(e) => updateFormData('metaDescription', e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                         placeholder="Descrição para mecanismos de busca"
                       />
@@ -322,8 +273,8 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={formData.seo.keywords}
-                        onChange={(e) => setFormData(prev => ({ ...prev, seo: { ...prev.seo, keywords: e.target.value } }))}
+                        value={formData.metaKeywords}
+                        onChange={(e) => updateFormData('metaKeywords', e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                         placeholder="palavra1, palavra2, palavra3"
                       />
@@ -338,27 +289,17 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Open Graph Image</label>
-                    <input
-                      type="url"
-                      value={formData.seo.ogImage}
-                      onChange={(e) => setFormData(prev => ({ ...prev, seo: { ...prev.seo, ogImage: e.target.value } }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                      placeholder="https://exemplo.com/imagem.jpg"
-                    />
-                  </div>
                 </div>
               )}
 
               {activeTab === 'settings' && (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagem Destacada</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagem de Capa</label>
                     <input
                       type="url"
-                      value={formData.featuredImage}
-                      onChange={(e) => setFormData(prev => ({ ...prev, featuredImage: e.target.value }))}
+                      value={formData.coverImage}
+                      onChange={(e) => updateFormData('coverImage', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                       placeholder="https://exemplo.com/imagem.jpg"
                     />
@@ -369,13 +310,12 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
                       <select
                         value={formData.status}
-                        onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                        onChange={(e) => updateFormData('status', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="draft">Rascunho</option>
-                        <option value="published">Publicado</option>
-                        <option value="scheduled">Agendado</option>
-                        <option value="archived">Arquivado</option>
+                        <option value="DRAFT">Rascunho</option>
+                        <option value="PUBLISHED">Publicado</option>
+                        <option value="ARCHIVED">Arquivado</option>
                       </select>
                     </div>
 
@@ -383,28 +323,23 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Visibilidade</label>
                       <select
                         value={formData.visibility}
-                        onChange={(e) => setFormData(prev => ({ ...prev, visibility: e.target.value }))}
+                        onChange={(e) => updateFormData('visibility', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="public">Público</option>
-                        <option value="private">Privado</option>
-                        <option value="members">Membros</option>
+                        <option value="PUBLIC">Público</option>
+                        <option value="PRIVATE">Privado</option>
+                        <option value="UNLISTED">Não Listado</option>
                       </select>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Autor</label>
-                    <select
-                      value={formData.author}
-                      onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="Admin">Admin</option>
-                      <option value="Editor">Editor</option>
-                      <option value="Guest">Convidado</option>
-                    </select>
-                  </div>
+                </div>
+              )}
+
+              {/* Mensagem de Erro */}
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                 </div>
               )}
 
@@ -423,10 +358,20 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  {post ? 'Atualizar' : 'Criar'} Post
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {post ? 'Atualizar' : 'Criar'} Post
+                    </>
+                  )}
                 </motion.button>
               </div>
             </form>

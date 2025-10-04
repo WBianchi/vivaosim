@@ -29,8 +29,12 @@ export default function BlogPage() {
     setShowCreateModal(true)
   }
 
-  const handleSavePost = (postData: any) => {
-    console.log('💾 Salvando post:', postData)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handleSavePost = () => {
+    setShowCreateModal(false)
+    setSelectedPost(null)
+    setRefreshKey(prev => prev + 1)
   }
 
   const handleFiltersChange = (newFilters: any) => {
@@ -53,6 +57,7 @@ export default function BlogPage() {
       />
 
       <BlogList
+        key={refreshKey}
         filters={filters}
         searchTerm={searchTerm}
         viewMode={viewMode}

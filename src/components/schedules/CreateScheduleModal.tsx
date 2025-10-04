@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getAuthToken } from '@/lib/auth-token'
 import { 
   X, 
   Calendar, 
@@ -20,7 +21,7 @@ import {
 
 interface CreateScheduleModalProps {
   onClose: () => void
-  onSave: (scheduleData: any) => void
+  onSave: () => void
 }
 
 export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
@@ -28,35 +29,46 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
   onSave
 }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     clientId: '',
+    assignedToId: '',
+    startDateTime: '',
+    endDateTime: '',
+    duration: 60,
+    type: 'MEETING',
+    status: 'SCHEDULED',
+    location: '',
+    meetingUrl: '',
+    isOnline: false,
+    allDay: false,
+    notes: '',
+    color: '#3b82f6',
+    sendReminder: true,
+    reminderMinutes: 30,
+    tags: [],
     clientName: '',
     clientEmail: '',
     clientPhone: '',
-    agentId: 'a1',
-    dateTime: '',
-    duration: 60,
-    type: 'meeting',
-    format: 'online',
-    location: '',
-    meetingUrl: '',
-    notes: '',
+    agentId: '',
     priority: 'medium',
-    tags: [] as string[]
+    format: 'online',
+    dateTime: ''
   })
   const [newTag, setNewTag] = useState('')
 
   useEffect(() => {
     setIsVisible(true)
-    // Definir data/hora padrão para hoje + 1 hora
+    // Definir data/hora padrão para amanhã 10h
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(10, 0, 0, 0)
     setFormData(prev => ({
       ...prev,
-      dateTime: tomorrow.toISOString().slice(0, 16)
+      startDateTime: tomorrow.toISOString().slice(0, 16)
     }))
   }, [])
 
@@ -65,30 +77,65 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    const scheduleData = {
-      ...formData,
-      id: Date.now().toString(),
-      client: {
-        id: formData.clientId || Date.now().toString(),
-        name: formData.clientName,
-        email: formData.clientEmail,
-        phone: formData.clientPhone
-      },
-      agent: {
-        id: formData.agentId,
-        name: agentOptions.find(a => a.value === formData.agentId)?.label || 'João Silva'
-      },
-      status: 'scheduled',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        setError('Token de autenticação não encontrado')
+        setLoading(false)
+        return
+      }
 
-    console.log('💾 Salvando agendamento:', scheduleData)
-    onSave(scheduleData)
-    handleClose()
+      // Calcula endDateTime baseado no startDateTime + duration
+      const start = new Date(formData.startDateTime)
+      const end = new Date(start.getTime() + formData.duration * 60000)
+
+      const payload = {
+        title: formData.title,
+        description: formData.description || null,
+        startDateTime: start.toISOString(),
+        endDateTime: end.toISOString(),
+        duration: formData.duration,
+        allDay: formData.allDay,
+        status: formData.status,
+        type: formData.type,
+        location: formData.location || null,
+        isOnline: formData.isOnline,
+        meetingUrl: formData.meetingUrl || null,
+        clientId: formData.clientId || null,
+        assignedToId: formData.assignedToId || null,
+        sendReminder: formData.sendReminder,
+        reminderMinutes: formData.reminderMinutes,
+        notes: formData.notes || null,
+        color: formData.color
+      }
+
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (response.ok) {
+        onSave()
+        handleClose()
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Erro ao criar agendamento')
+      }
+    } catch (error) {
+      console.error('Erro ao criar agendamento:', error)
+      setError('Erro ao criar agendamento')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateFormData = (key: string, value: any) => {

@@ -5,16 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { TagCard } from './TagCard'
 import { TagsTable } from './TagsTable'
 import { EmptyState } from './EmptyState'
+import { getAuthHeaders } from '@/lib/auth-token'
 
 interface TagsListProps {
   filters: any
   searchTerm: string
   viewMode: 'grid' | 'table'
   onTagSelect: (tag: any) => void
+  onRefresh?: () => void
 }
 
-// Mock data - em produção viria da API
-const mockTags = [
+// Removido mock data - agora busca da API
+const mockTags_DEPRECATED = [
   {
     id: '1',
     name: 'Urgente',
@@ -241,54 +243,48 @@ export const TagsList: React.FC<TagsListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onTagSelect
+  onTagSelect,
+  onRefresh
 }) => {
-  const [tags, setTags] = useState(mockTags)
-  const [loading, setLoading] = useState(false)
+  const [tags, setTags] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Simular filtros
-  const filteredTags = tags.filter((tag) => {
-    // Filtro por categoria
-    if (filters.category !== 'all' && tag.category !== filters.category) {
-      return false
-    }
+  useEffect(() => {
+    fetchTags()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    // Filtro por cor
-    if (filters.color !== 'all' && tag.color !== filters.color) {
-      return false
-    }
+  const fetchTags = async () => {
+    try {
+      setLoading(true)
+      
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
 
-    // Filtro por status
-    if (filters.status !== 'all' && tag.status !== filters.status) {
-      return false
-    }
+      const response = await fetch(`/api/tags?${params.toString()}`, {
+        headers: getAuthHeaders()
+      })
 
-    // Filtro por uso
-    if (filters.usage !== 'all') {
-      switch (filters.usage) {
-        case 'high':
-          if (tag.usageCount < 50) return false
-          break
-        case 'medium':
-          if (tag.usageCount < 10 || tag.usageCount >= 50) return false
-          break
-        case 'low':
-          if (tag.usageCount < 1 || tag.usageCount >= 10) return false
-          break
-        case 'unused':
-          if (tag.usageCount > 0) return false
-          break
+      if (response.ok) {
+        const data = await response.json()
+        setTags(data.tags || [])
       }
+    } catch (error) {
+      console.error('Erro ao buscar tags:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Filtrar localmente
+  const filteredTags = tags.filter((tag) => {
     // Busca geral
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
       const matchesName = tag.name.toLowerCase().includes(searchLower)
-      const matchesDescription = tag.description.toLowerCase().includes(searchLower)
-      const matchesCategory = tag.category.toLowerCase().includes(searchLower)
+      const matchesDescription = tag.description?.toLowerCase().includes(searchLower)
       
-      if (!matchesName && !matchesDescription && !matchesCategory) {
+      if (!matchesName && !matchesDescription) {
         return false
       }
     }

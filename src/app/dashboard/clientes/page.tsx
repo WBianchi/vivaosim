@@ -11,6 +11,7 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
@@ -48,12 +49,16 @@ export default function ClientsPage() {
         searchTerm={searchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      <ClientsFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-      />
+      {showFilters && (
+        <ClientsFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
+      )}
 
       <ClientsList
         filters={filters}

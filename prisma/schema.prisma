@@ -96,8 +96,6 @@ model User {
   clientBudgets       Budget[] @relation("ClientBudgets")
   createdBudgets      Budget[] @relation("CreatedBudgets")
   clientPayments      Payment[] @relation("ClientPayments")
-  clientAppointments  Appointment[] @relation("ClientAppointments")
-  attendantAppointments Appointment[] @relation("AttendantAppointments")
   assignedTasks       EventTask[] @relation("AssignedTasks")
   clientMessages      WhatsAppMessage[] @relation("ClientMessages")
   attendantMessages   WhatsAppMessage[] @relation("AttendantMessages")
@@ -130,6 +128,17 @@ model User {
   
   // Agentes IA
   createdAgents       Agent[] @relation("UserCreatedAgents")
+  
+  // Blog
+  blogPosts           BlogPost[] @relation("BlogPostAuthor")
+  
+  // Planos
+  createdPlans        Plan[] @relation("PlanCreatedBy")
+  subscriptions       PlanSubscription[] @relation("UserSubscription")
+  
+  // Agendamentos
+  createdAppointments Appointment[] @relation("AppointmentCreatedBy")
+  assignedAppointments Appointment[] @relation("AppointmentAssignedTo")
 
   @@map("users")
 }
@@ -220,7 +229,7 @@ model Lead {
   assignedToId String?
   assignedTo   User? @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
 
-  events       Event[]
+  events       Event[] @relation("EventPrimaryLead")
   activities   Activity[]
 
   @@map("leads")
@@ -262,7 +271,7 @@ model Event {
 
   // Relacionamentos
   leadId       String?
-  lead         Lead? @relation(fields: [leadId], references: [id])
+  lead         Lead? @relation("EventPrimaryLead", fields: [leadId], references: [id])
 
   createdById  String
   createdBy    User @relation("EventCreatedBy", fields: [createdById], references: [id])
@@ -270,12 +279,10 @@ model Event {
   assignedToId String?
   assignedTo   User? @relation("EventAssignedTo", fields: [assignedToId], references: [id])
 
-  activities   Activity[]
-
-  // Novos relacionamentos
+  // Relacionamentos
   expenses     EventExpense[]
   tasks        EventTask[]
-  appointments Appointment[]
+  activities   Activity[] @relation("EventActivities")
   clientSite   ClientSite?
 
   @@map("events")
@@ -309,7 +316,7 @@ model Activity {
   lead    Lead? @relation(fields: [leadId], references: [id])
 
   eventId String?
-  event   Event? @relation(fields: [eventId], references: [id])
+  event   Event? @relation("EventActivities", fields: [eventId], references: [id])
 
   @@map("activities")
 }
@@ -427,51 +434,6 @@ model Payment {
   client      User     @relation("ClientPayments", fields: [clientId], references: [id])
 
   @@map("payments")
-}
-
-// Agendamentos
-enum AppointmentStatus {
-  AGENDADO
-  CONFIRMADO
-  REALIZADO
-  CANCELADO
-  REAGENDADO
-}
-
-enum AppointmentType {
-  REUNIAO
-  VISITA_TECNICA
-  DEGUSTACAO
-  APRESENTACAO
-  ENTREGA
-  EVENTO
-  OUTROS
-}
-
-model Appointment {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  title       String
-  description String?
-  startTime   DateTime
-  endTime     DateTime
-  location    String?
-  status      AppointmentStatus @default(AGENDADO)
-  type        AppointmentType   @default(REUNIAO)
-  
-  // Relacionamentos
-  clientId    String
-  client      User   @relation("ClientAppointments", fields: [clientId], references: [id])
-  
-  attendantId String
-  attendant   User   @relation("AttendantAppointments", fields: [attendantId], references: [id])
-  
-  eventId     String?
-  event       Event? @relation(fields: [eventId], references: [id])
-
-  @@map("appointments")
 }
 
 // Custos do Evento (para o cliente gerenciar)
@@ -790,6 +752,9 @@ model WhatsAppTag {
   color       String  @default("#3b82f6") // Hex color
   description String?
   
+  // Campo para vincular com WhatsApp/Chat externo
+  chatId      String?  // ID do chat externo (WhatsApp, etc)
+  
   // Relacionamentos
   userId      String
   user        User @relation("CreatedTags", fields: [userId], references: [id])
@@ -932,6 +897,7 @@ model Contact {
   tickets      Ticket[]    // Tickets de suporte
   tags         ContactTag[] // Tags personalizadas
   activities   ContactActivity[] // Log de atividades
+  appointments Appointment[] @relation("AppointmentClient") // Agendamentos
   
   // ========================================
   // 📋 RELACIONAMENTOS KANBAN
@@ -1026,18 +992,42 @@ model Quote {
   updatedAt DateTime @updatedAt
   
   title       String
-  description String?
+  description String?  @db.Text
   amount      Decimal  @db.Decimal(10, 2)
+  discount    Decimal? @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(10, 2)
   status      String   @default("draft") // draft, sent, approved, rejected, expired
   validUntil  DateTime?
+  
+  // WhatsApp Integration
+  chatId      String?  // ID do chat externo (WhatsApp, etc)
   
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
   
   createdById String
   createdBy   User @relation("CreatedQuotes", fields: [createdById], references: [id])
+  
+  items QuoteItem[]
 
   @@map("quotes")
+}
+
+model QuoteItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  name        String
+  description String?
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(10, 2)
+  
+  quoteId String
+  quote   Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@map("quote_items")
 }
 
 // ========================================
@@ -1049,12 +1039,15 @@ model Contract {
   updatedAt DateTime @updatedAt
   
   title       String
-  description String?
+  description String?  @db.Text
   amount      Decimal  @db.Decimal(10, 2)
   status      String   @default("draft") // draft, active, completed, cancelled
   startDate   DateTime?
   endDate     DateTime?
   signedAt    DateTime?
+  
+  // WhatsApp Integration
+  chatId      String?  // ID do chat externo (WhatsApp, etc)
   
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -1078,6 +1071,9 @@ model Ticket {
   status      String   @default("open") // open, in_progress, resolved, closed
   priority    String   @default("normal") // low, normal, high, urgent
   category    String?  // technical, billing, general
+  
+  // Campo para vincular com WhatsApp/Chat externo
+  chatId      String?  // ID do chat externo (WhatsApp, etc)
   
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -1191,7 +1187,7 @@ model KanbanColumn {
 
   // Dados básicos
   title     String
-  color     String   @default("from-gray-500 to-slate-500")
+  color     String   @default("#6B7280")
   position  Int      @default(0)
 
   // Relacionamentos
@@ -1225,6 +1221,9 @@ model Agent {
   role        String // assistant, consultant, specialist, etc
   status      AgentStatus @default(ACTIVE)
   
+  // Campo para vincular com WhatsApp/Chat externo
+  chatId      String?  // ID do chat externo (WhatsApp, etc)
+  
   // Prompt e configuração
   prompt      String  @db.Text
   temperature Float?  @default(0.7)
@@ -1248,6 +1247,292 @@ model Agent {
   createdBy   User @relation("UserCreatedAgents", fields: [createdById], references: [id])
 
   @@map("agents")
+}
+
+// ========================================
+// 📝 BLOG POSTS
+// ========================================
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PostVisibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Conteúdo
+  title       String
+  slug        String   @unique
+  excerpt     String?  // Resumo curto
+  content     String   @db.Text // Conteúdo completo (Markdown/HTML)
+  coverImage  String?  // URL da imagem de capa
+  
+  // Metadados
+  status      PostStatus     @default(DRAFT)
+  visibility  PostVisibility @default(PUBLIC)
+  publishedAt DateTime?
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  
+  // Estatísticas
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+  
+  // Relacionamentos
+  authorId String
+  author   User @relation("BlogPostAuthor", fields: [authorId], references: [id])
+  
+  categories BlogPostCategory[]
+  tags       BlogPostTag[]
+  comments   BlogComment[]
+
+  @@map("blog_posts")
+}
+
+model BlogCategory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  name        String @unique
+  slug        String @unique
+  description String?
+  color       String @default("#3b82f6")
+  
+  posts BlogPostCategory[]
+
+  @@map("blog_categories")
+}
+
+model BlogPostCategory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  postId     String
+  post       BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  categoryId String
+  category   BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, categoryId])
+  @@map("blog_post_categories")
+}
+
+model BlogTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  name  String @unique
+  slug  String @unique
+  color String @default("#6b7280")
+  
+  posts BlogPostTag[]
+
+  @@map("blog_tags")
+}
+
+model BlogPostTag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  postId String
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  tagId  String
+  tag    BlogTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@map("blog_post_tags")
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  content   String   @db.Text
+  isApproved Boolean @default(false)
+  
+  postId String
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  authorName  String
+  authorEmail String
+  
+  parentId String?
+  parent   BlogComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  BlogComment[] @relation("CommentReplies")
+
+  @@map("blog_comments")
+}
+
+// ========================================
+// 📦 PLANOS DE ASSINATURA
+// ========================================
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum PlanPeriod {
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ANNUAL
+  LIFETIME
+}
+
+model Plan {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Informações Básicas
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  
+  // Preço
+  price       Decimal  @db.Decimal(10, 2)
+  period      PlanPeriod @default(MONTHLY)
+  
+  // Configurações
+  status      PlanStatus @default(ACTIVE)
+  isFeatured  Boolean @default(false)
+  isPopular   Boolean @default(false)
+  
+  // Limites
+  maxUsers        Int?
+  maxProjects     Int?
+  maxStorage      Int?  // em GB
+  maxApiCalls     Int?
+  
+  // Recursos (JSON)
+  features        Json  // Array de features
+  
+  // Ordem de exibição
+  displayOrder    Int   @default(0)
+  
+  // Relacionamentos
+  createdById String
+  createdBy   User @relation("PlanCreatedBy", fields: [createdById], references: [id])
+  
+  subscriptions PlanSubscription[]
+
+  @@map("plans")
+}
+
+model PlanSubscription {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  planId String
+  plan   Plan @relation(fields: [planId], references: [id])
+  
+  userId String
+  user   User @relation("UserSubscription", fields: [userId], references: [id])
+  
+  // Assinatura
+  status        String   @default("active") // active, canceled, expired
+  startDate     DateTime @default(now())
+  endDate       DateTime?
+  canceledAt    DateTime?
+  
+  // Pagamento
+  paymentMethod String?
+  lastPayment   DateTime?
+  nextPayment   DateTime?
+
+  @@map("plan_subscriptions")
+}
+
+// ========================================
+// 📅 AGENDAMENTOS
+// ========================================
+enum AppointmentStatus {
+  SCHEDULED   // Agendado
+  CONFIRMED   // Confirmado
+  IN_PROGRESS // Em andamento
+  COMPLETED   // Concluído
+  CANCELED    // Cancelado
+  NO_SHOW     // Não compareceu
+}
+
+enum AppointmentType {
+  MEETING      // Reunião
+  VISIT        // Visita
+  CALL         // Ligação
+  VIDEO_CALL   // Videochamada
+  EVENT        // Evento
+  TASK         // Tarefa
+  OTHER        // Outro
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Informações básicas
+  title       String
+  description String?  @db.Text
+  
+  // Data e hora
+  startDateTime DateTime
+  endDateTime   DateTime
+  duration      Int?     // em minutos
+  allDay        Boolean  @default(false)
+  
+  // Status e tipo
+  status      AppointmentStatus @default(SCHEDULED)
+  type        AppointmentType   @default(MEETING)
+  
+  // Local
+  location    String?
+  isOnline    Boolean  @default(false)
+  meetingUrl  String?
+  
+  // Participantes
+  clientId    String?
+  client      Contact? @relation("AppointmentClient", fields: [clientId], references: [id])
+  
+  assignedToId String?
+  assignedTo   User?   @relation("AppointmentAssignedTo", fields: [assignedToId], references: [id])
+  
+  // Criador
+  createdById String
+  createdBy   User @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  
+  // Notificações
+  sendReminder    Boolean @default(true)
+  reminderMinutes Int?    @default(30)
+  
+  // Notas
+  notes       String?  @db.Text
+  
+  // Cores personalizadas
+  color       String?  @default("#3b82f6")
+  
+  // WhatsApp Integration
+  whatsappChatId String?
+
+  @@map("appointments")
 }
 
 // ========================================
