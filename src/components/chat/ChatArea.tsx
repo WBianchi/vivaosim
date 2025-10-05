@@ -40,13 +40,16 @@ import { getAuthToken } from '@/lib/auth-token'
 interface ChatAreaProps {
   chat: Chat
   onSidebarToggle: (sidebar: SidebarType) => void
+  chatQuoteCount?: number
+  chatContractCount?: number
 }
 
-export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => {
+export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQuoteCount: propQuoteCount, chatContractCount: propContractCount }) => {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
-  const [chatQuoteCount, setChatQuoteCount] = useState(0)
+  const [chatQuoteCount, setChatQuoteCount] = useState(propQuoteCount || 0)
+  const [chatContractCount, setChatContractCount] = useState(propContractCount || 0)
 
   // Usar hook de mensagens
   const {
@@ -305,13 +308,28 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
             </motion.button>
 
             <motion.button
+              onClick={() => onSidebarToggle('tag')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Tags"
+            >
+              <Tag className="w-5 h-5" />
+            </motion.button>
+
+            <motion.button
               onClick={() => onSidebarToggle('contract')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+              className="relative p-2 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
               title="Contratos"
             >
               <FileSignature className="w-5 h-5" />
+              {chatContractCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {chatContractCount}
+                </span>
+              )}
             </motion.button>
 
             <motion.button

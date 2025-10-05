@@ -88,6 +88,7 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   
   const [totalQuotes, setTotalQuotes] = React.useState(0)
   const [totalTags, setTotalTags] = React.useState(0)
+  const [totalContracts, setTotalContracts] = React.useState(0)
   const [showQuotesSidebar, setShowQuotesSidebar] = React.useState(false)
 
   // Buscar total de orçamentos
@@ -154,6 +155,39 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
     }
     
     fetchTotalTags()
+  }, [])
+
+  // Buscar total de contratos
+  React.useEffect(() => {
+    const fetchTotalContracts = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          console.log('⚠️ TopBar: Token não encontrado (contratos)')
+          return
+        }
+
+        console.log('🔍 TopBar: Buscando estatísticas de contratos...')
+        
+        const response = await fetch('/api/contracts/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        console.log('📊 TopBar: Resposta da API contracts stats:', data)
+        
+        if (data.success) {
+          setTotalContracts(data.total || 0)
+          console.log(`✅ TopBar: Total de contratos: ${data.total}`)
+        }
+      } catch (error) {
+        console.error('❌ TopBar: Erro ao buscar total de contratos:', error)
+      }
+    }
+    
+    fetchTotalContracts()
   }, [])
 
   const sidebarButtons = [
@@ -274,6 +308,11 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
                 {button.id === 'tag' && totalTags > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                     {totalTags > 99 ? '99+' : totalTags}
+                  </span>
+                )}
+                {button.id === 'contract' && totalContracts > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {totalContracts > 99 ? '99+' : totalContracts}
                   </span>
                 )}
                 <span className="hidden 2xl:block text-xs opacity-60">

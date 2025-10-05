@@ -45,12 +45,18 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const contactId = searchParams.get('contactId')
+    const chatId = searchParams.get('chatId')
     const status = searchParams.get('status')
+
+    console.log(`📋 GET /api/contracts - Params:`, { contactId, chatId, status })
 
     const where: any = {}
     
     if (contactId) where.contactId = contactId
+    if (chatId) where.chatId = chatId
     if (status && status !== 'all') where.status = status
+
+    console.log(`🔍 Buscando contratos com where:`, where)
 
     const contracts = await prisma.contract.findMany({
       where,
@@ -74,6 +80,11 @@ export async function GET(request: NextRequest) {
         }
       }
     })
+
+    console.log(`✅ Contratos encontrados: ${contracts.length}`)
+    if (contracts.length > 0) {
+      console.log(`📋 Primeiro contrato:`, contracts[0])
+    }
 
     return NextResponse.json({ contracts })
   } catch (error) {

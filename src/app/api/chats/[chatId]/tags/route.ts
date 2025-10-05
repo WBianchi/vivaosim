@@ -47,79 +47,10 @@ export async function PUT(
       return NextResponse.json({ error: 'tagIds must be an array' }, { status: 400 })
     }
 
-    // Buscar o chat pelo chatId (WhatsApp ID)
-    let chat = await prisma.whatsAppChat.findFirst({
-      where: { 
-        chatId: chatId
-      }
-    })
-
-    console.log(`📊 Chat encontrado:`, chat ? `ID: ${chat.id}` : 'NÃO ENCONTRADO')
-
-    // Se não existir, criar o chat automaticamente
-    if (!chat) {
-      console.log(`🔧 Criando chat automaticamente: ${chatId}`)
-      
-      // Buscar qualquer sessão do usuário
-      console.log(`🔍 Buscando sessão para userId: ${user.userId}`)
-      
-      const session = await prisma.whatsAppSession.findFirst({
-        where: {
-          userId: user.userId
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      })
-
-      console.log(`📱 Sessão encontrada:`, session ? `${session.name} (${session.id})` : 'NENHUMA')
-
-      if (!session) {
-        // Se não encontrou sessão, buscar QUALQUER sessão (fallback)
-        const anySession = await prisma.whatsAppSession.findFirst({
-          orderBy: {
-            createdAt: 'desc'
-          }
-        })
-        
-        if (!anySession) {
-          return NextResponse.json({ 
-            error: 'Nenhuma sessão encontrada no sistema.' 
-          }, { status: 404 })
-        }
-        
-        console.log(`⚠️ Usando sessão fallback: ${anySession.name}`)
-        
-        // Criar o chat com a sessão fallback
-        chat = await prisma.whatsAppChat.create({
-          data: {
-            chatId: chatId,
-            name: 'Chat',
-            isGroup: false,
-            sessionId: anySession.id
-          }
-        })
-      } else {
-        console.log(`✅ Usando sessão do usuário: ${session.name}`)
-        
-        // Criar o chat
-        chat = await prisma.whatsAppChat.create({
-          data: {
-            chatId: chatId,
-            name: 'Chat',
-            isGroup: false,
-            sessionId: session.id
-          }
-        })
-      }
-      
-      console.log(`✅ Chat criado: ${chat.id}`)
-    }
-
-    // Remover todas as tags atuais do chat
+    // Remover todas as tags atuais do chat (usar chatId diretamente como string)
     await prisma.whatsAppChatTag.deleteMany({
       where: {
-        chatId: chat.id, // ID interno do banco
+        chatId: chatId, // WhatsApp ID como string
         tag: {
           userId: user.userId
         }
@@ -130,7 +61,7 @@ export async function PUT(
     if (tagIds.length > 0) {
       await prisma.whatsAppChatTag.createMany({
         data: tagIds.map(tagId => ({
-          chatId: chat.id, // ID interno do banco
+          chatId: chatId, // WhatsApp ID como string
           tagId
         })),
         skipDuplicates: true
@@ -141,7 +72,7 @@ export async function PUT(
     // Buscar as tags atualizadas para retornar
     const updatedTags = await prisma.whatsAppChatTag.findMany({
       where: {
-        chatId: chat.id, // ID interno do banco
+        chatId: chatId, // WhatsApp ID como string
         tag: {
           userId: user.userId
         }

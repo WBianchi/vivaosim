@@ -25,6 +25,7 @@ export function AllTagsSidebar({ isOpen, onClose, chatId }: AllTagsSidebarProps)
 
   useEffect(() => {
     if (isOpen) {
+      console.log('🔄 AllTagsSidebar aberta, buscando tags...')
       fetchTags()
     }
   }, [isOpen, chatId])
@@ -93,7 +94,9 @@ export function AllTagsSidebar({ isOpen, onClose, chatId }: AllTagsSidebarProps)
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         
-        <Dialog.Content className="fixed right-0 top-0 h-full w-[480px] bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col border-l border-gray-200 dark:border-gray-700 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-300"
+        <Dialog.Content 
+          className="fixed right-0 top-0 h-full w-[480px] bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col border-l border-gray-200 dark:border-gray-700 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-300"
+          aria-describedby="tags-description"
         >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
@@ -102,12 +105,16 @@ export function AllTagsSidebar({ isOpen, onClose, chatId }: AllTagsSidebarProps)
                   <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                    {chatId ? 'Tags deste Chat' : 'Todas as Tags'}
-                  </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {chatId ? 'Tags desta conversa' : 'Gerencie suas tags'}
-                  </p>
+                  <Dialog.Title asChild>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                      {chatId ? 'Tags deste Chat' : 'Todas as Tags'}
+                    </h2>
+                  </Dialog.Title>
+                  <Dialog.Description asChild>
+                    <p id="tags-description" className="text-xs text-gray-500 dark:text-gray-400">
+                      {chatId ? 'Tags desta conversa' : 'Gerencie suas tags'}
+                    </p>
+                  </Dialog.Description>
                 </div>
               </div>
               <button

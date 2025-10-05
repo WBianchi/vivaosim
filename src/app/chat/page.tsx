@@ -12,11 +12,11 @@ import { FooterChatArea } from '@/components/chat/FooterChatArea'
 import { SideChat } from '@/components/chat/SideChat'
 import { AllQuotesSidebar } from '@/components/chat/sidebars/AllQuotesSidebar'
 import { AllTagsSidebar } from '@/components/chat/sidebars/AllTagsSidebar'
+import { AllContractsSidebar } from '@/components/chat/sidebars/AllContractsSidebar'
 
 // Sidebars Expansíveis (temporariamente comentadas)
 // import { ScheduleSidebar } from '@/components/chat/sidebars/ScheduleSidebar'
 // import { QuoteSidebar } from '@/components/chat/sidebars/QuoteSidebar'
-// import { ContractSidebar } from '@/components/chat/sidebars/ContractSidebar'
 // import { ContactInfoSidebar } from '@/components/chat/sidebars/ContactInfoSidebar'
 // import { TicketSidebar } from '@/components/chat/sidebars/TicketSidebar'
 
@@ -168,6 +168,12 @@ export default function ChatPage() {
 
       <AllTagsSidebar
         isOpen={state.activeSidebar === 'tag'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllContractsSidebar
+        isOpen={state.activeSidebar === 'contract'}
         onClose={() => handleSidebarToggle(null)}
         chatId={state.activeChat?.id}
       />

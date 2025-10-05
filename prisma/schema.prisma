@@ -125,7 +125,7 @@ model User {
   assignedContracts   Contract[] @relation("AssignedContracts")
   createdTicketsNew   Ticket[] @relation("CreatedTickets")
   assignedTicketsNew  Ticket[] @relation("AssignedTickets")
-  createdExpenses     Expense[] @relation("ExpenseCreatedBy")
+  // createdExpenses     Expense[] @relation("ExpenseCreatedBy")
   
   // Kanban Boards
   createdBoards       KanbanBoard[] @relation("UserCreatedBoards")
@@ -686,7 +686,6 @@ model WhatsAppChat {
   messages      WhatsAppSessionMessage[]
   
   // Business logic
-  tags          WhatsAppChatTag[]
   tickets       WhatsAppTicket[]
   assignedToId  String?
   assignedTo    User? @relation("AssignedChats", fields: [assignedToId], references: [id])
@@ -765,8 +764,7 @@ model WhatsAppChatTag {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
 
-  chatId    String
-  chat      WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId    String  // ID do chat (WhatsApp ID como string, sem foreign key)
   
   tagId     String
   tag       WhatsAppTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
@@ -1088,8 +1086,8 @@ model Contract {
   assignedTo   User? @relation("AssignedContracts", fields: [assignedToId], references: [id])
   
   // Gestão Financeira
-  expenses     Expense[]
-  costEstimate CostEstimate?
+  // expenses     Expense[]
+  // costEstimate CostEstimate?
 
   @@map("contracts")
 }
@@ -1828,9 +1826,9 @@ model ClientSite {
   recebimentos    RecebimentoPresente[]
   
   // Gestão Financeira
-  suppliers       Supplier[]
-  expenses        Expense[]
-  costEstimates   CostEstimate[]
+  // suppliers       Supplier[]
+  // expenses        Expense[]
+  // costEstimates   CostEstimate[]
   
   // Configurações extras (JSON)
   configuracoes   Json? // Configurações adicionais flexíveis
@@ -1999,6 +1997,13 @@ enum ExpenseCategory {
   MARKETING        // Marketing
   ADMINISTRATIVO   // Administrativo
   OUTROS           // Outros
+  // Valores antigos (manter para compatibilidade com event_expenses)
+  ALIMENTACAO
+  MUSICA
+  VESTUARIO
+  FLORES
+  CONVITES
+  LEMBRANCINHAS
 }
 
 enum ExpenseStatus {
@@ -2020,149 +2025,149 @@ enum PaymentMethod {
   OUTROS
 }
 
-// Fornecedores
-model Supplier {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Dados básicos
-  name        String
-  category    ExpenseCategory
-  email       String?
-  phone       String?
-  whatsapp    String?
-  cnpj        String?
-  cpf         String?
-  
-  // Endereço
-  address     String?
-  city        String?
-  state       String?
-  zipCode     String?
-  
-  // Informações bancárias
-  bankName    String?
-  bankAgency  String?
-  bankAccount String?
-  pixKey      String?
-  
-  // Observações
-  notes       String?
-  rating      Int?     @default(0) // 0-5 estrelas
-  
-  // Relacionamentos
-  siteId      String
-  site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  
-  expenses    Expense[]
-  
-  @@index([siteId])
-  @@index([category])
-}
+// Fornecedores (COMENTADO - tabela não existe no banco)
+// model Supplier {
+//   id          String   @id @default(cuid())
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   
+//   // Dados básicos
+//   name        String
+//   category    ExpenseCategory
+//   email       String?
+//   phone       String?
+//   whatsapp    String?
+//   cnpj        String?
+//   cpf         String?
+//   
+//   // Endereço
+//   address     String?
+//   city        String?
+//   state       String?
+//   zipCode     String?
+//   
+//   // Informações bancárias
+//   bankName    String?
+//   bankAgency  String?
+//   bankAccount String?
+//   pixKey      String?
+//   
+//   // Observações
+//   notes       String?
+//   rating      Int?     @default(0) // 0-5 estrelas
+//   
+//   // Relacionamentos
+//   siteId      String
+//   site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+//   
+//   expenses    Expense[]
+//   
+//   @@index([siteId])
+//   @@index([category])
+// }
 
-// Despesas/Custos
-model Expense {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Dados básicos
-  title       String
-  description String?
-  category    ExpenseCategory
-  status      ExpenseStatus @default(PENDENTE)
-  
-  // Valores
-  amount      Decimal  @db.Decimal(10, 2)
-  paidAmount  Decimal  @db.Decimal(10, 2) @default(0)
-  
-  // Datas
-  dueDate     DateTime?
-  paidDate    DateTime?
-  
-  // Pagamento
-  paymentMethod PaymentMethod?
-  
-  // Anexos
-  attachments String[] // URLs de comprovantes, notas fiscais, etc
-  
-  // Observações
-  notes       String?
-  
-  // Relacionamentos
-  siteId      String
-  site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  
-  contractId  String?
-  contract    Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
-  
-  supplierId  String?
-  supplier    Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  
-  createdById String
-  createdBy   User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
-  
-  // Parcelamento
-  installments Int?    @default(1)
-  installmentNumber Int? @default(1)
-  parentExpenseId String?
-  parentExpense Expense? @relation("ExpenseInstallments", fields: [parentExpenseId], references: [id], onDelete: Cascade)
-  childExpenses Expense[] @relation("ExpenseInstallments")
-  
-  @@index([siteId])
-  @@index([contractId])
-  @@index([supplierId])
-  @@index([category])
-  @@index([status])
-  @@index([dueDate])
-}
+// Despesas/Custos (COMENTADO - tabela não existe no banco)
+// model Expense {
+//   id          String   @id @default(cuid())
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   
+//   // Dados básicos
+//   title       String
+//   description String?
+//   category    ExpenseCategory
+//   status      ExpenseStatus @default(PENDENTE)
+//   
+//   // Valores
+//   amount      Decimal  @db.Decimal(10, 2)
+//   paidAmount  Decimal  @db.Decimal(10, 2) @default(0)
+//   
+//   // Datas
+//   dueDate     DateTime?
+//   paidDate    DateTime?
+//   
+//   // Pagamento
+//   paymentMethod PaymentMethod?
+//   
+//   // Anexos
+//   attachments String[] // URLs de comprovantes, notas fiscais, etc
+//   
+//   // Observações
+//   notes       String?
+//   
+//   // Relacionamentos
+//   siteId      String
+//   site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+//   
+//   contractId  String?
+//   contract    Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+//   
+//   // supplierId  String?
+//   // supplier    Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+//   
+//   createdById String
+//   createdBy   User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+//   
+//   // Parcelamento
+//   installments Int?    @default(1)
+//   installmentNumber Int? @default(1)
+//   parentExpenseId String?
+//   parentExpense Expense? @relation("ExpenseInstallments", fields: [parentExpenseId], references: [id], onDelete: Cascade)
+//   childExpenses Expense[] @relation("ExpenseInstallments")
+//   
+//   @@index([siteId])
+//   @@index([contractId])
+//   // @@index([supplierId])
+//   @@index([category])
+//   @@index([status])
+//   @@index([dueDate])
+// }
 
-// Orçamentos de Custos (para o cliente visualizar)
-model CostEstimate {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Dados básicos
-  title       String
-  description String?
-  
-  // Relacionamentos
-  siteId      String
-  site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  
-  contractId  String   @unique
-  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  
-  items       CostEstimateItem[]
-  
-  // Totais (calculados)
-  totalEstimated Decimal @db.Decimal(10, 2) @default(0)
-  totalActual    Decimal @db.Decimal(10, 2) @default(0)
-  
-  @@index([siteId])
-  @@index([contractId])
-}
+// Orçamentos de Custos (COMENTADO - tabela não existe no banco)
+// model CostEstimate {
+//   id          String   @id @default(cuid())
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   
+//   // Dados básicos
+//   title       String
+//   description String?
+//   
+//   // Relacionamentos
+//   siteId      String
+//   site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+//   
+//   contractId  String   @unique
+//   contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+//   
+//   items       CostEstimateItem[]
+//   
+//   // Totais (calculados)
+//   totalEstimated Decimal @db.Decimal(10, 2) @default(0)
+//   totalActual    Decimal @db.Decimal(10, 2) @default(0)
+//   
+//   @@index([siteId])
+//   @@index([contractId])
+// }
 
-// Itens do orçamento
-model CostEstimateItem {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Dados
-  category    ExpenseCategory
-  description String
-  estimatedAmount Decimal @db.Decimal(10, 2)
-  actualAmount    Decimal @db.Decimal(10, 2) @default(0)
-  
-  notes       String?
-  
-  // Relacionamento
-  estimateId  String
-  estimate    CostEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
-  
-  @@index([estimateId])
-  @@index([category])
-}
+// Itens do orçamento (COMENTADO - tabela não existe no banco)
+// model CostEstimateItem {
+//   id          String   @id @default(cuid())
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   
+//   // Dados
+//   category    ExpenseCategory
+//   description String
+//   estimatedAmount Decimal @db.Decimal(10, 2)
+//   actualAmount    Decimal @db.Decimal(10, 2) @default(0)
+//   
+//   notes       String?
+//   
+//   // Relacionamento
+//   estimateId  String
+//   estimate    CostEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+//   
+//   @@index([estimateId])
+//   @@index([category])
+// }

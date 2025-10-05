@@ -18,6 +18,7 @@ import {
   User,
   Zap,
   FileText,
+  FileSignature,
   Circle,
   AlertCircle,
   CheckCircle2,
@@ -64,11 +65,11 @@ export const SideChat: React.FC<SideChatProps> = ({
   const [actionState, setActionState] = useState<{chatId: string, action: 'transfer' | 'favorite' | 'archive' | 'delete' | null}>({chatId: '', action: null})
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const [chatQuotes, setChatQuotes] = useState<Record<string, ChatQuote>>({})
+  const [chatTags, setChatTags] = useState<Record<string, any[]>>({})
+  const [chatContracts, setChatContracts] = useState<Record<string, any[]>>({})
   
-  // Usar hook personalizado para gerenciar chats
   const {
     chats,
-    filteredChats,
     isLoading,
     error,
     total,
@@ -83,6 +84,9 @@ export const SideChat: React.FC<SideChatProps> = ({
     autoRefresh: true,
     refreshInterval: 30000 // 30 segundos para ser menos agressivo
   })
+  
+  // Filtrar e ordenar chats
+  const filteredChats = chats
   
   // Buscar orçamentos dos chats
   useEffect(() => {
@@ -131,6 +135,68 @@ export const SideChat: React.FC<SideChatProps> = ({
     }
     
     fetchQuotes()
+  }, [chats])
+
+  // Buscar tags dos chats
+  useEffect(() => {
+    const fetchTags = async () => {
+      if (chats.length === 0) return
+      
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const chatIds = chats.map(c => c.id).join(',')
+        console.log(`🏷️ SideChat: Buscando tags para ${chats.length} chats...`)
+        
+        const response = await fetch(`/api/tags/by-chats?chatIds=${chatIds}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        if (data.success) {
+          setChatTags(data.tagsByChat || {})
+          console.log(`✅ SideChat: Tags carregadas`, data.tagsByChat)
+        }
+      } catch (error) {
+        console.error('❌ SideChat: Erro ao buscar tags:', error)
+      }
+    }
+    
+    fetchTags()
+  }, [chats])
+
+  // Buscar contratos dos chats
+  useEffect(() => {
+    const fetchContracts = async () => {
+      if (chats.length === 0) return
+      
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const chatIds = chats.map(c => c.id).join(',')
+        console.log(`📋 SideChat: Buscando contratos para ${chats.length} chats...`)
+        
+        const response = await fetch(`/api/contracts/by-chats?chatIds=${chatIds}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        if (data.success) {
+          setChatContracts(data.contractsByChat || {})
+          console.log(`✅ SideChat: Contratos carregados`, data.contractsByChat)
+        }
+      } catch (error) {
+        console.error('❌ SideChat: Erro ao buscar contratos:', error)
+      }
+    }
+    
+    fetchContracts()
   }, [chats])
 
   // Notificar mudança de conexão baseada no estado dos chats
@@ -669,19 +735,54 @@ export const SideChat: React.FC<SideChatProps> = ({
                     </p>
                   </div>
 
-                  {/* Informações de Orçamento e Agendamento */}
-                  {chatQuotes[chat.id] && (
-                    <div className="flex items-center gap-3 mt-2">
+                  {/* Informações de Orçamento, Tags, Contratos e Agendamento */}
+                  {(chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id]) && (
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
                       {/* Orçamento - Preço */}
-                      <div className="flex items-center gap-1 text-[11px]">
-                        <DollarSign className="w-3 h-3 text-green-600 dark:text-green-400" />
-                        <span className="font-semibold text-green-700 dark:text-green-400">
-                          R$ {chatQuotes[chat.id].total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                        {chatQuotes[chat.id].count > 1 && (
-                          <span className="text-xs text-gray-500">({chatQuotes[chat.id].count})</span>
-                        )}
-                      </div>
+                      {chatQuotes[chat.id] && (
+                        <div className="flex items-center gap-1 text-[11px]">
+                          <DollarSign className="w-3 h-3 text-green-600 dark:text-green-400" />
+                          <span className="font-semibold text-green-700 dark:text-green-400">
+                            R$ {chatQuotes[chat.id].total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                          {chatQuotes[chat.id].count > 1 && (
+                            <span className="text-xs text-gray-500">({chatQuotes[chat.id].count})</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tags */}
+                      {chatTags[chat.id] && chatTags[chat.id].length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {chatTags[chat.id].slice(0, 2).map((tag: any) => (
+                            <span
+                              key={tag.id}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                              style={{
+                                backgroundColor: tag.color + '20',
+                                color: tag.color
+                              }}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                          {chatTags[chat.id].length > 2 && (
+                            <span className="text-[10px] text-gray-500">
+                              +{chatTags[chat.id].length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Contratos */}
+                      {chatContracts[chat.id] && chatContracts[chat.id].length > 0 && (
+                        <div className="flex items-center gap-1 text-[11px]">
+                          <FileSignature className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                          <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+                            {chatContracts[chat.id].length} {chatContracts[chat.id].length === 1 ? 'contrato' : 'contratos'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 
