@@ -35,6 +35,7 @@ import { Chat, Message, MessageType, MessageAck } from '@/types/chat'
 import { SidebarType } from '@/app/chat/page'
 import { useMessages } from '@/hooks/useMessages'
 import { cn } from '@/lib/utils'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface ChatAreaProps {
   chat: Chat
@@ -45,6 +46,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const [chatQuoteCount, setChatQuoteCount] = useState(0)
 
   // Usar hook de mensagens
   const {
@@ -59,6 +61,31 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
     autoRefresh: false, // Desabilitar auto-refresh para evitar instabilidade
     refreshInterval: 15000 // 15 segundos caso habilitado
   })
+
+  // Buscar contagem de orçamentos do chat
+  useEffect(() => {
+    const fetchQuoteCount = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const response = await fetch(`/api/quotes/by-chats?chatIds=${chat.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        if (data.success && data.quotes) {
+          setChatQuoteCount(data.quotes.length)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar orçamentos do chat:', error)
+      }
+    }
+    
+    fetchQuoteCount()
+  }, [chat.id])
 
   // Auto scroll quando mensagens chegam
   useEffect(() => {
@@ -266,10 +293,15 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle }) => 
               onClick={() => onSidebarToggle('quote')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+              className="relative p-2 text-gray-600 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
               title="Orçamentos"
             >
               <DollarSign className="w-5 h-5" />
+              {chatQuoteCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {chatQuoteCount}
+                </span>
+              )}
             </motion.button>
 
             <motion.button

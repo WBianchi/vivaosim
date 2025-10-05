@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeProvider'
+import { CustomizationProvider } from '@/contexts/CustomizationProvider'
 import CookieConsent from '@/components/shared/CookieConsent'
 import ChatWidget from '@/components/shared/ChatWidget'
 
@@ -22,11 +23,13 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={inter.className}>
         <ThemeProvider>
-          <AuthProvider>
-            {children}
-            <CookieConsent />
-            <ChatWidget />
-          </AuthProvider>
+          <CustomizationProvider>
+            <AuthProvider>
+              {children}
+              <CookieConsent />
+              <ChatWidget />
+            </AuthProvider>
+          </CustomizationProvider>
         </ThemeProvider>
       </body>
     </html>

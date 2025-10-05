@@ -28,6 +28,10 @@ import {
   Cpu,
   Zap,
   BarChart3,
+  Globe,
+  Gift,
+  ShoppingCart,
+  ArrowRightLeft,
   List as ListIcon,
   CalendarDays
 } from 'lucide-react'
@@ -38,6 +42,8 @@ import { CreateScheduleSheet } from './bottom-sheets/CreateScheduleSheet'
 import { CreateQuoteSheet } from './bottom-sheets/CreateQuoteSheet'
 import { ManageTagsSheet } from './bottom-sheets/ManageTagsSheet'
 import { CreateContractSheet } from './bottom-sheets/CreateContractSheet'
+import { QuoteSidebar } from './sidebars/QuoteSidebar'
+import { TagSidebar } from './sidebars/TagSidebar'
 import { ChangeQueueSheet } from './bottom-sheets/ChangeQueueSheet'
 import { AssignAgentSheet } from './bottom-sheets/AssignAgentSheet'
 import { ChangeStatusSheet } from './bottom-sheets/ChangeStatusSheet'
@@ -67,6 +73,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
   const [bottomSheetType, setBottomSheetType] = useState<string>('')
   const [clientExists, setClientExists] = useState<boolean | null>(null) // null = não verificado, true = existe, false = não existe
   const [clientData, setClientData] = useState<any>(null)
+  const [showQuoteSidebar, setShowQuoteSidebar] = useState(false)
+  const [showTagSidebar, setShowTagSidebar] = useState(false)
   const [isAgentActive, setIsAgentActive] = useState<boolean>(true) // Status do agente
   const [aiMode, setAiMode] = useState<'manual' | 'assistant' | 'auto'>('manual') // Modo da IA
   const [showPollModal, setShowPollModal] = useState(false)
@@ -213,9 +221,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         setShowBottomSheet(true)
         break
       case 'tag':
-        console.log('🏷️ Abrindo bottom sheet para adicionar tag')
-        setBottomSheetType('add-tag')
-        setShowBottomSheet(true)
+        console.log('🏷️ Abrindo sidebar para gerenciar tags')
+        setShowTagSidebar(true)
         break
       case 'ticket':
         console.log('🎫 Abrindo bottom sheet para criar ticket')
@@ -243,13 +250,28 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         setShowBottomSheet(true)
         break
       case 'quote':
-        console.log('💰 Abrindo bottom sheet para criar orçamento')
-        setBottomSheetType('create-quote')
-        setShowBottomSheet(true)
+      case 'create-quote':
+        console.log('💰 Abrindo sidebar para criar orçamento')
+        setShowQuoteSidebar(true)
         break
       case 'schedule':
+      case 'schedule-meeting':
         console.log('📅 Abrindo bottom sheet para agendar')
         setBottomSheetType('create-schedule')
+        setShowBottomSheet(true)
+        break
+      case 'create-contract':
+        console.log('📋 Abrindo bottom sheet para criar contrato')
+        setBottomSheetType('create-contract')
+        setShowBottomSheet(true)
+        break
+      case 'manage-tags':
+        console.log('🏷️ Abrindo sidebar para gerenciar tags')
+        setShowTagSidebar(true)
+        break
+      case 'create-ticket':
+        console.log('🎫 Abrindo bottom sheet para criar ticket')
+        setBottomSheetType('create-ticket')
         setShowBottomSheet(true)
         break
       default:
@@ -607,41 +629,217 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
           initial={{ opacity: 0, y: 10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
-          className="mb-4 p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-2xl border border-purple-200 dark:border-purple-700"
+          className="mb-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-              Ações Business
+          {/* Header Minimalista */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <div className="w-6 h-6 bg-orange-500 rounded-lg flex items-center justify-center">
+                <Zap className="w-3 h-3 text-white" />
+              </div>
+              Ações Rápidas
             </h3>
             <button
               onClick={() => setShowActionsMenu(false)}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           
-          <div className="grid grid-cols-4 gap-3">
-            {businessActions.map((action) => {
-              const Icon = action.icon
-              return (
-                <motion.button
-                  key={action.id}
-                  onClick={() => handleBusinessAction(action.id)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={cn(
-                    'flex flex-col items-center p-3 rounded-xl transition-colors hover:bg-white dark:hover:bg-gray-600',
-                    action.bg
-                  )}
-                >
-                  <Icon className={cn('w-6 h-6 mb-2', action.color)} />
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center">
-                    {action.label}
-                  </span>
-                </motion.button>
-              )
-            })}
+          {/* Grid de Ações - 6 colunas compactas */}
+          <div className="grid grid-cols-6 gap-1 p-2">
+            {/* Editar Perfil */}
+            <motion.button
+              onClick={() => handleBusinessAction('edit-profile')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Editar Perfil"
+            >
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
+                <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Perfil
+              </span>
+            </motion.button>
+
+            {/* Gerenciar Tags */}
+            <motion.button
+              onClick={() => handleBusinessAction('manage-tags')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Gerenciar Tags"
+            >
+              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
+                <Tag className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Tags
+              </span>
+            </motion.button>
+
+            {/* Criar Ticket */}
+            <motion.button
+              onClick={() => handleBusinessAction('create-ticket')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Criar Ticket"
+            >
+              <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                <Ticket className="w-4 h-4 text-red-600 dark:text-red-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Ticket
+              </span>
+            </motion.button>
+
+            {/* Agendar Reunião */}
+            <motion.button
+              onClick={() => handleBusinessAction('schedule-meeting')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Agendar Reunião"
+            >
+              <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-green-200 dark:group-hover:bg-green-800/50 transition-colors">
+                <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Reunião
+              </span>
+            </motion.button>
+
+            {/* Criar Orçamento */}
+            <motion.button
+              onClick={() => handleBusinessAction('create-quote')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Criar Orçamento"
+            >
+              <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800/50 transition-colors">
+                <FileText className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Orçamento
+              </span>
+            </motion.button>
+
+            {/* Criar Contrato */}
+            <motion.button
+              onClick={() => handleBusinessAction('create-contract')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Criar Contrato"
+            >
+              <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800/50 transition-colors">
+                <FileSignature className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Contrato
+              </span>
+            </motion.button>
+
+            {/* Custos/Despesas */}
+            <motion.button
+              onClick={() => handleBusinessAction('manage-costs')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Custos e Despesas"
+            >
+              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/50 transition-colors">
+                <DollarSign className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Custos
+              </span>
+            </motion.button>
+
+            {/* Site do Cliente */}
+            <motion.button
+              onClick={() => handleBusinessAction('client-site')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Site do Cliente"
+            >
+              <div className="w-8 h-8 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-800/50 transition-colors">
+                <Globe className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Site
+              </span>
+            </motion.button>
+
+            {/* Lista de Convidados */}
+            <motion.button
+              onClick={() => handleBusinessAction('guest-list')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Lista de Convidados"
+            >
+              <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-pink-200 dark:group-hover:bg-pink-800/50 transition-colors">
+                <Users className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Convidados
+              </span>
+            </motion.button>
+
+            {/* Presentes */}
+            <motion.button
+              onClick={() => handleBusinessAction('gifts')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Lista de Presentes"
+            >
+              <div className="w-8 h-8 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-rose-200 dark:group-hover:bg-rose-800/50 transition-colors">
+                <Gift className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Presentes
+              </span>
+            </motion.button>
+
+            {/* Venda de Presentes */}
+            <motion.button
+              onClick={() => handleBusinessAction('gift-sales')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Venda de Presentes"
+            >
+              <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-800/50 transition-colors">
+                <ShoppingCart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Vendas
+              </span>
+            </motion.button>
+
+            {/* Alterar Fila */}
+            <motion.button
+              onClick={() => handleBusinessAction('change-queue')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              title="Alterar Fila"
+            >
+              <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-1 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                <ArrowRightLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                Fila
+              </span>
+            </motion.button>
           </div>
         </motion.div>
       )}
@@ -673,28 +871,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
 
         {/* Botão de Ações Business */}
         <motion.button
-          onClick={async () => {
-            console.log('🔍 Verificando status do cliente...')
-            
-            // Verificar status do cliente antes de mostrar menu
-            try {
-              const response = await fetch(`/api/contacts/check-chat?chatId=${encodeURIComponent(chat.id)}`)
-              const { exists, contact, isLeadFresco } = await response.json()
-              
-              // Atualizar estado
-              setClientExists(!isLeadFresco)
-              setClientData(contact)
-              
-              console.log('📊 Status:', isLeadFresco ? 'Lead Fresco' : 'Cliente Existente')
-              if (!isLeadFresco && contact) {
-                console.log('👤 Cliente:', contact.name)
-                console.log('📋 Status:', contact.status)
-              }
-            } catch (error) {
-              console.error('❌ Erro ao verificar cliente:', error)
-              setClientExists(false) // Assume lead fresco em caso de erro
-            }
-            
+          onClick={() => {
             setShowActionsMenu(!showActionsMenu)
             if (showAttachMenu) setShowAttachMenu(false)
           }}
@@ -1695,6 +1872,24 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
           }
         }}
         chatName={chat.name}
+      />
+
+      {/* Quote Sidebar */}
+      <QuoteSidebar
+        isOpen={showQuoteSidebar}
+        onClose={() => setShowQuoteSidebar(false)}
+        chatId={chat.id}
+        contactId={clientData?.id}
+        contactName={clientData?.name || chat.name}
+      />
+
+      {/* Tag Sidebar */}
+      <TagSidebar
+        isOpen={showTagSidebar}
+        onClose={() => setShowTagSidebar(false)}
+        chatId={chat.id}
+        contactId={clientData?.id}
+        contactName={clientData?.name || chat.name}
       />
     </div>
   )

@@ -40,11 +40,18 @@ import {
 import { Chat, ChatFilter, TicketStatus } from '@/types/chat'
 import { useChats } from '@/hooks/useChats'
 import { cn } from '@/lib/utils'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface SideChatProps {
   onChatSelect: (chat: Chat) => void
   activeChat: Chat | null
   onConnectionChange: (connected: boolean) => void
+}
+
+interface ChatQuote {
+  chatId: string
+  total: number
+  count: number
 }
 
 export const SideChat: React.FC<SideChatProps> = ({
@@ -56,6 +63,7 @@ export const SideChat: React.FC<SideChatProps> = ({
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'price' | 'priority'>('recent')
   const [actionState, setActionState] = useState<{chatId: string, action: 'transfer' | 'favorite' | 'archive' | 'delete' | null}>({chatId: '', action: null})
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+  const [chatQuotes, setChatQuotes] = useState<Record<string, ChatQuote>>({})
   
   // Usar hook personalizado para gerenciar chats
   const {
@@ -75,6 +83,55 @@ export const SideChat: React.FC<SideChatProps> = ({
     autoRefresh: true,
     refreshInterval: 30000 // 30 segundos para ser menos agressivo
   })
+  
+  // Buscar orçamentos dos chats
+  useEffect(() => {
+    const fetchQuotes = async () => {
+      if (chats.length === 0) {
+        console.log('🔍 SideChat: Nenhum chat para buscar orçamentos')
+        return
+      }
+      
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          console.log('⚠️ SideChat: Token não encontrado')
+          return
+        }
+
+        const chatIds = chats.map(c => c.id).join(',')
+        console.log(`🔍 SideChat: Buscando orçamentos para ${chats.length} chats...`)
+        
+        const response = await fetch(`/api/quotes/by-chats?chatIds=${chatIds}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        console.log('📊 SideChat: Resposta da API:', data)
+        
+        if (data.success) {
+          const quotesMap: Record<string, ChatQuote> = {}
+          data.quotes.forEach((quote: any) => {
+            if (!quotesMap[quote.chatId]) {
+              quotesMap[quote.chatId] = { chatId: quote.chatId, total: 0, count: 0 }
+            }
+            // Converter para número (pode vir como string do Prisma)
+            const quoteTotal = typeof quote.total === 'string' ? parseFloat(quote.total) : quote.total
+            quotesMap[quote.chatId].total += quoteTotal || 0
+            quotesMap[quote.chatId].count += 1
+          })
+          setChatQuotes(quotesMap)
+          console.log(`✅ SideChat: ${Object.keys(quotesMap).length} chats com orçamentos`, quotesMap)
+        }
+      } catch (error) {
+        console.error('❌ SideChat: Erro ao buscar orçamentos:', error)
+      }
+    }
+    
+    fetchQuotes()
+  }, [chats])
 
   // Notificar mudança de conexão baseada no estado dos chats
   useEffect(() => {
@@ -613,23 +670,20 @@ export const SideChat: React.FC<SideChatProps> = ({
                   </div>
 
                   {/* Informações de Orçamento e Agendamento */}
-                  <div className="flex items-center gap-3 mt-2">
-                    {/* Orçamento - Preço */}
-                    <div className="flex items-center gap-1 text-[11px]">
-                      <DollarSign className="w-3 h-3 text-green-600 dark:text-green-400" />
-                      <span className="font-semibold text-green-700 dark:text-green-400">
-                        R$ 2.500,00
-                      </span>
+                  {chatQuotes[chat.id] && (
+                    <div className="flex items-center gap-3 mt-2">
+                      {/* Orçamento - Preço */}
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <DollarSign className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        <span className="font-semibold text-green-700 dark:text-green-400">
+                          R$ {chatQuotes[chat.id].total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                        {chatQuotes[chat.id].count > 1 && (
+                          <span className="text-xs text-gray-500">({chatQuotes[chat.id].count})</span>
+                        )}
+                      </div>
                     </div>
-
-                    {/* Agendamento - Data e Hora */}
-                    <div className="flex items-center gap-1 text-[11px]">
-                      <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        15/10 às 14h30
-                      </span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Badges - Tags, Atendente, Status, Contrato */}
                   <div className="flex flex-wrap gap-1 mt-2">

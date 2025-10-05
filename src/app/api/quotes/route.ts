@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ quotes })
+    return NextResponse.json({ success: true, quotes })
   } catch (error) {
     console.error('Erro ao buscar orçamentos:', error)
     return NextResponse.json(

@@ -10,6 +10,8 @@ import { TopbarChat } from '@/components/chat/TopbarChat'
 import { ChatArea } from '@/components/chat/ChatArea'
 import { FooterChatArea } from '@/components/chat/FooterChatArea'
 import { SideChat } from '@/components/chat/SideChat'
+import { AllQuotesSidebar } from '@/components/chat/sidebars/AllQuotesSidebar'
+import { AllTagsSidebar } from '@/components/chat/sidebars/AllTagsSidebar'
 
 // Sidebars Expansíveis (temporariamente comentadas)
 // import { ScheduleSidebar } from '@/components/chat/sidebars/ScheduleSidebar'
@@ -21,7 +23,7 @@ import { SideChat } from '@/components/chat/SideChat'
 // Tipos
 import { Chat, Message, Contact } from '@/types/chat'
 
-export type SidebarType = 'schedule' | 'quote' | 'contract' | 'contact' | 'ticket' | null
+export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | null
 
 interface ChatPageState {
   activeChat: Chat | null
@@ -104,25 +106,27 @@ export default function ChatPage() {
         />
 
         {/* Área do Chat - Flex restante */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {state.activeChat ? (
-            <>
-              {/* Área de Mensagens */}
-              <div className="flex-1 overflow-hidden">
-                <ChatArea 
-                  chat={state.activeChat}
-                  onSidebarToggle={handleSidebarToggle}
-                />
-              </div>
-              
-              {/* Footer de Input */}
-              <div className="flex-shrink-0">
-                <FooterChatArea 
-                  chat={state.activeChat}
-                />
-              </div>
-            </>
-          ) : (
+        <div className="flex-1 flex min-w-0 overflow-hidden">
+          {/* Chat Principal */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {state.activeChat ? (
+              <>
+                {/* Área de Mensagens */}
+                <div className="flex-1 overflow-hidden">
+                  <ChatArea 
+                    chat={state.activeChat}
+                    onSidebarToggle={handleSidebarToggle}
+                  />
+                </div>
+                
+                {/* Footer de Input */}
+                <div className="flex-shrink-0">
+                  <FooterChatArea 
+                    chat={state.activeChat}
+                  />
+                </div>
+              </>
+            ) : (
             /* Tela de Boas-vindas */
             <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-800">
               <div className="text-center max-w-md">
@@ -149,39 +153,24 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Sidebars Expansíveis */}
-        <AnimatePresence mode="wait">
-          {state.activeSidebar && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 400, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-hidden"
-            >
-              {/* Sidebars temporariamente desabilitadas até criar os componentes */}
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🚧</span>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  {state.activeSidebar === 'schedule' && 'Agendamentos'}
-                  {state.activeSidebar === 'quote' && 'Orçamentos'}
-                  {state.activeSidebar === 'contract' && 'Contratos'}
-                  {state.activeSidebar === 'contact' && 'Informações do Contato'}
-                  {state.activeSidebar === 'ticket' && 'Tickets'}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Sidebar em desenvolvimento...
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </div>
+
+      {/* Sidebars como Dialog/Sheet */}
+      <AllQuotesSidebar
+        isOpen={state.activeSidebar === 'quote'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllTagsSidebar
+        isOpen={state.activeSidebar === 'tag'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
 
     </div>
   )

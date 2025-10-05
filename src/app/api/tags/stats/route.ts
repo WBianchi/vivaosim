@@ -110,7 +110,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ stats })
+    return NextResponse.json({ 
+      success: true,
+      total: totalTags,
+      stats 
+    })
 
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error)

@@ -3,31 +3,34 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import {
+  MessageSquare,
+  Users,
   Calendar,
   FileText,
   FileSignature,
-  User,
   Ticket,
-  Settings,
-  Bell,
+  Tag,
   Search,
-  MoreVertical,
-  Wifi,
-  WifiOff,
-  MessageSquare,
-  Users,
-  Clock,
-  Target,
+  Bell,
+  Settings,
+  LogOut,
+  User,
   Sun,
   Moon,
-  Palette
+  Palette,
+  Wifi,
+  WifiOff,
+  MoreVertical
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
+import { useCustomization } from '@/contexts/CustomizationProvider'
 import { Chat } from '@/types/chat'
 import { cn } from '@/lib/utils'
 import { ChatNotifications } from './ChatNotifications'
+import { AllQuotesSidebar } from './sidebars/AllQuotesSidebar'
+import { getAuthToken } from '@/lib/auth-token'
 
-export type SidebarType = 'schedule' | 'quote' | 'contract' | 'contact' | 'ticket' | null
+export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | null
 
 interface TopbarChatProps {
   user: any
@@ -47,17 +50,112 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   activeSidebar
 }) => {
   const { isDarkMode, toggleTheme } = useTheme()
+  const { 
+    settings, 
+    updateTopbar, 
+    updateSidebar, 
+    updateChat, 
+    updateMessages,
+    resetSettings,
+    getTopbarClasses 
+  } = useCustomization()
   const [showColorPicker, setShowColorPicker] = React.useState(false)
+  const [customizationTab, setCustomizationTab] = React.useState<'topbar' | 'sidebar' | 'chat' | 'messages'>('topbar')
   
-  const colors = [
+  const gradients = [
+    { name: 'Oceano', from: 'from-blue-400', to: 'to-cyan-500', preview: 'bg-gradient-to-r from-blue-400 to-cyan-500' },
+    { name: 'Pôr do Sol', from: 'from-orange-400', to: 'to-pink-500', preview: 'bg-gradient-to-r from-orange-400 to-pink-500' },
+    { name: 'Floresta', from: 'from-green-400', to: 'to-emerald-600', preview: 'bg-gradient-to-r from-green-400 to-emerald-600' },
+    { name: 'Aurora', from: 'from-purple-400', to: 'to-pink-500', preview: 'bg-gradient-to-r from-purple-400 to-pink-500' },
+    { name: 'Fogo', from: 'from-red-500', to: 'to-orange-600', preview: 'bg-gradient-to-r from-red-500 to-orange-600' },
+    { name: 'Noite', from: 'from-indigo-600', to: 'to-purple-700', preview: 'bg-gradient-to-r from-indigo-600 to-purple-700' },
+    { name: 'Limão', from: 'from-lime-400', to: 'to-green-500', preview: 'bg-gradient-to-r from-lime-400 to-green-500' },
+    { name: 'Rosa Choque', from: 'from-pink-500', to: 'to-rose-600', preview: 'bg-gradient-to-r from-pink-500 to-rose-600' },
+    { name: 'Céu', from: 'from-sky-400', to: 'to-blue-600', preview: 'bg-gradient-to-r from-sky-400 to-blue-600' },
+  ]
+
+  const solidColors = [
     { name: 'Azul', value: 'blue', class: 'bg-blue-500' },
     { name: 'Verde', value: 'green', class: 'bg-green-500' },
     { name: 'Roxo', value: 'purple', class: 'bg-purple-500' },
     { name: 'Rosa', value: 'pink', class: 'bg-pink-500' },
     { name: 'Laranja', value: 'orange', class: 'bg-orange-500' },
     { name: 'Vermelho', value: 'red', class: 'bg-red-500' },
+    { name: 'Amarelo', value: 'yellow', class: 'bg-yellow-500' },
+    { name: 'Ciano', value: 'cyan', class: 'bg-cyan-500' },
+    { name: 'Índigo', value: 'indigo', class: 'bg-indigo-500' },
   ]
   
+  const [totalQuotes, setTotalQuotes] = React.useState(0)
+  const [totalTags, setTotalTags] = React.useState(0)
+  const [showQuotesSidebar, setShowQuotesSidebar] = React.useState(false)
+
+  // Buscar total de orçamentos
+  React.useEffect(() => {
+    const fetchTotalQuotes = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          console.log('⚠️ TopBar: Token não encontrado')
+          return
+        }
+
+        console.log('🔍 TopBar: Buscando estatísticas de orçamentos...')
+        
+        const response = await fetch('/api/quotes/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        console.log('📊 TopBar: Resposta da API stats:', data)
+        
+        if (data.success) {
+          setTotalQuotes(data.total || 0)
+          console.log(`✅ TopBar: Total de orçamentos: ${data.total}`)
+        }
+      } catch (error) {
+        console.error('❌ TopBar: Erro ao buscar total de orçamentos:', error)
+      }
+    }
+    
+    fetchTotalQuotes()
+  }, [])
+
+  // Buscar total de tags
+  React.useEffect(() => {
+    const fetchTotalTags = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          console.log('⚠️ TopBar: Token não encontrado (tags)')
+          return
+        }
+
+        console.log('🔍 TopBar: Buscando estatísticas de tags...')
+        
+        const response = await fetch('/api/tags/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+        
+        console.log('📊 TopBar: Resposta da API tags stats:', data)
+        
+        if (data.success) {
+          setTotalTags(data.total || 0)
+          console.log(`✅ TopBar: Total de tags: ${data.total}`)
+        }
+      } catch (error) {
+        console.error('❌ TopBar: Erro ao buscar total de tags:', error)
+      }
+    }
+    
+    fetchTotalTags()
+  }, [])
+
   const sidebarButtons = [
     {
       id: 'schedule' as SidebarType,
@@ -74,26 +172,19 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
       shortcut: 'O'
     },
     {
+      id: 'tag' as SidebarType,
+      icon: Tag,
+      label: 'Tags',
+      color: 'orange',
+      shortcut: 'T'
+    },
+    {
       id: 'contract' as SidebarType,
       icon: FileSignature,
       label: 'Contratos',
       color: 'purple',
       shortcut: 'C'
     },
-    {
-      id: 'contact' as SidebarType,
-      icon: User,
-      label: 'Contato',
-      color: 'orange',
-      shortcut: 'I'
-    },
-    {
-      id: 'ticket' as SidebarType,
-      icon: Ticket,
-      label: 'Tickets',
-      color: 'red',
-      shortcut: 'T'
-    }
   ]
 
   const getColorClasses = (color: string, isActive: boolean) => {
@@ -114,7 +205,7 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   }
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-6 shadow-sm">
+    <header className={getTopbarClasses()}>
       {/* Logo e Branding */}
       <div className="flex items-center space-x-4 mr-8">
         <div className="flex items-center space-x-3">
@@ -145,39 +236,12 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
         </div>
       </div>
 
-      {/* Stats Rápidas */}
-      <div className="flex items-center space-x-6 mr-8">
-        <div className="flex items-center space-x-2">
-          <MessageSquare className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {unreadCount}
-          </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">não lidas</span>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Clock className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            2.5min
-          </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">resp. média</span>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Target className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            95%
-          </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">satisfação</span>
-        </div>
-      </div>
+    
 
       {/* Botões de Sidebar - Só aparecem se há chat ativo */}
       {activeChat && (
         <div className="flex items-center space-x-2 mr-8">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mr-2">
-            Ferramentas:
-          </div>
+          
           {sidebarButtons.map((button) => {
             const Icon = button.icon
             const isActive = activeSidebar === button.id
@@ -185,9 +249,15 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
             return (
               <motion.button
                 key={button.id}
-                onClick={() => onSidebarToggle(button.id)}
+                onClick={() => {
+                  if (button.id === 'quote') {
+                    setShowQuotesSidebar(true)
+                  } else {
+                    onSidebarToggle(button.id)
+                  }
+                }}
                 className={cn(
-                  'flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium',
+                  'relative flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium',
                   getColorClasses(button.color, isActive)
                 )}
                 whileHover={{ scale: 1.02 }}
@@ -196,6 +266,16 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
               >
                 <Icon className="w-4 h-4" />
                 <span className="hidden xl:block">{button.label}</span>
+                {button.id === 'quote' && totalQuotes > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {totalQuotes > 99 ? '99+' : totalQuotes}
+                  </span>
+                )}
+                {button.id === 'tag' && totalTags > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {totalTags > 99 ? '99+' : totalTags}
+                  </span>
+                )}
                 <span className="hidden 2xl:block text-xs opacity-60">
                   ⌘{button.shortcut}
                 </span>
@@ -273,23 +353,222 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 top-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 z-50"
+              className="absolute right-0 top-12 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 w-96 max-h-[600px] overflow-y-auto"
             >
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Cor do Tema
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {colors.map((color) => (
+              {/* Header */}
+              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Palette className="w-4 h-4" />
+                    Customizar Interface
+                  </h3>
                   <button
-                    key={color.value}
+                    onClick={() => setShowColorPicker(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                  <button
+                    onClick={() => setCustomizationTab('topbar')}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      customizationTab === 'topbar'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Topbar
+                  </button>
+                  <button
+                    onClick={() => setCustomizationTab('sidebar')}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      customizationTab === 'sidebar'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Sidebar
+                  </button>
+                  <button
+                    onClick={() => setCustomizationTab('chat')}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      customizationTab === 'chat'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    onClick={() => setCustomizationTab('messages')}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      customizationTab === 'messages'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    Mensagens
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-4">
+                {/* Gradientes */}
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    🎨 Gradientes
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {gradients.map((gradient) => (
+                      <button
+                        key={gradient.name}
+                        onClick={() => {
+                          const gradientData = { from: gradient.from, to: gradient.to }
+                          if (customizationTab === 'topbar') updateTopbar({ gradient: gradientData })
+                          else if (customizationTab === 'sidebar') updateSidebar({ gradient: gradientData })
+                          else if (customizationTab === 'chat') updateChat({ gradient: gradientData })
+                          else if (customizationTab === 'messages') updateMessages({ gradient: gradientData })
+                        }}
+                        className="group relative"
+                        title={gradient.name}
+                      >
+                        <div className={`w-full h-12 rounded-lg ${gradient.preview} hover:scale-105 transition-transform shadow-sm`} />
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 block text-center group-hover:text-gray-900 dark:group-hover:text-white">
+                          {gradient.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cores Sólidas */}
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    🎯 Cores Sólidas
+                  </h4>
+                  <div className="grid grid-cols-5 gap-2">
+                    {solidColors.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => {
+                          if (customizationTab === 'topbar') updateTopbar({ color: color.value, gradient: undefined })
+                          else if (customizationTab === 'sidebar') updateSidebar({ color: color.value, gradient: undefined })
+                          else if (customizationTab === 'chat') updateChat({ color: color.value, gradient: undefined })
+                          else if (customizationTab === 'messages') updateMessages({ color: color.value, gradient: undefined })
+                        }}
+                        className="group flex flex-col items-center"
+                        title={color.name}
+                      >
+                        <div className={`w-10 h-10 rounded-full ${color.class} hover:scale-110 transition-transform shadow-md`} />
+                        <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 group-hover:text-gray-900 dark:group-hover:text-white">
+                          {color.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Opções Específicas */}
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    ⚙️ Opções de {customizationTab === 'topbar' ? 'Topbar' : customizationTab === 'sidebar' ? 'Sidebar' : customizationTab === 'chat' ? 'Chat' : 'Mensagens'}
+                  </h4>
+                  
+                  {customizationTab === 'topbar' && (
+                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Mostrar logo
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Mostrar estatísticas
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Efeito de vidro (blur)
+                      </label>
+                    </div>
+                  )}
+
+                  {customizationTab === 'sidebar' && (
+                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Ícones coloridos
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Mostrar atalhos
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        Sidebar compacta
+                      </label>
+                    </div>
+                  )}
+
+                  {customizationTab === 'chat' && (
+                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Bolhas arredondadas
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Mostrar avatar
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        Fundo com imagem
+                      </label>
+                    </div>
+                  )}
+
+                  {customizationTab === 'messages' && (
+                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Mensagens enviadas à direita
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Mostrar horário
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" defaultChecked />
+                        Animações de entrada
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button 
                     onClick={() => {
-                      // Por enquanto só visual, depois implementar lógica
-                      setShowColorPicker(false)
+                      if (confirm('Resetar todas as customizações?')) {
+                        resetSettings()
+                      }
                     }}
-                    className={`w-8 h-8 rounded-full ${color.class} hover:scale-110 transition-transform`}
-                    title={color.name}
-                  />
-                ))}
+                    className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Resetar
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowColorPicker(false)
+                      alert('✅ Customizações aplicadas e salvas!')
+                    }}
+                    className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Aplicar
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -341,6 +620,12 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
           </motion.button>
         </div>
       </div>
+
+      {/* Sidebar de Todos os Orçamentos */}
+      <AllQuotesSidebar
+        isOpen={showQuotesSidebar}
+        onClose={() => setShowQuotesSidebar(false)}
+      />
     </header>
   )
 }
