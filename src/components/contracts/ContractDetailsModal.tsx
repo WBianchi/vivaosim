@@ -539,8 +539,9 @@ export const ContractDetailsModal: React.FC<ContractDetailsModalProps> = ({
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    console.log('📥 Download PDF:', contract.id)
+                  onClick={async () => {
+                    const { generateContractPDF } = await import('@/lib/pdf-generator')
+                    generateContractPDF(contract)
                   }}
                   className="px-4 py-3 border border-green-300 hover:bg-green-50 text-green-600 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                 >

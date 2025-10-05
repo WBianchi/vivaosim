@@ -1,7 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Search, Grid3X3, List, Users, TrendingUp, DollarSign, Percent, Target, Award } from 'lucide-react'
+import { Plus, Search, Grid3X3, List, Users, TrendingUp, DollarSign, Percent, Target, Award, Filter } from 'lucide-react'
 
 interface AffiliatesHeaderProps {
   onCreateAffiliate: () => void
@@ -9,18 +10,39 @@ interface AffiliatesHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  onToggleFilters?: () => void
 }
 
 export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
-  onCreateAffiliate, onSearchChange, searchTerm, viewMode, onViewModeChange
+  onCreateAffiliate, onSearchChange, searchTerm, viewMode, onViewModeChange, onToggleFilters
 }) => {
-  const stats = {
-    totalAffiliates: 89,
-    activeAffiliates: 67,
-    totalCommissions: 45890.50,
-    avgCommission: 685.97,
-    topPerformer: 12450.80,
-    conversionRate: 23.5
+  const [stats, setStats] = useState({
+    totalAffiliates: 0,
+    activeAffiliates: 0,
+    totalCommissions: 0,
+    avgCommission: 0,
+    topPerformer: 0,
+    conversionRate: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/affiliates/stats')
+      const data = await response.json()
+      
+      if (data.success) {
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -79,6 +101,19 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
             </motion.button>
           </div>
 
+          {/* Botão Filtros */}
+          {onToggleFilters && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onToggleFilters}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </motion.button>
+          )}
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -100,7 +135,9 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total de Afiliados</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalAffiliates}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {loading ? <span className="animate-pulse">...</span> : stats.totalAffiliates}
+              </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
               <Users className="w-6 h-6 text-purple-600" />
@@ -121,7 +158,9 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Afiliados Ativos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.activeAffiliates}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {loading ? <span className="animate-pulse">...</span> : stats.activeAffiliates}
+              </p>
             </div>
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
               <Target className="w-6 h-6 text-green-600" />
@@ -143,7 +182,9 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Comissões Totais</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.totalCommissions)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {loading ? <span className="animate-pulse">...</span> : formatCurrency(stats.totalCommissions)}
+              </p>
             </div>
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-blue-600" />
@@ -164,7 +205,9 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Comissão Média</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.avgCommission)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {loading ? <span className="animate-pulse">...</span> : formatCurrency(stats.avgCommission)}
+              </p>
             </div>
             <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
               <Percent className="w-6 h-6 text-orange-600" />
@@ -184,7 +227,9 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Top Performer</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.topPerformer)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {loading ? <span className="animate-pulse">...</span> : formatCurrency(stats.topPerformer)}
+              </p>
             </div>
             <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
               <Award className="w-6 h-6 text-yellow-600" />
@@ -204,7 +249,9 @@ export const AffiliatesHeader: React.FC<AffiliatesHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taxa Conversão</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.conversionRate}%</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {loading ? <span className="animate-pulse">...</span> : `${stats.conversionRate}%`}
+              </p>
             </div>
             <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-indigo-600" />

@@ -7,14 +7,14 @@ import {
   User, 
   Calendar,
   PenTool,
-  MoreVertical,
   CheckCircle,
   Clock,
   XCircle,
   AlertCircle,
   ExternalLink,
   Edit3,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react'
 
 interface ContractCardProps {
@@ -22,13 +22,17 @@ interface ContractCardProps {
   index: number
   onClick: () => void
   onSignatureRequest: () => void
+  onEdit: () => void
+  onDelete: () => void
 }
 
 export const ContractCard: React.FC<ContractCardProps> = ({
   contract,
   index,
   onClick,
-  onSignatureRequest
+  onSignatureRequest,
+  onEdit,
+  onDelete
 }) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -164,17 +168,33 @@ export const ContractCard: React.FC<ContractCardProps> = ({
             </div>
           </div>
 
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={(e) => {
                 e.stopPropagation()
-                console.log('⚙️ Mais opções:', contract.id)
+                onEdit()
               }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+              title="Editar"
             >
-              <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <Edit3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (confirm('Tem certeza que deseja excluir este contrato?')) {
+                  onDelete()
+                }
+              }}
+              className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+              title="Excluir"
+            >
+              <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
             </motion.button>
           </div>
         </div>

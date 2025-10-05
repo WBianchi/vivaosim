@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = verifyAccessToken(token)
-    if (!payload || payload.role !== 'ADMINISTRADOR') {
-      return NextResponse.json({ error: 'Sem permissão para fazer upload' }, { status: 403 })
+    if (!payload) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 403 })
     }
 
     const data = await request.formData()
     const file: File | null = data.get('file') as unknown as File
-    const type: string = data.get('type') as string // 'logo' ou 'favicon'
+    const folder: string = (data.get('folder') as string) || 'uploads' // 'avatars', 'logos', etc
 
     if (!file) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
 
     // Criar diretório se não existir
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
+    const uploadDir = join(process.cwd(), 'public', 'uploads', folder)
     try {
       await mkdir(uploadDir, { recursive: true })
     } catch (error) {
@@ -50,23 +50,19 @@ export async function POST(request: NextRequest) {
     // Gerar nome único
     const timestamp = Date.now()
     const extension = file.name.split('.').pop()
-    const fileName = `${type}-${timestamp}.${extension}`
+    const fileName = `${timestamp}.${extension}`
     const filePath = join(uploadDir, fileName)
 
     // Salvar arquivo
     await writeFile(filePath, buffer)
 
-    const fileUrl = `/uploads/${fileName}`
+    const fileUrl = `/uploads/${folder}/${fileName}`
 
     return NextResponse.json({
       success: true,
-      message: 'Arquivo enviado com sucesso',
-      data: {
-        fileName,
-        fileUrl,
-        type,
-        size: file.size
-      }
+      url: fileUrl,
+      fileName,
+      size: file.size
     })
 
   } catch (error: any) {

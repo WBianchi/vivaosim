@@ -21,19 +21,25 @@ import {
   FileText,
   BarChart3,
   Settings,
-  Copy
+  Copy,
+  Trash2,
+  Archive
 } from 'lucide-react'
 
 interface SubscriberDetailsModalProps {
   subscriber: any
   onClose: () => void
   onEdit?: () => void
+  onDelete?: (subscriber: any) => void
+  onArchive?: (subscriber: any) => void
 }
 
 export const SubscriberDetailsModal: React.FC<SubscriberDetailsModalProps> = ({
   subscriber,
   onClose,
-  onEdit
+  onEdit,
+  onDelete,
+  onArchive
 }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'subscription' | 'payments' | 'activity'>('overview')
@@ -248,7 +254,7 @@ export const SubscriberDetailsModal: React.FC<SubscriberDetailsModalProps> = ({
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                      ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50 dark:bg-orange-900/20'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
@@ -388,18 +394,18 @@ export const SubscriberDetailsModal: React.FC<SubscriberDetailsModalProps> = ({
               {/* Subscription Tab */}
               {activeTab === 'subscription' && (
                 <div className="space-y-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl">
-                    <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-4 flex items-center gap-2">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-xl border border-orange-200 dark:border-orange-800">
+                    <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-4 flex items-center gap-2">
                       <Package className="w-5 h-5" />
                       Plano Atual: {subscriber.plan.name}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-blue-600 dark:text-blue-400">Preço</p>
-                        <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                        <p className="text-sm text-orange-600 dark:text-orange-400">Preço</p>
+                        <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
                           {formatPrice(subscriber.plan.price)}
                         </p>
-                        <p className="text-sm text-blue-600 dark:text-blue-400">
+                        <p className="text-sm text-orange-600 dark:text-orange-400">
                           /{subscriber.plan.period === 'monthly' ? 'mês' : 'ano'}
                         </p>
                       </div>
@@ -566,7 +572,7 @@ export const SubscriberDetailsModal: React.FC<SubscriberDetailsModalProps> = ({
                       handleClose()
                     }
                   }}
-                  className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
                 >
                   <Edit3 className="w-4 h-4" />
                   Editar Assinante
@@ -576,12 +582,30 @@ export const SubscriberDetailsModal: React.FC<SubscriberDetailsModalProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    console.log('⚙️ Gerenciar assinatura:', subscriber.subscription.id)
+                    if (onArchive && confirm('Deseja arquivar este assinante?')) {
+                      onArchive(subscriber)
+                      handleClose()
+                    }
                   }}
-                  className="px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  className="px-4 py-3 border border-yellow-300 dark:border-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                 >
-                  <Settings className="w-4 h-4" />
-                  Gerenciar
+                  <Archive className="w-4 h-4" />
+                  Arquivar
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    if (onDelete && confirm('⚠️ Tem certeza que deseja EXCLUIR este assinante? Esta ação não pode ser desfeita!')) {
+                      onDelete(subscriber)
+                      handleClose()
+                    }
+                  }}
+                  className="px-4 py-3 border border-red-300 dark:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Excluir
                 </motion.button>
               </div>
             </div>

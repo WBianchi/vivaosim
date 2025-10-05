@@ -11,7 +11,10 @@ import {
   Users,
   DollarSign,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Filter,
+  Calendar,
+  PercentCircle
 } from 'lucide-react'
 
 interface SubscribersHeaderProps {
@@ -20,6 +23,16 @@ interface SubscribersHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  onToggleFilters: () => void
+  stats?: {
+    totalSubscribers: number
+    activeSubscribers: number
+    totalRevenue: number
+    avgTicket: number
+    newThisMonth: number
+    churnRate: number
+    expiringThisMonth: number
+  }
 }
 
 export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
@@ -27,17 +40,18 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
   onSearchChange,
   searchTerm,
   viewMode,
-  onViewModeChange
-}) => {
-  // Mock statistics - em produção viria da API
-  const stats = {
-    totalSubscribers: 1247,
-    activeSubscribers: 1089,
-    monthlyRevenue: 87450.00,
-    churnRate: 3.2,
-    newThisMonth: 156,
-    expiringSoon: 23
+  onViewModeChange,
+  onToggleFilters,
+  stats = {
+    totalSubscribers: 0,
+    activeSubscribers: 0,
+    totalRevenue: 0,
+    avgTicket: 0,
+    newThisMonth: 0,
+    churnRate: 0,
+    expiringThisMonth: 0
   }
+}) => {
 
   return (
     <div className="space-y-6">
@@ -45,7 +59,7 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
               <UserPlus className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -68,7 +82,7 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
               placeholder="Buscar assinantes..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 w-64 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
 
@@ -80,7 +94,7 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
               onClick={() => onViewModeChange('grid')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 shadow-sm'
+                  ? 'bg-white dark:bg-gray-600 text-orange-600 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -92,7 +106,7 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
               onClick={() => onViewModeChange('table')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'table'
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 shadow-sm'
+                  ? 'bg-white dark:bg-gray-600 text-orange-600 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
@@ -100,12 +114,23 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
             </motion.button>
           </div>
 
+          {/* Botão Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onToggleFilters}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
+
           {/* Botão Criar Assinante */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onCreateSubscriber}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors shadow-lg shadow-blue-500/25"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-orange-500/25"
           >
             <Plus className="w-4 h-4" />
             Novo Assinante
@@ -127,44 +152,12 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
                 Total de Assinantes
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.totalSubscribers.toLocaleString()}
+                {stats.totalSubscribers?.toLocaleString() || 0}
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+              <Users className="w-6 h-6 text-orange-600" />
             </div>
-          </div>
-          <div className="mt-4 flex items-center">
-            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-sm text-green-600 dark:text-green-400">
-              +{stats.newThisMonth} este mês
-            </span>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Assinantes Ativos
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.activeSubscribers.toLocaleString()}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {((stats.activeSubscribers / stats.totalSubscribers) * 100).toFixed(1)}% do total
-            </span>
           </div>
         </motion.div>
 
@@ -177,37 +170,10 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Receita Mensal
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                R$ {stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center">
-            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-sm text-green-600 dark:text-green-400">
-              +12% este mês
-            </span>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Taxa de Churn
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.churnRate}%
+                {(stats.churnRate || 0).toFixed(1)}%
               </p>
             </div>
             <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
@@ -233,7 +199,7 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
                 Ticket Médio
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                R$ {(stats.monthlyRevenue / stats.activeSubscribers).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {(stats.avgTicket || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
@@ -259,7 +225,7 @@ export const SubscribersHeader: React.FC<SubscribersHeaderProps> = ({
                 Expirando em Breve
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.expiringSoon}
+                {stats.expiringThisMonth || 0}
               </p>
             </div>
             <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">

@@ -541,16 +541,18 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
         </motion.button>
       </div>
 
-      {/* Center - Status Indicators - Hidden on mobile */}
-      <div className="hidden lg:flex items-center gap-4">
-        <WhatsAppStatus 
-          onOpenModal={handleOpenWhatsAppModal}
-        />
-        
-        {(user?.role === 'ADMINISTRADOR' || user?.role === 'ASSINANTE') && (
-          <WhatsAppChatsCount sessions={whatsappSessions} />
-        )}
-      </div>
+      {/* Center - Status Indicators - Hidden on mobile and for CLIENTE */}
+      {user?.role !== 'CLIENTE' && (
+        <div className="hidden lg:flex items-center gap-4">
+          <WhatsAppStatus 
+            onOpenModal={handleOpenWhatsAppModal}
+          />
+          
+          {(user?.role === 'ADMINISTRADOR' || user?.role === 'ASSINANTE') && (
+            <WhatsAppChatsCount sessions={whatsappSessions} />
+          )}
+        </div>
+      )}
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-1 md:gap-2">
@@ -913,51 +915,57 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
                     </div>
                   </button>
 
-                  <button className={cn(
-                    'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
-                    isDarkMode
-                      ? 'hover:bg-slate-700/50 text-slate-300'
-                      : 'hover:bg-gray-100/50 text-gray-600'
-                  )}>
-                    <div className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-                      isDarkMode ? 'bg-slate-700 group-hover:bg-slate-600' : 'bg-gray-100 group-hover:bg-gray-200'
+                  {/* Analytics - Oculto para CLIENTE */}
+                  {user?.role !== 'CLIENTE' && (
+                    <button className={cn(
+                      'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
+                      isDarkMode
+                        ? 'hover:bg-slate-700/50 text-slate-300'
+                        : 'hover:bg-gray-100/50 text-gray-600'
                     )}>
-                      <BarChart3 className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">Analytics</div>
                       <div className={cn(
-                        'text-xs',
-                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                        isDarkMode ? 'bg-slate-700 group-hover:bg-slate-600' : 'bg-gray-100 group-hover:bg-gray-200'
                       )}>
-                        Relatórios e métricas
+                        <BarChart3 className="w-4 h-4" />
                       </div>
-                    </div>
-                  </button>
+                      <div>
+                        <div className="text-sm font-medium">Analytics</div>
+                        <div className={cn(
+                          'text-xs',
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        )}>
+                          Relatórios e métricas
+                        </div>
+                      </div>
+                    </button>
+                  )}
 
-                  <button className={cn(
-                    'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
-                    isDarkMode
-                      ? 'hover:bg-slate-700/50 text-slate-300'
-                      : 'hover:bg-gray-100/50 text-gray-600'
-                  )}>
-                    <div className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-                      isDarkMode ? 'bg-slate-700 group-hover:bg-slate-600' : 'bg-gray-100 group-hover:bg-gray-200'
+                  {/* Planos & Billing - Oculto para CLIENTE */}
+                  {user?.role !== 'CLIENTE' && (
+                    <button className={cn(
+                      'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
+                      isDarkMode
+                        ? 'hover:bg-slate-700/50 text-slate-300'
+                        : 'hover:bg-gray-100/50 text-gray-600'
                     )}>
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">Planos & Billing</div>
                       <div className={cn(
-                        'text-xs',
-                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                        isDarkMode ? 'bg-slate-700 group-hover:bg-slate-600' : 'bg-gray-100 group-hover:bg-gray-200'
                       )}>
-                        Assinatura e pagamentos
+                        <CreditCard className="w-4 h-4" />
                       </div>
-                    </div>
-                  </button>
+                      <div>
+                        <div className="text-sm font-medium">Planos & Billing</div>
+                        <div className={cn(
+                          'text-xs',
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        )}>
+                          Assinatura e pagamentos
+                        </div>
+                      </div>
+                    </button>
+                  )}
 
                   <button className={cn(
                     'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',

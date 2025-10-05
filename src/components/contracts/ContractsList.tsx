@@ -463,6 +463,23 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                 index={index}
                 onClick={() => onContractSelect(contract)}
                 onSignatureRequest={() => onSignatureRequest(contract)}
+                onEdit={() => onEdit(contract)}
+                onDelete={async () => {
+                  try {
+                    const response = await fetch(`/api/contracts/${contract.id}`, {
+                      method: 'DELETE'
+                    })
+                    const data = await response.json()
+                    if (data.success) {
+                      alert('✅ Contrato excluído com sucesso!')
+                      onDelete()
+                    } else {
+                      alert('❌ ' + data.error)
+                    }
+                  } catch (error) {
+                    alert('❌ Erro ao excluir contrato')
+                  }
+                }}
               />
             ))}
           </AnimatePresence>

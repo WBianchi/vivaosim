@@ -89,8 +89,8 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
     }
   }
 
-  const statusConfig = getStatusConfig(attendant.status)
-  const onlineConfig = getOnlineStatusConfig(attendant.onlineStatus)
+  const statusConfig = getStatusConfig(attendant.status || 'active')
+  const onlineConfig = getOnlineStatusConfig(attendant.onlineStatus || 'offline')
 
   return (
     <AnimatePresence>
@@ -111,13 +111,12 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="relative w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shadow-sm">
+                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center shadow-sm">
                     {attendant.avatar ? (
                       <img 
                         src={attendant.avatar} 
@@ -125,7 +124,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                         className="w-full h-full rounded-xl object-cover"
                       />
                     ) : (
-                      <Headphones className="w-6 h-6 text-blue-600" />
+                      <User className="w-6 h-6 text-orange-600" />
                     )}
                   </div>
                   <div className={`absolute -bottom-1 -right-1 w-4 h-4 ${onlineConfig.color} rounded-full border-2 border-white dark:border-gray-900`} />
@@ -186,7 +185,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                      ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50 dark:bg-orange-900/20'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
@@ -203,16 +202,16 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                 <div className="space-y-6">
                   {/* Métricas Principais */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl">
                       <div className="flex items-center gap-2 mb-2">
-                        <Star className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Avaliação</span>
+                        <Star className="w-4 h-4 text-orange-600" />
+                        <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Avaliação</span>
                       </div>
-                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                        {attendant.rating.toFixed(1)}
+                      <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                        {(attendant.rating || 0).toFixed(1)}
                       </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        {attendant.totalRatings} avaliações
+                      <p className="text-xs text-orange-600 dark:text-orange-400">
+                        {attendant.totalRatings || 0} avaliações
                       </p>
                     </div>
 
@@ -222,10 +221,10 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                         <span className="text-sm font-medium text-green-700 dark:text-green-300">Chats Ativos</span>
                       </div>
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                        {attendant.activeChats}
+                        {attendant.activeChats || 0}
                       </p>
                       <p className="text-xs text-green-600 dark:text-green-400">
-                        de {attendant.maxChats} máximo
+                        de {attendant.maxChats || 8} máximo
                       </p>
                     </div>
 
@@ -235,7 +234,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                         <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Tempo Resposta</span>
                       </div>
                       <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                        {formatTime(attendant.responseTime)}
+                        {formatTime(attendant.responseTime || 0)}
                       </p>
                     </div>
 
@@ -245,7 +244,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                         <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Taxa Resolução</span>
                       </div>
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                        {((attendant.ticketsResolved / attendant.ticketsTotal) * 100).toFixed(0)}%
+                        {(attendant.ticketsTotal ? ((attendant.ticketsResolved || 0) / attendant.ticketsTotal) * 100 : 0).toFixed(0)}%
                       </p>
                     </div>
                   </div>
@@ -283,7 +282,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Horário de Trabalho</span>
                           </div>
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {attendant.workingHours}
+                            {attendant.workingHours || '08:00 - 18:00'}
                           </p>
                         </div>
                       </div>
@@ -310,7 +309,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Departamento</span>
                           </div>
                           <p className="font-semibold text-gray-900 dark:text-white capitalize">
-                            {attendant.department}
+                            {attendant.department || 'Geral'}
                           </p>
                         </div>
 
@@ -320,7 +319,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Data de Entrada</span>
                           </div>
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {formatDate(attendant.joinedAt)}
+                            {formatDate(attendant.joinedAt || attendant.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -336,25 +335,25 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
                       <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2">Satisfação</h4>
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                        {attendant.performance.satisfaction}
+                        {attendant.performance?.satisfaction || 0}
                       </p>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
                       <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">Primeira Resposta</h4>
                       <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                        {attendant.performance.firstResponseTime}s
+                        {attendant.performance?.firstResponseTime || 0}s
                       </p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl">
                       <h4 className="font-medium text-purple-700 dark:text-purple-300 mb-2">Taxa Resolução</h4>
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                        {attendant.performance.resolutionRate}%
+                        {attendant.performance?.resolutionRate || 0}%
                       </p>
                     </div>
                     <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl">
                       <h4 className="font-medium text-orange-700 dark:text-orange-300 mb-2">Escalação</h4>
                       <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                        {attendant.performance.escalationRate}%
+                        {attendant.performance?.escalationRate || 0}%
                       </p>
                     </div>
                   </div>
@@ -377,11 +376,11 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                 <div className="space-y-6">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl">
                     <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-4">
-                      Clientes em Atendimento ({attendant.currentClients.length})
+                      Clientes em Atendimento ({(attendant.currentClients || []).length})
                     </h3>
-                    {attendant.currentClients.length > 0 ? (
+                    {(attendant.currentClients || []).length > 0 ? (
                       <div className="space-y-3">
-                        {attendant.currentClients.map((client: any) => (
+                        {(attendant.currentClients || []).map((client: any) => (
                           <div key={client.id} className="bg-white dark:bg-gray-700 p-4 rounded-lg">
                             <div className="flex items-center justify-between">
                               <div>
@@ -473,7 +472,7 @@ export const AttendantDetailsModal: React.FC<AttendantDetailsModalProps> = ({
                       handleClose()
                     }
                   }}
-                  className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
                 >
                   <Edit3 className="w-4 h-4" />
                   Editar Atendente

@@ -11,10 +11,14 @@ interface SalesListProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onSaleSelect: (sale: any) => void
+  onPause?: (sale: any) => void
+  onActivate?: (sale: any) => void
+  onArchive?: (sale: any) => void
+  onDelete?: (sale: any) => void
 }
 
-// Mock data - em produção viria da API
-const mockSales = [
+// Removido mock data - agora usa dados reais da API
+const mockSales: any[] = [
   {
     id: 'sale-001',
     saleNumber: 'VND-2024-001',
@@ -195,12 +199,66 @@ export const SalesList: React.FC<SalesListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onSaleSelect
+  onSaleSelect,
+  onPause,
+  onActivate,
+  onArchive,
+  onDelete
 }) => {
-  const [sales, setSales] = useState(mockSales)
-  const [loading, setLoading] = useState(false)
+  const [sales, setSales] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Simular filtros
+  useEffect(() => {
+    fetchSales()
+  }, [filters])
+
+  const fetchSales = async () => {
+    try {
+      setLoading(true)
+      
+      // Buscar assinaturas (vendas) da API
+      const response = await fetch('/api/subscribers')
+      const data = await response.json()
+
+      if (data.success) {
+        // Transformar assinantes em vendas
+        const salesData = data.data
+          .filter((sub: any) => sub.subscription) // Apenas com assinatura
+          .map((sub: any) => ({
+            id: sub.subscription.id,
+            saleNumber: `VND-${sub.subscription.id.slice(-8).toUpperCase()}`,
+            customer: {
+              id: sub.id,
+              name: sub.name,
+              email: sub.email,
+              company: sub.company
+            },
+            plan: sub.plan,
+            amount: sub.plan?.price || 0,
+            discount: 0,
+            finalAmount: sub.plan?.price || 0,
+            status: sub.subscription.status,
+            paymentMethod: sub.payment?.method || 'credit_card',
+            paymentStatus: sub.payment?.status || 'pending',
+            createdAt: sub.subscription.startDate,
+            paidAt: sub.payment?.lastPayment,
+            activationDate: sub.subscription.startDate,
+            expirationDate: sub.subscription.endDate,
+            notes: '',
+            commission: 0,
+            seller: 'Sistema'
+          }))
+
+        setSales(salesData)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar vendas:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filtros
   const filteredSales = sales.filter((sale) => {
     // Filtro por status da venda
     if (filters.status !== 'all' && sale.status !== filters.status) {
@@ -341,6 +399,10 @@ export const SalesList: React.FC<SalesListProps> = ({
         <SalesTable
           sales={filteredSales}
           onSaleSelect={onSaleSelect}
+          onPause={onPause}
+          onActivate={onActivate}
+          onArchive={onArchive}
+          onDelete={onDelete}
         />
       )}
     </div>

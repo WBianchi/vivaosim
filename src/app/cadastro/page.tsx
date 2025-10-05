@@ -1,20 +1,24 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, User, Phone, MapPin, FileText, Facebook, Building } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeProvider'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { FaGoogle } from 'react-icons/fa'
 
 export default function CadastroPage() {
   const { register } = useAuth()
   const { isDarkMode } = useTheme()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [step, setStep] = useState(1)
+  const [affiliateCode, setAffiliateCode] = useState<string | null>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,6 +32,22 @@ export default function CadastroPage() {
     cnpj: '',
     accountType: 'pessoa_fisica' // pessoa_fisica ou pessoa_juridica
   })
+
+  useEffect(() => {
+    // Capturar código do afiliado e plano da URL
+    const ref = searchParams.get('ref')
+    const plan = searchParams.get('plan')
+    
+    if (ref) {
+      setAffiliateCode(ref)
+      console.log('🔗 Cadastro via afiliado:', ref)
+    }
+    
+    if (plan) {
+      setSelectedPlanId(plan)
+      console.log('📦 Plano selecionado:', plan)
+    }
+  }, [searchParams])
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -58,10 +78,30 @@ export default function CadastroPage() {
         city: formData.city,
         state: formData.state,
         country: formData.country,
-        ...(formData.accountType === 'pessoa_fisica' ? { cpf: formData.cpf } : { cnpj: formData.cnpj })
+        ...(formData.accountType === 'pessoa_fisica' ? { cpf: formData.cpf } : { cnpj: formData.cnpj }),
+        affiliateCode, // Passar código do afiliado
+        planId: selectedPlanId // Passar plano selecionado
       }
 
       await register(userData)
+      
+      // Se veio de afiliado, registrar conversão
+      if (affiliateCode) {
+        try {
+          await fetch('/api/affiliates/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: affiliateCode,
+              planId: selectedPlanId
+            })
+          })
+          console.log('✅ Conversão registrada para afiliado:', affiliateCode)
+        } catch (error) {
+          console.error('Erro ao registrar conversão:', error)
+        }
+      }
+      
       router.push('/verify-email')
     } catch (error: any) {
       setError(error.message)

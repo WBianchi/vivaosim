@@ -1,106 +1,118 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Users, UserPlus, Upload, Download, Send,
-  Check, X, Clock, Filter, Search, Mail,
-  Phone, MapPin, QrCode, Printer, Share2
+  Users, UserPlus, Search, Mail, Phone, 
+  Check, X, Clock, Edit3, Trash2
 } from 'lucide-react'
 
-export default function ConvidadosClientePage() {
-  const [activeTab, setActiveTab] = useState<'list' | 'tables' | 'statistics'>('list')
+interface Convidado {
+  id: string
+  nome: string
+  email: string | null
+  telefone: string | null
+  numeroConvites: number
+  status: 'PENDENTE' | 'CONFIRMADO' | 'RECUSADO'
+  observacoes: string | null
+  presenteEvento: boolean
+}
+
+interface Stats {
+  total: number
+  confirmados: number
+  pendentes: number
+  recusados: number
+  totalConvites: number
+  presentes: number
+}
+
+export default function ConvidadosPage() {
+  const [loading, setLoading] = useState(true)
+  const [convidados, setConvidados] = useState<Convidado[]>([])
+  const [stats, setStats] = useState<Stats>({
+    total: 0,
+    confirmados: 0,
+    pendentes: 0,
+    recusados: 0,
+    totalConvites: 0,
+    presentes: 0
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [showAddGuest, setShowAddGuest] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedConvidado, setSelectedConvidado] = useState<Convidado | null>(null)
 
-  const guests = [
-    {
-      id: 1,
-      name: 'Maria Silva',
-      email: 'maria@email.com',
-      phone: '(11) 98765-4321',
-      status: 'confirmed',
-      table: 5,
-      companions: 2,
-      dietary: 'Vegetariana'
-    },
-    {
-      id: 2,
-      name: 'João Santos',
-      email: 'joao@email.com',
-      phone: '(11) 91234-5678',
-      status: 'pending',
-      table: null,
-      companions: 1,
-      dietary: null
-    },
-    {
-      id: 3,
-      name: 'Ana Costa',
-      email: 'ana@email.com',
-      phone: '(11) 95555-5555',
-      status: 'declined',
-      table: null,
-      companions: 0,
-      dietary: null
-    },
-    {
-      id: 4,
-      name: 'Pedro Oliveira',
-      email: 'pedro@email.com',
-      phone: '(11) 94444-4444',
-      status: 'confirmed',
-      table: 3,
-      companions: 3,
-      dietary: 'Sem glúten'
-    },
-    {
-      id: 5,
-      name: 'Carla Mendes',
-      email: 'carla@email.com',
-      phone: '(11) 93333-3333',
-      status: 'confirmed',
-      table: 5,
-      companions: 1,
-      dietary: null
+  useEffect(() => {
+    fetchConvidados()
+  }, [])
+
+  const fetchConvidados = async () => {
+    try {
+      const response = await fetch('/api/convidados')
+      const data = await response.json()
+      
+      console.log('📊 Dados recebidos:', data)
+      
+      if (data.success) {
+        setConvidados(data.convidados || [])
+        setStats(data.stats || {
+          total: 0,
+          confirmados: 0,
+          pendentes: 0,
+          recusados: 0,
+          totalConvites: 0,
+          presentes: 0
+        })
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
-
-  const tables = [
-    { number: 1, capacity: 10, occupied: 8, guests: ['Família Silva', 'Família Costa'] },
-    { number: 2, capacity: 10, occupied: 10, guests: ['Amigos do Trabalho'] },
-    { number: 3, capacity: 8, occupied: 6, guests: ['Pedro Oliveira', 'Família Oliveira'] },
-    { number: 4, capacity: 8, occupied: 4, guests: ['Primos'] },
-    { number: 5, capacity: 10, occupied: 7, guests: ['Maria Silva', 'Carla Mendes', 'Outros'] },
-    { number: 6, capacity: 6, occupied: 0, guests: [] },
-  ]
-
-  const statistics = {
-    total: 150,
-    confirmed: 98,
-    pending: 42,
-    declined: 10,
-    confirmationRate: 65.3,
-    averageCompanions: 1.8
   }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remover este convidado?')) return
+
+    try {
+      const response = await fetch(`/api/convidados/${id}`, { method: 'DELETE' })
+      const data = await response.json()
+
+      if (data.success) {
+        alert('✅ Convidado removido')
+        fetchConvidados()
+      } else {
+        alert('❌ ' + data.error)
+      }
+    } catch (error) {
+      alert('❌ Erro')
+    }
+  }
+
+  const filteredConvidados = convidados.filter(c => {
+    const matchesSearch = c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter = filterStatus === 'all' || c.status === filterStatus
+    return matchesSearch && matchesFilter
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-      case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case 'declined': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+      case 'CONFIRMADO': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+      case 'PENDENTE': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case 'RECUSADO': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
       default: return 'bg-gray-100 text-gray-700'
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'Confirmado'
-      case 'pending': return 'Pendente'
-      case 'declined': return 'Recusou'
-      default: return status
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    )
   }
 
   return (
@@ -108,336 +120,287 @@ export default function ConvidadosClientePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Convidados</h1>
-            <p className="text-gray-600 dark:text-gray-400">Gerencie a lista de convidados do seu evento</p>
+            <p className="text-gray-600 dark:text-gray-400">Gerencie sua lista de convidados</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Importar
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Exportar
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            onClick={() => setShowAddGuest(true)}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            Adicionar
-          </motion.button>
-        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center gap-2"
+        >
+          <UserPlus className="w-5 h-5" />
+          Adicionar
+        </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{statistics.total}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 shadow-sm border border-green-200 dark:border-green-800"
-        >
-          <p className="text-2xl font-bold text-green-600">{statistics.confirmed}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Confirmados</p>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 shadow-sm border border-yellow-200 dark:border-yellow-800"
-        >
-          <p className="text-2xl font-bold text-yellow-600">{statistics.pending}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Pendentes</p>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 shadow-sm border border-red-200 dark:border-red-800"
-        >
-          <p className="text-2xl font-bold text-red-600">{statistics.declined}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Recusaram</p>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{statistics.confirmationRate}%</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Taxa Confirmação</p>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{statistics.averageCompanions}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Média Acompanhantes</p>
-        </motion.div>
+        <StatCard icon={<Users className="w-6 h-6 text-blue-500" />} value={stats?.total || 0} label="Total" />
+        <StatCard icon={<Check className="w-6 h-6 text-green-500" />} value={stats?.confirmados || 0} label="Confirmados" />
+        <StatCard icon={<Clock className="w-6 h-6 text-yellow-500" />} value={stats?.pendentes || 0} label="Pendentes" />
+        <StatCard icon={<X className="w-6 h-6 text-red-500" />} value={stats?.recusados || 0} label="Recusados" />
+        <StatCard icon={<Users className="w-6 h-6 text-purple-500" />} value={stats?.totalConvites || 0} label="Convites" />
+        <StatCard icon={<Check className="w-6 h-6 text-orange-500" />} value={stats?.presentes || 0} label="Presentes" />
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-1 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex">
-          <button
-            onClick={() => setActiveTab('list')}
-            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'list'
-                ? 'bg-orange-500 text-white shadow-lg'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
           >
-            Lista de Convidados
-          </button>
-          <button
-            onClick={() => setActiveTab('tables')}
-            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'tables'
-                ? 'bg-orange-500 text-white shadow-lg'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            Organização de Mesas
-          </button>
-          <button
-            onClick={() => setActiveTab('statistics')}
-            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'statistics'
-                ? 'bg-orange-500 text-white shadow-lg'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            Estatísticas
-          </button>
+            <option value="all">Todos</option>
+            <option value="CONFIRMADO">Confirmados</option>
+            <option value="PENDENTE">Pendentes</option>
+            <option value="RECUSADO">Recusados</option>
+          </select>
         </div>
       </div>
 
-      {/* Content */}
-      {activeTab === 'list' && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-          {/* Filters */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Buscar convidado..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="all">Todos</option>
-                <option value="confirmed">Confirmados</option>
-                <option value="pending">Pendentes</option>
-                <option value="declined">Recusaram</option>
-              </select>
-              <button className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Mais filtros
-              </button>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">Nome</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">Contato</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">Mesa</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">Acompanhantes</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {guests.map((guest) => (
-                  <tr key={guest.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="py-4 px-6">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{guest.name}</p>
-                        {guest.dietary && (
-                          <p className="text-xs text-gray-500">{guest.dietary}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <Mail className="w-3 h-3" />
-                          {guest.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <Phone className="w-3 h-3" />
-                          {guest.phone}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      {guest.table ? (
-                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium">
-                          Mesa {guest.table}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-gray-900 dark:text-white">{guest.companions}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(guest.status)}`}>
-                        {getStatusLabel(guest.status)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                          <Send className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </button>
-                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                          <QrCode className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'tables' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tables.map((table, index) => (
-            <motion.div
-              key={table.number}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Mesa {table.number}
-                </h4>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  table.occupied === table.capacity
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    : table.occupied > 0
-                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                }`}>
-                  {table.occupied}/{table.capacity}
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                {table.guests.length > 0 ? (
-                  table.guests.map((guest, i) => (
-                    <div key={i} className="text-sm text-gray-600 dark:text-gray-400">
-                      • {guest}
+      {/* Lista */}
+      {filteredConvidados.length > 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contato</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Convites</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredConvidados.map((c) => (
+                <tr key={c.id}>
+                  <td className="px-6 py-4">
+                    <p className="font-medium">{c.nome}</p>
+                    {c.observacoes && <p className="text-sm text-gray-500">{c.observacoes}</p>}
+                  </td>
+                  <td className="px-6 py-4">
+                    {c.email && <div className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4" />{c.email}</div>}
+                    {c.telefone && <div className="flex items-center gap-2 text-sm"><Phone className="w-4 h-4" />{c.telefone}</div>}
+                  </td>
+                  <td className="px-6 py-4">{c.numeroConvites}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(c.status)}`}>
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <button onClick={() => { setSelectedConvidado(c); setShowEditModal(true); }} className="p-2 hover:bg-gray-100 rounded">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(c.id)} className="p-2 hover:bg-red-50 rounded">
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-400 italic">Mesa vazia</p>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm">
-                  Editar
-                </button>
-                <button className="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm">
-                  Adicionar
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      ) : (
+        <EmptyState />
       )}
 
-      {activeTab === 'statistics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Confirmações por Período</h3>
-            {/* Gráfico aqui */}
-            <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <p className="text-gray-400">Gráfico de confirmações</p>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Distribuição por Mesa</h3>
-            {/* Gráfico aqui */}
-            <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <p className="text-gray-400">Gráfico de distribuição</p>
-            </div>
-          </div>
-        </div>
+      {showAddModal && <AddModal onClose={() => setShowAddModal(false)} onSuccess={() => { fetchConvidados(); setShowAddModal(false); }} />}
+      {showEditModal && selectedConvidado && (
+        <EditModal 
+          convidado={selectedConvidado}
+          onClose={() => { setShowEditModal(false); setSelectedConvidado(null); }}
+          onSuccess={() => { fetchConvidados(); setShowEditModal(false); setSelectedConvidado(null); }}
+        />
       )}
+    </div>
+  )
+}
 
-      {/* Modal Add Guest */}
-      {showAddGuest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full"
+function StatCard({ icon, value, label }: any) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border">
+      {icon}
+      <p className="text-2xl font-bold mt-2">{value}</p>
+      <p className="text-sm text-gray-600">{label}</p>
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center">
+      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold mb-2">Nenhum convidado</h3>
+      <p className="text-gray-600">Adicione seu primeiro convidado</p>
+    </div>
+  )
+}
+
+function AddModal({ onClose, onSuccess }: any) {
+  const [loading, setLoading] = useState(false)
+  const [loadingSite, setLoadingSite] = useState(true)
+  const [siteId, setSiteId] = useState('')
+  const [form, setForm] = useState({ nome: '', email: '', telefone: '', numeroConvites: 1, observacoes: '' })
+
+  useEffect(() => {
+    fetch('/api/sites/clientes/my-site')
+      .then(r => r.json())
+      .then(d => {
+        console.log('📋 Site data:', d)
+        if (d.success && d.site) {
+          setSiteId(d.site.id)
+          console.log('✅ SiteId carregado:', d.site.id)
+        } else {
+          console.log('❌ Sem site vinculado')
+        }
+      })
+      .catch(err => console.error('Erro ao buscar site:', err))
+      .finally(() => setLoadingSite(false))
+  }, [])
+
+  const submit = async (e: any) => {
+    e.preventDefault()
+    
+    if (!siteId) {
+      alert('❌ Você precisa ter um site vinculado para adicionar convidados. Entre em contato com o atendente.')
+      return
+    }
+
+    console.log('📤 Enviando:', { siteId, ...form })
+    
+    setLoading(true)
+    const res = await fetch('/api/convidados', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId, ...form })
+    })
+    const data = await res.json()
+    setLoading(false)
+    if (data.success) { alert('✅ Adicionado'); onSuccess(); } else alert('❌ ' + data.error)
+  }
+
+  if (loadingSite) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="text-center mt-4 text-gray-600 dark:text-gray-400">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!siteId) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Site não encontrado</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Você precisa ter um site vinculado para gerenciar convidados. Entre em contato com seu atendente.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
           >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Adicionar Convidado</h3>
-            {/* Form aqui */}
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowAddGuest(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                Cancelar
-              </button>
-              <button className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl">
-                Adicionar
-              </button>
-            </div>
-          </motion.div>
+            Entendi
+          </button>
         </div>
-      )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-bold">Adicionar Convidado</h2>
+        </div>
+        <form onSubmit={submit} className="p-6 space-y-4">
+          <input required placeholder="Nome" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <input type="email" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <input type="tel" placeholder="Telefone" value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <input type="number" required min="1" placeholder="Convites" value={form.numeroConvites} onChange={e => setForm({...form, numeroConvites: +e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <textarea placeholder="Observações" value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} rows={3} className="w-full px-4 py-2 border rounded-lg" />
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg">Cancelar</button>
+            <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg">{loading ? 'Salvando...' : 'Adicionar'}</button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  )
+}
+
+function EditModal({ convidado, onClose, onSuccess }: any) {
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({
+    nome: convidado.nome,
+    email: convidado.email || '',
+    telefone: convidado.telefone || '',
+    numeroConvites: convidado.numeroConvites,
+    status: convidado.status,
+    observacoes: convidado.observacoes || '',
+    presenteEvento: convidado.presenteEvento
+  })
+
+  const submit = async (e: any) => {
+    e.preventDefault()
+    setLoading(true)
+    const res = await fetch(`/api/convidados/${convidado.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    })
+    const data = await res.json()
+    setLoading(false)
+    if (data.success) { alert('✅ Atualizado'); onSuccess(); } else alert('❌ ' + data.error)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-bold">Editar Convidado</h2>
+        </div>
+        <form onSubmit={submit} className="p-6 space-y-4">
+          <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <input type="tel" value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <input type="number" required min="1" value={form.numeroConvites} onChange={e => setForm({...form, numeroConvites: +e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+          <select required value={form.status} onChange={e => setForm({...form, status: e.target.value as any})} className="w-full px-4 py-2 border rounded-lg">
+            <option value="PENDENTE">Pendente</option>
+            <option value="CONFIRMADO">Confirmado</option>
+            <option value="RECUSADO">Recusado</option>
+          </select>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={form.presenteEvento} onChange={e => setForm({...form, presenteEvento: e.target.checked})} />
+            Presente no evento
+          </label>
+          <textarea value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} rows={3} className="w-full px-4 py-2 border rounded-lg" />
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg">Cancelar</button>
+            <button type="submit" disabled={loading} className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg">{loading ? 'Salvando...' : 'Salvar'}</button>
+          </div>
+        </form>
+      </motion.div>
     </div>
   )
 }

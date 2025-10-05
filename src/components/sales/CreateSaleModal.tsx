@@ -16,43 +16,170 @@ export const CreateSaleModal: React.FC<CreateSaleModalProps> = ({
   sale
 }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const [subscribers, setSubscribers] = useState<any[]>([])
+  const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedSubscriber, setSelectedSubscriber] = useState<any>(null)
+  const [isNewCustomer, setIsNewCustomer] = useState(false)
+  
   const [formData, setFormData] = useState({
+    subscriberId: '',
     customerName: '',
     customerEmail: '',
+    customerPhone: '',
+    customerDocument: '',
     customerCompany: '',
-    planId: 'plan-002',
+    planId: '',
     paymentMethod: 'credit_card',
     paymentStatus: 'paid',
-    status: 'completed',
+    status: 'active',
     discount: 0,
-    notes: '',
-    seller: 'Sistema Automático'
+    notes: ''
   })
 
   useEffect(() => {
     setIsVisible(true)
+    fetchData()
+    
     if (sale) {
       setFormData({
+        subscriberId: sale.customer?.id || '',
         customerName: sale.customer?.name || '',
         customerEmail: sale.customer?.email || '',
+        customerPhone: '',
+        customerDocument: '',
         customerCompany: sale.customer?.company || '',
-        planId: sale.plan?.id || 'plan-002',
+        planId: sale.plan?.id || '',
         paymentMethod: sale.paymentMethod || 'credit_card',
         paymentStatus: sale.paymentStatus || 'paid',
-        status: sale.status || 'completed',
+        status: sale.status || 'active',
         discount: sale.discount || 0,
-        notes: sale.notes || '',
-        seller: sale.seller || 'Sistema Automático'
+        notes: sale.notes || ''
       })
     }
   }, [sale])
+
+  const fetchData = async () => {
+    try {
+      // Buscar assinantes
+      const subsResponse = await fetch('/api/subscribers')
+      const subsData = await subsResponse.json()
+      
+      if (subsData.success) {
+        setSubscribers(subsData.data)
+      }
+
+      // Buscar planos
+      const plansResponse = await fetch('/api/plans')
+      const plansData = await plansResponse.json()
+      
+      if (plansData.plans) {
+        setPlans(plansData.plans.filter((p: any) => p.status === 'ACTIVE'))
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubscriberChange = (subscriberId: string) => {
+    const subscriber = subscribers.find(s => s.id === subscriberId)
+    
+    if (subscriberId === 'new') {
+      setIsNewCustomer(true)
+      setSelectedSubscriber(null)
+      setFormData(prev => ({
+        ...prev,
+        subscriberId: '',
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        customerDocument: '',
+        customerCompany: ''
+      }))
+    } else if (subscriber) {
+      setIsNewCustomer(false)
+      setSelectedSubscriber(subscriber)
+      setFormData(prev => ({
+        ...prev,
+        subscriberId: subscriber.id,
+        customerName: subscriber.name,
+        customerEmail: subscriber.email,
+        customerPhone: subscriber.phone || '',
+        customerDocument: subscriber.cpf || subscriber.cnpj || '',
+        customerCompany: subscriber.company || ''
+      }))
+    }
+  }
 
   const handleClose = () => {
     setIsVisible(false)
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      if (isNewCustomer) {
+        // Criar novo assinante com assinatura
+        const response = await fetch('/api/subscribers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.customerName,
+            email: formData.customerEmail,
+            phone: formData.customerPhone,
+            password: 'Temp123!@#', // Senha temporária
+            subdomain: formData.customerName.toLowerCase().replace(/\s+/g, ''),
+            document: formData.customerDocument,
+            company: formData.customerCompany,
+            planId: formData.planId,
+            avatar: null
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          console.log('✅ Novo assinante criado com assinatura!')
+          setTimeout(() => window.location.reload(), 1000)
+        } else {
+          alert('❌ Erro: ' + data.error)
+        }
+      } else {
+        // Criar assinatura para assinante existente
+        const response = await fetch('/api/subscriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: formData.subscriberId,
+            planId: formData.planId,
+            paymentMethod: formData.paymentMethod,
+            discount: formData.discount,
+            notes: formData.notes
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          console.log('✅ Assinatura criada!')
+          setTimeout(() => window.location.reload(), 1000)
+        } else {
+          alert('❌ Erro: ' + data.error)
+        }
+      }
+      
+      handleClose()
+    } catch (error) {
+      console.error('❌ Erro ao criar venda:', error)
+      alert('❌ Erro ao criar venda')
+    }
+  }
+
+  const oldHandleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
     const plans = {
@@ -148,48 +275,136 @@ export const CreateSaleModal: React.FC<CreateSaleModalProps> = ({
                   <User className="w-5 h-5" />
                   Informações do Cliente
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Nome *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.customerName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Nome do cliente"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.customerEmail}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="email@exemplo.com"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Empresa (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.customerCompany}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customerCompany: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Nome da empresa"
-                    />
-                  </div>
+                
+                {/* Select de Assinante */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Selecionar Cliente *
+                  </label>
+                  <select
+                    required
+                    value={formData.subscriberId || 'new'}
+                    onChange={(e) => handleSubscriberChange(e.target.value)}
+                    disabled={loading}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    <option value="">
+                      {loading ? 'Carregando...' : 'Selecione um cliente'}
+                    </option>
+                    <option value="new" className="font-bold">
+                      ➕ Criar Novo Cliente
+                    </option>
+                    <optgroup label="Clientes Existentes">
+                      {subscribers.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.name} - {sub.email}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
+
+                {/* Campos do Cliente */}
+                {isNewCustomer && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nome *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.customerName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Nome completo"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.customerEmail}
+                        onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="email@exemplo.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Telefone *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.customerPhone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        CPF/CNPJ *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.customerDocument}
+                        onChange={(e) => setFormData(prev => ({ ...prev, customerDocument: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="000.000.000-00"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Empresa (opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.customerCompany}
+                        onChange={(e) => setFormData(prev => ({ ...prev, customerCompany: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Nome da empresa"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Mostrar dados do cliente selecionado */}
+                {selectedSubscriber && !isNewCustomer && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">Nome:</span>
+                        <span className="ml-2 font-medium text-gray-900 dark:text-white">{selectedSubscriber.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">Email:</span>
+                        <span className="ml-2 font-medium text-gray-900 dark:text-white">{selectedSubscriber.email}</span>
+                      </div>
+                      {selectedSubscriber.phone && (
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Telefone:</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-white">{selectedSubscriber.phone}</span>
+                        </div>
+                      )}
+                      {selectedSubscriber.company && (
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Empresa:</span>
+                          <span className="ml-2 font-medium text-gray-900 dark:text-white">{selectedSubscriber.company}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Plano */}
@@ -207,11 +422,22 @@ export const CreateSaleModal: React.FC<CreateSaleModalProps> = ({
                       required
                       value={formData.planId}
                       onChange={(e) => setFormData(prev => ({ ...prev, planId: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      disabled={loading}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
                     >
-                      <option value="plan-001">Plano Básico - R$ 49,90</option>
-                      <option value="plan-002">Plano Profissional - R$ 99,90</option>
-                      <option value="plan-003">Plano Premium - R$ 199,90</option>
+                      <option value="">
+                        {loading ? 'Carregando planos...' : 'Selecione um plano'}
+                      </option>
+                      {plans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} - R$ {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / {
+                            plan.period === 'MONTHLY' ? 'mês' :
+                            plan.period === 'QUARTERLY' ? 'trimestre' :
+                            plan.period === 'SEMIANNUAL' ? 'semestre' :
+                            plan.period === 'ANNUAL' ? 'ano' : 'vitalício'
+                          }
+                        </option>
+                      ))}
                     </select>
                   </div>
 

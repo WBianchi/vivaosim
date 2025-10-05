@@ -11,6 +11,8 @@ export default function AffiliatesPage() {
   const [selectedAffiliate, setSelectedAffiliate] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [editingAffiliate, setEditingAffiliate] = useState<any>(null)
   const [filters, setFilters] = useState({
     status: 'all',
     paymentStatus: 'all',
@@ -26,7 +28,17 @@ export default function AffiliatesPage() {
   }
 
   const handleCreateAffiliate = () => {
+    setEditingAffiliate(null)
     setShowCreateModal(true)
+  }
+
+  const handleEditAffiliate = (affiliate: any) => {
+    setEditingAffiliate(affiliate)
+    setShowCreateModal(true)
+  }
+
+  const handleDeleteAffiliate = (affiliateId: string) => {
+    console.log('🗑️ Excluindo afiliado:', affiliateId)
   }
 
   const handleSaveAffiliate = (affiliateData: any) => {
@@ -45,18 +57,23 @@ export default function AffiliatesPage() {
         searchTerm={searchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      <AffiliatesFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-      />
+      {showFilters && (
+        <AffiliatesFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
+      )}
 
       <AffiliatesList
         filters={filters}
         searchTerm={searchTerm}
         viewMode={viewMode}
         onAffiliateSelect={handleAffiliateSelect}
+        onEdit={handleEditAffiliate}
+        onDelete={handleDeleteAffiliate}
       />
 
       {showDetailsModal && selectedAffiliate && (
@@ -75,10 +92,10 @@ export default function AffiliatesPage() {
         <CreateAffiliateModal
           onClose={() => {
             setShowCreateModal(false)
-            setSelectedAffiliate(null)
+            setEditingAffiliate(null)
           }}
           onSave={handleSaveAffiliate}
-          affiliate={selectedAffiliate}
+          affiliate={editingAffiliate}
         />
       )}
     </div>

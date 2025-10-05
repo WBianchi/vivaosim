@@ -1,109 +1,53 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   DollarSign, TrendingUp, Calendar, Filter,
   Download, Eye, CheckCircle, Clock, XCircle,
-  CreditCard, QrCode, User, Package, Receipt
+  CreditCard, QrCode, User, Package, Receipt, MessageSquare
 } from 'lucide-react'
 
 export default function RecebimentosClientePage() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterPeriod, setFilterPeriod] = useState('month')
+  const [receivables, setReceivables] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    totalReceived: 0,
+    pending: 0,
+    processing: 0,
+    failed: 0,
+    thisMonth: 0,
+    lastMonth: 0,
+    growth: 0
+  })
+  const [loading, setLoading] = useState(true)
+  const [selectedItem, setSelectedItem] = useState<any>(null)
 
-  const receivables = [
-    {
-      id: 1,
-      item: 'Cota de Lua de Mel - Maldivas',
-      buyer: 'Maria Silva',
-      value: 500,
-      date: '2024-01-20',
-      status: 'paid',
-      payment: 'PIX',
-      transactionId: 'PIX2024012001'
-    },
-    {
-      id: 2,
-      item: 'Kit Chá de Cozinha Premium',
-      buyer: 'João Santos',
-      value: 250,
-      date: '2024-01-22',
-      status: 'paid',
-      payment: 'Cartão Crédito',
-      transactionId: 'CC2024012201'
-    },
-    {
-      id: 3,
-      item: 'Jogo de Toalhas Bordadas',
-      buyer: 'Ana Costa',
-      value: 180,
-      date: '2024-01-25',
-      status: 'pending',
-      payment: 'PIX',
-      transactionId: null
-    },
-    {
-      id: 4,
-      item: 'Aparelho de Jantar Completo',
-      buyer: 'Pedro Oliveira',
-      value: 450,
-      date: '2024-01-26',
-      status: 'paid',
-      payment: 'Cartão Débito',
-      transactionId: 'CD2024012601'
-    },
-    {
-      id: 5,
-      item: 'Cota Viagem Nacional',
-      buyer: 'Carla Mendes',
-      value: 300,
-      date: '2024-01-28',
-      status: 'paid',
-      payment: 'PIX',
-      transactionId: 'PIX2024012801'
-    },
-    {
-      id: 6,
-      item: 'Smart TV 55"',
-      buyer: 'Roberto Lima',
-      value: 2500,
-      date: '2024-01-30',
-      status: 'processing',
-      payment: 'Cartão Crédito 3x',
-      transactionId: 'CC2024013001'
-    },
-    {
-      id: 7,
-      item: 'Cota de Lua de Mel - Maldivas',
-      buyer: 'Fernanda Souza',
-      value: 500,
-      date: '2024-02-01',
-      status: 'paid',
-      payment: 'PIX',
-      transactionId: 'PIX2024020101'
-    },
-    {
-      id: 8,
-      item: 'Kit Chá de Cozinha Premium',
-      buyer: 'Lucas Almeida',
-      value: 250,
-      date: '2024-02-02',
-      status: 'failed',
-      payment: 'Cartão Crédito',
-      transactionId: null
+  useEffect(() => {
+    fetchRecebimentos()
+  }, [])
+
+  const fetchRecebimentos = async () => {
+    try {
+      const response = await fetch('/api/recebimentos')
+      const data = await response.json()
+      
+      if (data.success) {
+        setReceivables(data.recebimentos)
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar recebimentos:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
-
-  const stats = {
-    totalReceived: 4180,
-    pending: 180,
-    processing: 2500,
-    failed: 250,
-    thisMonth: 3430,
-    lastMonth: 750,
-    growth: 357.3
   }
+
+  const filteredReceivables = receivables.filter(item => {
+    if (filterStatus !== 'all' && item.status !== filterStatus) return false
+    return true
+  })
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -284,7 +228,21 @@ export default function RecebimentosClientePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {receivables.map((item) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredReceivables.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
+                    Nenhum recebimento encontrado
+                  </td>
+                </tr>
+              ) : filteredReceivables.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
@@ -338,10 +296,23 @@ export default function RecebimentosClientePage() {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-center gap-2">
-                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
+                      <button 
+                        onClick={() => setSelectedItem(item)}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Ver detalhes"
+                      >
                         <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                       </button>
-                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
+                      {item.mensagem && (
+                        <button 
+                          onClick={() => setSelectedItem(item)}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                          title="Ver mensagem"
+                        >
+                          <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </button>
+                      )}
+                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors" title="Recibo">
                         <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                       </button>
                     </div>
@@ -402,6 +373,121 @@ export default function RecebimentosClientePage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Detalhes */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedItem(null)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Detalhes do Recebimento</h3>
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <XCircle className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">Item</label>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedItem.item}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">Valor</label>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    R$ {selectedItem.value.toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">Comprador</label>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedItem.buyer}</p>
+                  {selectedItem.buyerEmail && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedItem.buyerEmail}</p>
+                  )}
+                  {selectedItem.buyerPhone && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedItem.buyerPhone}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">Data</label>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {new Date(selectedItem.date).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">Método de Pagamento</label>
+                  <div className="flex items-center gap-2">
+                    {getPaymentIcon(selectedItem.payment)}
+                    <p className="font-semibold text-gray-900 dark:text-white">{selectedItem.payment}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">Status</label>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(selectedItem.status)}
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedItem.status)}`}>
+                      {getStatusLabel(selectedItem.status)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedItem.transactionId && (
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400">ID da Transação</label>
+                  <code className="block mt-1 text-sm bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded">
+                    {selectedItem.transactionId}
+                  </code>
+                </div>
+              )}
+
+              {selectedItem.mensagem && (
+                <div>
+                  <label className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Mensagem do Comprador
+                  </label>
+                  <div className="mt-2 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-gray-900 dark:text-white italic">"{selectedItem.mensagem}"</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors"
+              >
+                Fechar
+              </button>
+              <button className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                <Receipt className="w-4 h-4" />
+                Gerar Recibo
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

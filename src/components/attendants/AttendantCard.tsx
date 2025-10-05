@@ -24,12 +24,14 @@ interface AttendantCardProps {
   attendant: any
   index: number
   onClick: () => void
+  onEdit?: (attendant: any) => void
 }
 
 export const AttendantCard: React.FC<AttendantCardProps> = ({
   attendant,
   index,
-  onClick
+  onClick,
+  onEdit
 }) => {
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes.toFixed(1)}min`
@@ -119,11 +121,11 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
     }
   }
 
-  const statusConfig = getStatusConfig(attendant.status)
-  const onlineConfig = getOnlineStatusConfig(attendant.onlineStatus)
-  const departmentConfig = getDepartmentConfig(attendant.department)
-  const isOverloaded = attendant.activeChats >= attendant.maxChats * 0.8
-  const hasHighRating = attendant.rating >= 4.5
+  const statusConfig = getStatusConfig(attendant.status || 'active')
+  const onlineConfig = getOnlineStatusConfig(attendant.onlineStatus || 'offline')
+  const departmentConfig = getDepartmentConfig(attendant.department || 'general')
+  const isOverloaded = (attendant.activeChats || 0) >= (attendant.maxChats || 8) * 0.8
+  const hasHighRating = (attendant.rating || 0) >= 4.5
 
   return (
     <motion.div
@@ -131,21 +133,23 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       whileHover={{ y: -4, scale: 1.02 }}
-      className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-2 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group ${
+      className={`relative bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
         hasHighRating 
           ? 'border-yellow-200 ring-2 ring-yellow-100 dark:ring-yellow-900/30' 
-          : statusConfig.border
+          : 'border-gray-200 dark:border-gray-700'
+      } ${
+        isOverloaded 
+          ? 'ring-2 ring-red-100 dark:ring-red-900/30' 
+          : ''
       }`}
       onClick={onClick}
     >
-      {/* High Performance Badge */}
       {hasHighRating && (
         <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-3 py-1 rounded-bl-xl text-xs font-medium flex items-center gap-1">
           <Star className="w-3 h-3" />
           Top Performer
         </div>
       )}
-
       {/* Overloaded Badge */}
       {isOverloaded && (
         <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-1 rounded-lg text-xs font-bold">
@@ -238,13 +242,13 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
             </div>
             <div className="flex items-center gap-1">
               <span className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
-                {attendant.rating.toFixed(1)}
+                {(attendant.rating || 0).toFixed(1)}
               </span>
               <Star className="w-4 h-4 text-yellow-500 fill-current" />
             </div>
           </div>
           <p className="text-xs text-yellow-600 dark:text-yellow-400">
-            {attendant.totalRatings} avaliações
+            {attendant.totalRatings || 0} avaliações
           </p>
         </div>
 
@@ -259,17 +263,17 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
             </div>
             <div className="flex items-center gap-1">
               <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                {attendant.activeChats}
+                {attendant.activeChats || 0}
               </span>
               <span className="text-sm text-blue-600 dark:text-blue-400">
-                /{attendant.maxChats}
+                /{attendant.maxChats || 8}
               </span>
             </div>
           </div>
           <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
             <div 
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(attendant.activeChats / attendant.maxChats) * 100}%` }}
+              style={{ width: `${((attendant.activeChats || 0) / (attendant.maxChats || 8)) * 100}%` }}
             />
           </div>
         </div>
@@ -279,34 +283,52 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
           <div className="flex justify-between text-sm">
             <span className="text-gray-600 dark:text-gray-400">Tempo Resposta:</span>
             <span className="font-medium text-gray-900 dark:text-white">
-              {formatTime(attendant.responseTime)}
+              {formatTime(attendant.responseTime || 0)}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600 dark:text-gray-400">Tickets Resolvidos:</span>
             <span className="font-medium text-gray-900 dark:text-white">
-              {attendant.ticketsResolved}/{attendant.ticketsTotal}
+              {attendant.ticketsResolved || 0}/{attendant.ticketsTotal || 0}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Orçamentos:</span>
+            <span className="font-medium text-blue-600">
+              {attendant.metrics?.totalQuotes || 0} ({attendant.metrics?.approvedQuotes || 0} aprovados)
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Contratos:</span>
+            <span className="font-medium text-green-600">
+              {attendant.metrics?.totalContracts || 0} fechados
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Agendamentos:</span>
+            <span className="font-medium text-purple-600">
+              {attendant.metrics?.totalSchedules || 0} ({attendant.metrics?.completedSchedules || 0} concluídos)
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600 dark:text-gray-400">Taxa de Resolução:</span>
-            <span className="font-medium text-green-600">
-              {((attendant.ticketsResolved / attendant.ticketsTotal) * 100).toFixed(0)}%
+            <span className="font-medium text-orange-600">
+              {(attendant.ticketsTotal ? ((attendant.ticketsResolved || 0) / attendant.ticketsTotal) * 100 : 0).toFixed(0)}%
             </span>
           </div>
         </div>
 
         {/* Clientes Atuais */}
-        {attendant.currentClients.length > 0 && (
+        {(attendant.currentClients || []).length > 0 && (
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl mb-4">
             <div className="flex items-center gap-2 mb-3">
               <Users className="w-4 h-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Atendendo Agora ({attendant.currentClients.length})
+                Atendendo Agora ({(attendant.currentClients || []).length})
               </span>
             </div>
             <div className="space-y-2">
-              {attendant.currentClients.slice(0, 3).map((client: any) => (
+              {(attendant.currentClients || []).slice(0, 3).map((client: any) => (
                 <div key={client.id} className="flex items-center justify-between text-sm">
                   <span className="text-gray-700 dark:text-gray-300 line-clamp-1">
                     {client.name}
@@ -316,9 +338,9 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
                   </span>
                 </div>
               ))}
-              {attendant.currentClients.length > 3 && (
+              {(attendant.currentClients || []).length > 3 && (
                 <p className="text-xs text-gray-500 text-center">
-                  +{attendant.currentClients.length - 3} clientes
+                  +{(attendant.currentClients || []).length - 3} clientes
                 </p>
               )}
             </div>
@@ -328,13 +350,13 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
         {/* Horário de Trabalho */}
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
           <Clock className="w-4 h-4" />
-          <span>Horário: {attendant.workingHours}</span>
+          <span>Horário: {attendant.workingHours || '08:00 - 18:00'}</span>
         </div>
 
         {/* Data de Entrada */}
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <Calendar className="w-4 h-4" />
-          <span>Desde: {formatDate(attendant.joinedAt)}</span>
+          <span>Desde: {formatDate(attendant.joinedAt || attendant.createdAt)}</span>
         </div>
       </div>
 
@@ -348,9 +370,9 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
               e.stopPropagation()
               onClick()
             }}
-            className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
           >
-            <Eye className="w-3 h-3" />
+            <Eye className="w-4 h-4" />
             Ver Detalhes
           </motion.button>
           
@@ -359,9 +381,11 @@ export const AttendantCard: React.FC<AttendantCardProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('✏️ Editar atendente:', attendant.id)
+              if (onEdit) {
+                onEdit(attendant)
+              }
             }}
-            className="px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Edit3 className="w-3 h-3" />
             Editar

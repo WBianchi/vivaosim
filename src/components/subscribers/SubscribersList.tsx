@@ -11,6 +11,10 @@ interface SubscribersListProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onSubscriberSelect: (subscriber: any) => void
+  onSubscribersLoad?: (subscribers: any[]) => void
+  onEdit?: (subscriber: any) => void
+  onDelete?: (subscriber: any) => void
+  onArchive?: (subscriber: any) => void
 }
 
 // Mock data - em produção viria da API
@@ -261,10 +265,58 @@ export const SubscribersList: React.FC<SubscribersListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onSubscriberSelect
+  onSubscriberSelect,
+  onSubscribersLoad,
+  onEdit,
+  onDelete,
+  onArchive
 }) => {
-  const [subscribers, setSubscribers] = useState(mockSubscribers)
-  const [loading, setLoading] = useState(false)
+  const [subscribers, setSubscribers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchSubscribers()
+  }, [filters])
+
+  const fetchSubscribers = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      
+      if (filters.status !== 'all') {
+        params.append('status', filters.status.toUpperCase())
+      }
+      
+      if (searchTerm) {
+        params.append('search', searchTerm)
+      }
+
+      const response = await fetch(`/api/subscribers?${params}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setSubscribers(data.data)
+        if (onSubscribersLoad) {
+          onSubscribersLoad(data.data)
+        }
+      } else {
+        // Fallback para mock data se API falhar
+        setSubscribers(mockSubscribers)
+        if (onSubscribersLoad) {
+          onSubscribersLoad(mockSubscribers)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar assinantes:', error)
+      // Usar mock data em caso de erro
+      setSubscribers(mockSubscribers)
+      if (onSubscribersLoad) {
+        onSubscribersLoad(mockSubscribers)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Simular filtros
   const filteredSubscribers = subscribers.filter((subscriber) => {
@@ -371,6 +423,9 @@ export const SubscribersList: React.FC<SubscribersListProps> = ({
                 subscriber={subscriber}
                 index={index}
                 onClick={() => onSubscriberSelect(subscriber)}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onArchive={onArchive}
               />
             ))}
           </AnimatePresence>

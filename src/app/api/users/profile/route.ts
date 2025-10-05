@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
+import { cookies } from 'next/headers'
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const accessToken = cookieStore.get('accessToken')?.value
     
-    if (!session?.user?.email) {
+    if (!accessToken) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    // Decodificar token para pegar email
+    const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString())
+    const userEmail = payload.email
+
     const body = await request.json()
-    const { name, phone, address, city, state, avatar } = body
+    const { name, phone, address, city, state, cpf, avatar } = body
 
     const updatedUser = await prisma.user.update({
-      where: { email: session.user.email },
+      where: { email: userEmail },
       data: {
-        name: name || undefined,
-        phone: phone || undefined,
-        address: address || undefined,
-        city: city || undefined,
-        state: state || undefined,
-        avatar: avatar || undefined,
+        ...(name && { name }),
+        ...(phone && { phone }),
+        ...(address && { address }),
+        ...(city && { city }),
+        ...(state && { state }),
+        ...(cpf && { cpf }),
+        ...(avatar && { avatar }),
         updatedAt: new Date()
       }
     })
@@ -36,7 +42,9 @@ export async function PUT(request: NextRequest) {
         address: updatedUser.address,
         city: updatedUser.city,
         state: updatedUser.state,
-        avatar: updatedUser.avatar
+        cpf: updatedUser.cpf,
+        avatar: updatedUser.avatar,
+        role: updatedUser.role
       }
     })
   } catch (error) {

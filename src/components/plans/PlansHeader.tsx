@@ -21,6 +21,7 @@ interface PlansHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  onToggleFilters?: () => void
 }
 
 export const PlansHeader: React.FC<PlansHeaderProps> = ({
@@ -28,7 +29,8 @@ export const PlansHeader: React.FC<PlansHeaderProps> = ({
   onSearchChange,
   searchTerm,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  onToggleFilters
 }) => {
   const [stats, setStats] = useState({
     totalPlans: 0,
@@ -128,6 +130,19 @@ export const PlansHeader: React.FC<PlansHeaderProps> = ({
               <List className="w-4 h-4" />
             </motion.button>
           </div>
+
+          {/* Botão Filtros */}
+          {onToggleFilters && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onToggleFilters}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </motion.button>
+          )}
 
           {/* Botão Criar Plano */}
           <motion.button

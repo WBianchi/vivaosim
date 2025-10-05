@@ -14,6 +14,7 @@ enum UserRole {
   ADMINISTRADOR
   ATENDENTE
   ASSINANTE
+  AFILIADO
   CLIENTE
 }
 
@@ -40,6 +41,7 @@ enum UserStatus {
   INATIVO
   PENDENTE
   SUSPENSO
+  ARQUIVADO
 }
 
 model User {
@@ -53,6 +55,7 @@ model User {
   password String?  // null para login via OAuth
   avatar   String?
   phone    String?
+  subdomain String? @unique  // Para assinantes: subdominio.vivaosim.com.br
 
   // Localização
   city    String?
@@ -99,9 +102,9 @@ model User {
   assignedTasks       EventTask[] @relation("AssignedTasks")
   clientMessages      WhatsAppMessage[] @relation("ClientMessages")
   attendantMessages   WhatsAppMessage[] @relation("AttendantMessages")
-  clientSite          ClientSite? @relation("ClientSite")
   affiliateProfile    Affiliate? @relation("AffiliateProfile")
   referredUser        AffiliateReferral[] @relation("ReferredUser")
+  subscriberSites     SubscriberSite[] @relation("SubscriberSites")
   
   // WhatsApp/WAHA relationships
   whatsappSessions    WhatsAppSession[] @relation("WhatsAppSessions")
@@ -111,6 +114,7 @@ model User {
   assignedTickets     WhatsAppTicket[] @relation("AssignedTickets")
   
   // Contact Management System
+  contact             Contact? @relation("ContactUser") // Relação 1:1 com Contact (para clientes)
   assignedContacts    Contact[] @relation("AssignedContacts")
   createdContacts     Contact[] @relation("CreatedContacts")
   contactActivities   ContactActivity[] @relation("ContactActivities")
@@ -118,8 +122,10 @@ model User {
   createdSchedules    Schedule[] @relation("CreatedSchedules")
   createdQuotes       Quote[] @relation("CreatedQuotes")
   createdContracts    Contract[] @relation("CreatedContracts")
+  assignedContracts   Contract[] @relation("AssignedContracts")
   createdTicketsNew   Ticket[] @relation("CreatedTickets")
   assignedTicketsNew  Ticket[] @relation("AssignedTickets")
+  createdExpenses     Expense[] @relation("ExpenseCreatedBy")
   
   // Kanban Boards
   createdBoards       KanbanBoard[] @relation("UserCreatedBoards")
@@ -139,6 +145,14 @@ model User {
   // Agendamentos
   createdAppointments Appointment[] @relation("AppointmentCreatedBy")
   assignedAppointments Appointment[] @relation("AppointmentAssignedTo")
+  
+  // Atendentes - Métricas e Atendimentos
+  attendantMetrics    AttendantMetrics[] @relation("AttendantMetrics")
+  attendances         Attendance[] @relation("UserAttendances")
+  
+  // Sites dos Clientes (Atendente responsável)
+  clientSitesGerenciados ClientSite[] @relation("AtendenteSites")
+  custosDespesasLancados  CustoDespesa[] @relation("CustoDespesaLancador")
 
   @@map("users")
 }
@@ -283,7 +297,6 @@ model Event {
   expenses     EventExpense[]
   tasks        EventTask[]
   activities   Activity[] @relation("EventActivities")
-  clientSite   ClientSite?
 
   @@map("events")
 }
@@ -533,28 +546,7 @@ model WhatsAppMessage {
   @@map("whatsapp_messages")
 }
 
-// Sites dos Clientes (gerados com IA)
-model ClientSite {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  title       String
-  subdomain   String   @unique // cliente-festa.vivaosim.com
-  template    String   // Nome do template usado
-  customCss   String?
-  isActive    Boolean  @default(true)
-  content     Json     // Conteúdo em JSON
-  
-  // Relacionamentos
-  clientId    String   @unique
-  client      User     @relation("ClientSite", fields: [clientId], references: [id])
-  
-  eventId     String?  @unique
-  event       Event?   @relation(fields: [eventId], references: [id])
-
-  @@map("client_sites")
-}
+// Sites dos Clientes (REMOVIDO - Usar ClientSite para novo sistema)
 
 // Afiliados
 model Affiliate {
@@ -567,11 +559,17 @@ model Affiliate {
   totalEarnings   Decimal  @default(0)
   isActive        Boolean  @default(true)
   
+  // Métricas
+  totalClicks     Int      @default(0)
+  totalViews      Int      @default(0)
+  totalConversions Int     @default(0)
+  
   // Relacionamentos
   userId          String   @unique
   user            User     @relation("AffiliateProfile", fields: [userId], references: [id])
   
   referrals       AffiliateReferral[]
+  clicks          AffiliateClick[]
 
   @@map("affiliates")
 }
@@ -594,6 +592,28 @@ model AffiliateReferral {
   referred     User      @relation("ReferredUser", fields: [referredId], references: [id])
 
   @@map("affiliate_referrals")
+}
+
+// Tracking de cliques e conversões
+model AffiliateClick {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  affiliateId String
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id])
+  
+  // Dados do clique
+  ipAddress   String?
+  userAgent   String?
+  referer     String?
+  page        String   // /planos, /checkout, etc
+  
+  // Conversão
+  converted   Boolean  @default(false)
+  convertedAt DateTime?
+  saleId      String?  // ID da PlanSubscription
+  
+  @@map("affiliate_clicks")
 }
 
 // ============= WHATSAPP WAHA INTEGRATION =============
@@ -859,10 +879,17 @@ model Contact {
   additionalPhone String? // Telefone adicional/fixo
   document    String?  // CPF/CNPJ
   company     String?  // Empresa
-  address     String?  // Endereço completo
+  avatar      String?  // URL ou base64 da foto de perfil
+  
+  // Endereço completo
+  address     String?  // Rua/Avenida
+  number      String?  // Número
+  neighborhood String? // Bairro
+  complement  String?  // Complemento
   city        String?
   state       String?
   zipCode     String?
+  
   notes       String?  // Observações importantes
 
   // ========================================
@@ -884,6 +911,10 @@ model Contact {
   // ========================================
   // 👥 RELACIONAMENTOS BUSINESS
   // ========================================
+  // Usuário do cliente (para login no sistema)
+  userId String? @unique
+  user   User?   @relation("ContactUser", fields: [userId], references: [id])
+  
   assignedToId String?
   assignedTo   User?   @relation("AssignedContacts", fields: [assignedToId], references: [id])
   
@@ -898,6 +929,7 @@ model Contact {
   tags         ContactTag[] // Tags personalizadas
   activities   ContactActivity[] // Log de atividades
   appointments Appointment[] @relation("AppointmentClient") // Agendamentos
+  attendances  Attendance[] @relation("ContactAttendances") // Atendimentos
   
   // ========================================
   // 📋 RELACIONAMENTOS KANBAN
@@ -912,6 +944,11 @@ model Contact {
   // 🔗 RELACIONAMENTOS WHATSAPP
   // ========================================
   // Nota: Relacionamento via whatsappChatId é suficiente para vinculação
+  
+  // ========================================
+  // 🌐 SITE DO CLIENTE
+  // ========================================
+  clientSite ClientSite? @relation("ClientSiteContact")
 
   @@map("contacts")
 }
@@ -1038,22 +1075,44 @@ model Contract {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
+  // Informações Básicas
+  numero      String   @unique // Número do contrato (ex: CTR-2024-0001)
   title       String
   description String?  @db.Text
+  content     String?  @db.Text // Conteúdo completo do contrato
+  
+  // Valores
   amount      Decimal  @db.Decimal(10, 2)
+  
+  // Status e Datas
   status      String   @default("draft") // draft, active, completed, cancelled
   startDate   DateTime?
   endDate     DateTime?
-  signedAt    DateTime?
+  eventDate   DateTime? // Data do evento
+  
+  // Assinaturas
+  signedAt           DateTime?
+  clientSignature    String?  @db.Text // Base64 da assinatura do cliente
+  clientSignedAt     DateTime?
+  providerSignature  String?  @db.Text // Assinatura do prestador
+  providerSignedAt   DateTime?
   
   // WhatsApp Integration
   chatId      String?  // ID do chat externo (WhatsApp, etc)
   
+  // Relacionamentos
   contactId String
   contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
   
   createdById String
   createdBy   User @relation("CreatedContracts", fields: [createdById], references: [id])
+  
+  assignedToId String? // Atendente responsável
+  assignedTo   User? @relation("AssignedContracts", fields: [assignedToId], references: [id])
+  
+  // Gestão Financeira
+  expenses     Expense[]
+  costEstimate CostEstimate?
 
   @@map("contracts")
 }
@@ -1432,6 +1491,7 @@ model Plan {
   createdBy   User @relation("PlanCreatedBy", fields: [createdById], references: [id])
   
   subscriptions PlanSubscription[]
+  subscriberSites SubscriberSite[] @relation("SitePlan")
 
   @@map("plans")
 }
@@ -1458,6 +1518,9 @@ model PlanSubscription {
   paymentMethod String?
   lastPayment   DateTime?
   nextPayment   DateTime?
+  
+  // Relacionamento com sites
+  subscriberSites SubscriberSite[] @relation("SiteSubscription")
 
   @@map("plan_subscriptions")
 }
@@ -1536,5 +1599,593 @@ model Appointment {
 }
 
 // ========================================
+// 👥 SISTEMA DE ATENDENTES E MÉTRICAS
+// ========================================
+
+// Status de Atendimento
+enum AttendanceStatus {
+  AGUARDANDO      // Aguardando atendimento
+  EM_ANDAMENTO    // Em atendimento
+  FINALIZADO      // Atendimento finalizado
+  PAUSADO         // Atendimento pausado
+}
+
+// Métricas de Atendente
+model AttendantMetrics {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Período da métrica
+  date      DateTime @default(now()) // Data do registro
+  
+  // Métricas de Atendimento
+  totalChats          Int @default(0) // Total de chats atendidos
+  activeChats         Int @default(0) // Chats ativos agora
+  totalMessages       Int @default(0) // Total de mensagens enviadas
+  avgResponseTime     Float @default(0) // Tempo médio de resposta (minutos)
+  
+  // Métricas de Conversão
+  totalLeads          Int @default(0) // Leads gerados
+  convertedLeads      Int @default(0) // Leads convertidos
+  conversionRate      Float @default(0) // Taxa de conversão %
+  
+  // Métricas de Negócio
+  totalQuotes         Int @default(0) // Orçamentos criados
+  approvedQuotes      Int @default(0) // Orçamentos aprovados
+  totalContracts      Int @default(0) // Contratos fechados
+  totalRevenue        Decimal @default(0) @db.Decimal(10, 2) // Receita gerada
+  
+  // Métricas de Suporte
+  totalTickets        Int @default(0) // Tickets criados
+  resolvedTickets     Int @default(0) // Tickets resolvidos
+  avgResolutionTime   Float @default(0) // Tempo médio de resolução (horas)
+  
+  // Métricas de Agendamento
+  totalSchedules      Int @default(0) // Agendamentos criados
+  completedSchedules  Int @default(0) // Agendamentos completados
+  
+  // Satisfação
+  satisfactionScore   Float @default(0) // Score de 0-100
+  totalRatings        Int @default(0) // Total de avaliações
+  
+  // Relacionamento
+  attendantId String
+  attendant   User @relation("AttendantMetrics", fields: [attendantId], references: [id], onDelete: Cascade)
+  
+  @@unique([attendantId, date]) // Uma métrica por dia por atendente
+  @@map("attendant_metrics")
+}
+
+// Atendimentos (relacionamento Contact + Atendente + Status)
+model Attendance {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Status do atendimento
+  status          AttendanceStatus @default(AGUARDANDO)
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  pausedAt        DateTime?
+  
+  // Dados do atendimento
+  notes           String? @db.Text
+  tags            String[] // Tags do atendimento
+  priority        Int @default(1) // 1-5
+  
+  // WhatsApp Integration
+  whatsappChatId  String? // ID do chat do WhatsApp
+  
+  // Relacionamentos
+  contactId String
+  contact   Contact @relation("ContactAttendances", fields: [contactId], references: [id], onDelete: Cascade)
+  
+  attendantId String
+  attendant   User @relation("UserAttendances", fields: [attendantId], references: [id])
+  
+  @@map("attendances")
+}
+
+// ========================================
+// 🌐 SITES DOS ASSINANTES
+// ========================================
+
+enum SiteStatus {
+  ACTIVE      // Ativo
+  INACTIVE    // Inativo
+  EXPIRED     // Expirado
+  SUSPENDED   // Suspenso
+  PENDING     // Pendente
+}
+
+enum SiteConfigType {
+  MANUAL      // Configuração manual
+  AI          // Configuração por IA
+}
+
+enum SiteServerType {
+  VIVAOSIM    // Servidor Viva o Sim
+  PROPRIO     // Servidor próprio do cliente
+}
+
+model SubscriberSite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com assinante
+  subscriberId String
+  subscriber   User @relation("SubscriberSites", fields: [subscriberId], references: [id], onDelete: Cascade)
+  
+  // Relacionamento com plano e assinatura
+  planId String
+  plan   Plan @relation("SitePlan", fields: [planId], references: [id])
+  
+  subscriptionId String
+  subscription   PlanSubscription @relation("SiteSubscription", fields: [subscriptionId], references: [id])
+  
+  // Domínio
+  domain       String  @unique // subdominio.vivaosim.com.br
+  customDomain String? @unique // dominio-proprio.com.br (opcional)
+  
+  // Status e datas
+  status         SiteStatus @default(PENDING)
+  activatedAt    DateTime?
+  expiresAt      DateTime?
+  suspendedAt    DateTime?
+  suspendedReason String?
+  
+  // Configuração
+  configType     SiteConfigType @default(MANUAL)
+  primaryColor   String?        @default("#FF6B35") // Cor principal do site
+  secondaryColor String?        @default("#004E89") // Cor secundária
+  segment        String?        // Segmento: casamento, 15anos, corporativo, etc
+  
+  // Servidor
+  serverType     SiteServerType @default(VIVAOSIM)
+  serverUrl      String?        // URL do servidor próprio (se aplicável)
+  
+  // Estatísticas
+  totalVisitors  Int @default(0)
+  totalConversions Int @default(0)
+  
+  // Configurações adicionais (JSON)
+  settings       Json?          // Configurações extras em JSON
+  
+  @@map("subscriber_sites")
+}
+
+// ========================================
+// 🎯 SITES DOS CLIENTES FINAIS
+// ========================================
+
+enum ClientSiteStatus {
+  RASCUNHO      // Site em construção
+  PUBLICADO     // Site ativo e visível
+  PAUSADO       // Temporariamente offline
+  EXPIRADO      // Após data do evento
+}
+
+enum TipoEvento {
+  CASAMENTO
+  ANOS_15
+  ANIVERSARIO
+  FORMATURA
+  CORPORATIVO
+  CHA_BEBE
+  CHA_PANELA
+  OUTRO
+}
+
+enum ConvidadoStatus {
+  PENDENTE
+  CONFIRMADO
+  RECUSADO
+  TALVEZ
+}
+
+enum TipoCustoDespesa {
+  DECORACAO
+  BUFFET
+  FOTOGRAFIA
+  MUSICA_DJ
+  LOCAL
+  CONVITES
+  VESTUARIO
+  TRANSPORTE
+  HOSPEDAGEM
+  OUTRO
+}
+
+model ClientSite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com Contact (cliente via WhatsApp)
+  contactId String  @unique
+  contact   Contact @relation("ClientSiteContact", fields: [contactId], references: [id], onDelete: Cascade)
+  
+  // Responsável (atendente que gerencia)
+  atendenteId String?
+  atendente   User?   @relation("AtendenteSites", fields: [atendenteId], references: [id])
+  
+  // Informações do Evento
+  tipoEvento      TipoEvento
+  nomeEvento      String // Ex: "Casamento Ana & Carlos"
+  dataEvento      DateTime
+  localEvento     String?
+  descricaoEvento String?
+  
+  // Domínio e Identidade
+  subdominio      String  @unique // cliente.vivaosim.com.br
+  dominioCustom   String? @unique // opcional: cliente.com.br
+  
+  // Design e Personalização
+  logo            String? // URL da logo
+  banner          String? // URL do banner principal
+  corPrimaria     String  @default("#FF6B35")
+  corSecundaria   String  @default("#004E89")
+  corDestaque     String  @default("#FFC857")
+  fontePrimaria   String  @default("Inter")
+  fonteSecundaria String  @default("Playfair Display")
+  
+  // Configurações de UI
+  roundButtons    Int     @default(8) // Border radius dos botões (px)
+  roundSessoes    Int     @default(12) // Border radius das seções
+  roundColunas    Int     @default(8) // Border radius das colunas/cards
+  
+  // Status
+  status          ClientSiteStatus @default(RASCUNHO)
+  publicadoEm     DateTime?
+  
+  // Estatísticas
+  visualizacoes   Int @default(0)
+  totalPresentes  Int @default(0)
+  
+  // Relacionamentos
+  produtos        ProdutoCliente[]
+  convidados      ConvidadoCliente[]
+  custosDespesas  CustoDespesa[]
+  recebimentos    RecebimentoPresente[]
+  
+  // Gestão Financeira
+  suppliers       Supplier[]
+  expenses        Expense[]
+  costEstimates   CostEstimate[]
+  
+  // Configurações extras (JSON)
+  configuracoes   Json? // Configurações adicionais flexíveis
+  
+  @@map("cliente_sites")
+}
+
+model ProdutoCliente {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com o site
+  siteId String
+  site   ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  // Informações do Produto/Presente
+  nome        String
+  descricao   String?
+  imagem      String? // URL da imagem
+  preco       Decimal @db.Decimal(10, 2)
+  quantidade  Int     @default(1) // Quantos podem ser comprados
+  vendidos    Int     @default(0) // Quantos já foram comprados
+  
+  // Categoria
+  categoria   String? // Ex: Eletrodomésticos, Decoração, Experiências
+  
+  // Status
+  ativo       Boolean @default(true)
+  destaque    Boolean @default(false)
+  
+  // Relacionamentos
+  itens       ItemProdutoCliente[]
+  recebimentos RecebimentoPresente[]
+  
+  @@map("produtos_cliente")
+}
+
+model ItemProdutoCliente {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  // Relacionamento com produto
+  produtoId String
+  produto   ProdutoCliente @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  
+  // Detalhes do item (se produto tem variações)
+  nome      String
+  valor     Decimal @db.Decimal(10, 2)
+  
+  @@map("itens_produtos_cliente")
+}
+
+model ConvidadoCliente {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com o site
+  siteId String
+  site   ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  // Dados do Convidado
+  nome            String
+  email           String?
+  telefone        String?
+  numeroConvites  Int     @default(1) // Quantas pessoas o convite inclui
+  
+  // Confirmação
+  status          ConvidadoStatus @default(PENDENTE)
+  confirmedAt     DateTime?
+  observacoes     String?
+  
+  // Controle de Presença
+  presenteEvento  Boolean @default(false) // Compareceu ao evento
+  checkinAt       DateTime?
+  
+  @@map("convidados_cliente")
+}
+
+model CustoDespesa {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com o site/evento
+  siteId String
+  site   ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  // Responsável pelo lançamento
+  lancadoPorId String?
+  lancadoPor   User?   @relation("CustoDespesaLancador", fields: [lancadoPorId], references: [id])
+  
+  // Informações do Custo
+  tipo        TipoCustoDespesa
+  descricao   String
+  fornecedor  String?
+  valor       Decimal @db.Decimal(10, 2)
+  
+  // Pagamento
+  pago        Boolean @default(false)
+  dataPagamento DateTime?
+  formaPagamento String? // Cartão, PIX, Dinheiro, etc
+  
+  // Anexos
+  comprovante String? // URL do comprovante/nota
+  
+  // Observações
+  observacoes String?
+  
+  @@map("custos_despesas")
+}
+
+model RecebimentoPresente {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com o site
+  siteId String
+  site   ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  // Produto comprado
+  produtoId String
+  produto   ProdutoCliente @relation(fields: [produtoId], references: [id])
+  
+  // Dados do comprador/presenteador
+  nomeComprador  String
+  emailComprador String?
+  telefoneComprador String?
+  mensagem       String? // Mensagem do presenteador
+  
+  // Pagamento
+  valor          Decimal @db.Decimal(10, 2)
+  statusPagamento String @default("PENDENTE") // PENDENTE, PAGO, CANCELADO
+  metodoPagamento String? // PIX, Cartão, etc
+  transacaoId    String? // ID da transação no gateway de pagamento
+  
+  // Datas
+  pagoEm         DateTime?
+  
+  @@map("recebimentos_presentes")
+}
+
+// ========================================
 // 🎯 ATUALIZAÇÃO DO CONTACT
 // ========================================
+
+// ========================================
+// 💰 GESTÃO FINANCEIRA
+// ========================================
+
+enum ExpenseCategory {
+  SOM              // Som e DJ
+  ILUMINACAO       // Iluminação
+  FOTOGRAFIA       // Fotografia
+  FILMAGEM         // Filmagem/Vídeo
+  DECORACAO        // Decoração
+  BUFFET           // Buffet e Catering
+  LOCAL            // Aluguel de local
+  TRANSPORTE       // Transporte
+  SEGURANCA        // Segurança
+  LIMPEZA          // Limpeza
+  EQUIPAMENTOS     // Equipamentos diversos
+  PESSOAL          // Pessoal/Staff
+  MARKETING        // Marketing
+  ADMINISTRATIVO   // Administrativo
+  OUTROS           // Outros
+}
+
+enum ExpenseStatus {
+  PENDENTE         // Aguardando pagamento
+  PAGO             // Pago
+  ATRASADO         // Atrasado
+  CANCELADO        // Cancelado
+  PARCIAL          // Parcialmente pago
+}
+
+enum PaymentMethod {
+  DINHEIRO
+  PIX
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  TRANSFERENCIA
+  BOLETO
+  CHEQUE
+  OUTROS
+}
+
+// Fornecedores
+model Supplier {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Dados básicos
+  name        String
+  category    ExpenseCategory
+  email       String?
+  phone       String?
+  whatsapp    String?
+  cnpj        String?
+  cpf         String?
+  
+  // Endereço
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  
+  // Informações bancárias
+  bankName    String?
+  bankAgency  String?
+  bankAccount String?
+  pixKey      String?
+  
+  // Observações
+  notes       String?
+  rating      Int?     @default(0) // 0-5 estrelas
+  
+  // Relacionamentos
+  siteId      String
+  site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  expenses    Expense[]
+  
+  @@index([siteId])
+  @@index([category])
+}
+
+// Despesas/Custos
+model Expense {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Dados básicos
+  title       String
+  description String?
+  category    ExpenseCategory
+  status      ExpenseStatus @default(PENDENTE)
+  
+  // Valores
+  amount      Decimal  @db.Decimal(10, 2)
+  paidAmount  Decimal  @db.Decimal(10, 2) @default(0)
+  
+  // Datas
+  dueDate     DateTime?
+  paidDate    DateTime?
+  
+  // Pagamento
+  paymentMethod PaymentMethod?
+  
+  // Anexos
+  attachments String[] // URLs de comprovantes, notas fiscais, etc
+  
+  // Observações
+  notes       String?
+  
+  // Relacionamentos
+  siteId      String
+  site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  contractId  String?
+  contract    Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  
+  supplierId  String?
+  supplier    Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  
+  createdById String
+  createdBy   User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  
+  // Parcelamento
+  installments Int?    @default(1)
+  installmentNumber Int? @default(1)
+  parentExpenseId String?
+  parentExpense Expense? @relation("ExpenseInstallments", fields: [parentExpenseId], references: [id], onDelete: Cascade)
+  childExpenses Expense[] @relation("ExpenseInstallments")
+  
+  @@index([siteId])
+  @@index([contractId])
+  @@index([supplierId])
+  @@index([category])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// Orçamentos de Custos (para o cliente visualizar)
+model CostEstimate {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Dados básicos
+  title       String
+  description String?
+  
+  // Relacionamentos
+  siteId      String
+  site        ClientSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  contractId  String   @unique
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  
+  items       CostEstimateItem[]
+  
+  // Totais (calculados)
+  totalEstimated Decimal @db.Decimal(10, 2) @default(0)
+  totalActual    Decimal @db.Decimal(10, 2) @default(0)
+  
+  @@index([siteId])
+  @@index([contractId])
+}
+
+// Itens do orçamento
+model CostEstimateItem {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Dados
+  category    ExpenseCategory
+  description String
+  estimatedAmount Decimal @db.Decimal(10, 2)
+  actualAmount    Decimal @db.Decimal(10, 2) @default(0)
+  
+  notes       String?
+  
+  // Relacionamento
+  estimateId  String
+  estimate    CostEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  
+  @@index([estimateId])
+  @@index([category])
+}

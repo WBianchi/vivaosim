@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   User, Camera, Save, Lock, Bell, Shield,
@@ -12,21 +12,134 @@ import {
 export default function MeuPerfilClientePage() {
   const [activeTab, setActiveTab] = useState<'personal' | 'event' | 'security' | 'notifications'>('personal')
   const [isEditing, setIsEditing] = useState(false)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    cpf: '',
+    address: '',
+    city: '',
+    state: '',
+    avatar: ''
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
 
-  const profileData = {
-    name: 'João Silva',
-    email: 'joao.silva@email.com',
-    phone: '(11) 98765-4321',
-    cpf: '123.456.789-00',
-    address: 'Rua das Flores, 123 - São Paulo, SP',
-    birthDate: '1990-05-15',
-    partner: 'Maria Costa',
-    weddingDate: '2024-06-15',
-    venue: 'Espaço Celebration',
-    contractNumber: 'CTR-2024-0156',
-    plan: 'Premium',
-    status: 'active'
+  useEffect(() => {
+    fetchUserData()
+  }, [])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      const data = await response.json()
+      
+      console.log('📊 Dados recebidos:', data)
+      
+      if (data.success && data.user) {
+        setUser(data.user)
+        setFormData({
+          name: data.user.name || '',
+          email: data.user.email || '',
+          phone: data.user.phone || '',
+          cpf: data.user.cpf || '',
+          address: data.user.address || '',
+          city: data.user.city || '',
+          state: data.user.state || '',
+          avatar: data.user.avatar || ''
+        })
+        console.log('✅ Dados carregados com sucesso')
+      } else {
+        console.error('❌ Erro nos dados:', data.error)
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar dados:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    setSaving(true)
+    try {
+      const response = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert('✅ Perfil atualizado com sucesso!')
+        setUser(data.user)
+        setIsEditing(false)
+        fetchUserData()
+      } else {
+        alert('❌ ' + (data.error || 'Erro ao atualizar perfil'))
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      alert('❌ Erro ao atualizar perfil')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('❌ As senhas não coincidem')
+      return
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      alert('❌ A senha deve ter no mínimo 6 caracteres')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/users/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert('✅ Senha alterada com sucesso!')
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        })
+      } else {
+        alert('❌ ' + (data.error || 'Erro ao alterar senha'))
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      alert('❌ Erro ao alterar senha')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+      </div>
+    )
   }
 
   return (
@@ -38,23 +151,24 @@ export default function MeuPerfilClientePage() {
             {/* Profile Image */}
             <div className="relative">
               <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-                {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                {formData.avatar ? (
+                  <img src={formData.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
                 ) : (
-                  'JS'
+                  user?.name?.substring(0, 2).toUpperCase() || 'US'
                 )}
               </div>
               <label className="absolute bottom-0 right-0 p-2 bg-orange-500 hover:bg-orange-600 rounded-full cursor-pointer transition-colors">
                 <Camera className="w-4 h-4 text-white" />
                 <input 
                   type="file" 
+                  accept="image/*"
                   className="hidden" 
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) {
                       const reader = new FileReader()
                       reader.onloadend = () => {
-                        setProfileImage(reader.result as string)
+                        setFormData({ ...formData, avatar: reader.result as string })
                       }
                       reader.readAsDataURL(file)
                     }
@@ -64,14 +178,14 @@ export default function MeuPerfilClientePage() {
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.name}</h1>
-              <p className="text-gray-600 dark:text-gray-400">{profileData.email}</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user?.name}</h1>
+              <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
               <div className="flex items-center gap-3 mt-2">
                 <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
                   Conta Ativa
                 </span>
                 <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-sm font-medium">
-                  Plano {profileData.plan}
+                  {user?.role === 'CLIENTE' ? 'Cliente' : user?.role === 'ASSINANTE' ? 'Assinante' : 'Colaborador'}
                 </span>
               </div>
             </div>
@@ -89,11 +203,12 @@ export default function MeuPerfilClientePage() {
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center gap-2"
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
-                  Salvar
+                  {saving ? 'Salvando...' : 'Salvar'}
                 </motion.button>
               </>
             ) : (
@@ -167,7 +282,8 @@ export default function MeuPerfilClientePage() {
                 </label>
                 <input
                   type="text"
-                  value={profileData.name}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={!isEditing}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                 />
@@ -181,11 +297,12 @@ export default function MeuPerfilClientePage() {
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
-                    value={profileData.email}
-                    disabled={!isEditing}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                    value={formData.email}
+                    disabled={true}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white cursor-not-allowed opacity-60"
                   />
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">O e-mail não pode ser alterado</p>
               </div>
 
               <div>
@@ -196,7 +313,8 @@ export default function MeuPerfilClientePage() {
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="tel"
-                    value={profileData.phone}
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     disabled={!isEditing}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                   />
@@ -209,7 +327,8 @@ export default function MeuPerfilClientePage() {
                 </label>
                 <input
                   type="text"
-                  value={profileData.cpf}
+                  value={formData.cpf}
+                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                   disabled={!isEditing}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                 />
@@ -223,7 +342,8 @@ export default function MeuPerfilClientePage() {
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={profileData.address}
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     disabled={!isEditing}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                   />
@@ -239,11 +359,11 @@ export default function MeuPerfilClientePage() {
               <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Número do Contrato</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{profileData.contractNumber}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{user?.contractNumber || 'N/A'}</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Plano</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{profileData.plan}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{user?.plan || 'Básico'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
@@ -296,8 +416,9 @@ export default function MeuPerfilClientePage() {
                   <Heart className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={profileData.partner}
+                    value=""
                     disabled={!isEditing}
+                    placeholder="Nome do parceiro(a)"
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                   />
                 </div>
@@ -311,7 +432,7 @@ export default function MeuPerfilClientePage() {
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="date"
-                    value={profileData.weddingDate}
+                    value=""
                     disabled={!isEditing}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                   />
@@ -326,8 +447,9 @@ export default function MeuPerfilClientePage() {
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={profileData.venue}
+                    value=""
                     disabled={!isEditing}
+                    placeholder="Local do evento"
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
                   />
                 </div>
@@ -386,20 +508,30 @@ export default function MeuPerfilClientePage() {
                 <input
                   type="password"
                   placeholder="Senha atual"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
                 <input
                   type="password"
                   placeholder="Nova senha"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
                 <input
                   type="password"
                   placeholder="Confirmar nova senha"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
-                <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg">
-                  Atualizar Senha
+                <button 
+                  onClick={handleChangePassword}
+                  disabled={saving}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg disabled:opacity-50"
+                >
+                  {saving ? 'Atualizando...' : 'Atualizar Senha'}
                 </button>
               </div>
             </div>
@@ -414,7 +546,7 @@ export default function MeuPerfilClientePage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Adicione uma camada extra de segurança</p>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+                <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg">
                   Ativar
                 </button>
               </div>

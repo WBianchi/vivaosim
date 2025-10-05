@@ -12,61 +12,121 @@ interface CreateAffiliateModalProps {
 
 export const CreateAffiliateModal: React.FC<CreateAffiliateModalProps> = ({ onClose, onSave, affiliate }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [affiliateCode, setAffiliateCode] = useState('')
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    password: '',
     commissionRate: 10,
     paymentMethod: 'pix',
-    bankInfo: {
-      bank: '',
-      agency: '',
-      account: ''
-    },
+    pixKey: '',
     plans: [] as string[],
-    status: 'pending'
+    status: 'active'
   })
 
   useEffect(() => {
     setIsVisible(true)
+    fetchPlans()
+    
     if (affiliate) {
+      console.log('📝 Editando afiliado:', affiliate)
       setFormData({
         name: affiliate.name || '',
         email: affiliate.email || '',
         phone: affiliate.phone || '',
-        commissionRate: affiliate.commissionRate || 10,
-        paymentMethod: affiliate.paymentMethod || 'pix',
-        bankInfo: affiliate.bankInfo || { bank: '', agency: '', account: '' },
-        plans: affiliate.plans || [],
-        status: affiliate.status || 'pending'
+        password: '',
+        commissionRate: affiliate.affiliateProfile?.commissionRate ? Number(affiliate.affiliateProfile.commissionRate) * 100 : 10,
+        paymentMethod: 'pix',
+        pixKey: '',
+        plans: [],
+        status: affiliate.status || 'active'
       })
+      setAffiliateCode(affiliate.affiliateProfile?.code || '')
+    } else {
+      // Gerar código para novo afiliado
+      setAffiliateCode(generateAffiliateCode(formData.name))
     }
   }, [affiliate])
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch('/api/plans')
+      const data = await response.json()
+      
+      if (data.plans) {
+        setPlans(data.plans.filter((p: any) => p.status === 'ACTIVE'))
+      }
+    } catch (error) {
+      console.error('Erro ao buscar planos:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateAffiliateCode = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 15) + Math.random().toString(36).slice(2, 6)
+  }
 
   const handleClose = () => {
     setIsVisible(false)
     setTimeout(onClose, 300)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const affiliateData = {
-      id: affiliate?.id || `aff-${Date.now()}`,
-      ...formData,
-      performance: affiliate?.performance || 'average',
-      joinedAt: affiliate?.joinedAt || new Date().toISOString(),
-      lastSale: affiliate?.lastSale || new Date().toISOString(),
-      totalCommissions: affiliate?.totalCommissions || 0,
-      monthlyCommissions: affiliate?.monthlyCommissions || 0,
-      salesCount: affiliate?.salesCount || 0,
-      conversionRate: affiliate?.conversionRate || 0,
-      shareableLink: `https://app.com/ref/${formData.name.toLowerCase().replace(/\s+/g, '-')}`,
-      paymentStatus: 'pending'
-    }
+    try {
+      // Gerar código único do afiliado
+      const code = affiliate?.affiliateProfile?.code || generateAffiliateCode(formData.name)
+      
+      const affiliateData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password || 'Afiliado123!',
+        commissionRate: formData.commissionRate,
+        pixKey: formData.pixKey,
+        plans: formData.plans,
+        code,
+        shareableLink: `${window.location.origin}/afiliado/${code}/planos`
+      }
 
-    onSave(affiliateData)
-    handleClose()
+      console.log('📤 Criando afiliado:', affiliateData)
+
+      const url = affiliate ? `/api/affiliates/${affiliate.id}` : '/api/affiliates'
+      const method = affiliate ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(affiliateData)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        const action = affiliate ? 'atualizado' : 'criado'
+        console.log(`✅ Afiliado ${action}!`)
+        alert(`✅ Afiliado ${action}!\n\n🔗 Link: ${affiliateData.shareableLink}`)
+        setTimeout(() => window.location.reload(), 2000)
+      } else {
+        alert('❌ Erro: ' + data.error)
+      }
+
+      handleClose()
+    } catch (error) {
+      console.error('❌ Erro ao salvar afiliado:', error)
+      alert('❌ Erro ao salvar afiliado')
+    }
   }
 
   const togglePlan = (plan: string) => {
@@ -192,26 +252,61 @@ export const CreateAffiliateModal: React.FC<CreateAffiliateModalProps> = ({ onCl
                 </div>
 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Planos Comissionados</label>
-                  <div className="flex flex-wrap gap-2">
-                    {['basic', 'professional', 'premium', 'enterprise'].map(plan => (
-                      <motion.button
-                        key={plan}
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => togglePlan(plan)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                          formData.plans.includes(plan)
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Planos Comissionados * (selecione os planos que o afiliado pode promover)
+                  </label>
+                  {loading ? (
+                    <p className="text-sm text-gray-500 animate-pulse">Carregando planos...</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {plans.map(plan => (
+                        <motion.button
+                          key={plan.id}
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => togglePlan(plan.id)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            formData.plans.includes(plan.id)
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
                       >
-                        {plan === 'basic' ? 'Básico' : plan === 'professional' ? 'Profissional' : plan === 'premium' ? 'Premium' : 'Enterprise'}
+                        {plan.name} - R$ {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </motion.button>
                     ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Link de Compartilhamento */}
+                {(affiliateCode || formData.name) && (
+                  <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <label className="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
+                      <Link className="w-4 h-4" />
+                      Link de Afiliado
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/afiliado/${affiliateCode || generateAffiliateCode(formData.name)}/planos`}
+                        className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-purple-300 dark:border-purple-700 rounded-lg text-sm font-mono text-purple-700 dark:text-purple-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const link = `${window.location.origin}/afiliado/${affiliateCode || generateAffiliateCode(formData.name)}/planos`
+                          navigator.clipboard.writeText(link)
+                          alert('✅ Link copiado!')
+                        }}
+                        className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -220,36 +315,17 @@ export const CreateAffiliateModal: React.FC<CreateAffiliateModalProps> = ({ onCl
                   Dados Bancários
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Banco</label>
+                  <div className="md:col-span-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Chave PIX *
+                    </label>
                     <input
                       type="text"
-                      value={formData.bankInfo.bank}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bankInfo: { ...prev.bankInfo, bank: e.target.value } }))}
+                      required
+                      value={formData.pixKey}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pixKey: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
-                      placeholder="Banco do Brasil"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Agência</label>
-                    <input
-                      type="text"
-                      value={formData.bankInfo.agency}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bankInfo: { ...prev.bankInfo, agency: e.target.value } }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
-                      placeholder="1234-5"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Conta</label>
-                    <input
-                      type="text"
-                      value={formData.bankInfo.account}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bankInfo: { ...prev.bankInfo, account: e.target.value } }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
-                      placeholder="67890-1"
+                      placeholder="email@exemplo.com ou CPF/CNPJ ou telefone"
                     />
                   </div>
                 </div>

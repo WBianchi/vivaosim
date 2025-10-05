@@ -13,7 +13,8 @@ import {
   MessageSquare,
   CheckCircle,
   AlertCircle,
-  Star
+  Star,
+  Filter
 } from 'lucide-react'
 
 interface AttendantsHeaderProps {
@@ -22,6 +23,17 @@ interface AttendantsHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  onToggleFilters: () => void
+  stats?: {
+    totalAttendants: number
+    onlineAttendants: number
+    activeChats: number
+    avgResponseTime: number
+    avgRating: number
+    totalTickets: number
+    resolvedToday: number
+    pendingTickets: number
+  }
 }
 
 export const AttendantsHeader: React.FC<AttendantsHeaderProps> = ({
@@ -29,27 +41,26 @@ export const AttendantsHeader: React.FC<AttendantsHeaderProps> = ({
   onSearchChange,
   searchTerm,
   viewMode,
-  onViewModeChange
-}) => {
-  // Mock statistics - em produção viria da API
-  const stats = {
-    totalAttendants: 12,
-    onlineAttendants: 8,
-    activeChats: 24,
-    avgResponseTime: 2.5,
-    avgRating: 4.7,
-    totalTickets: 156,
-    resolvedToday: 89,
-    pendingTickets: 15
+  onViewModeChange,
+  onToggleFilters,
+  stats = {
+    totalAttendants: 0,
+    onlineAttendants: 0,
+    activeChats: 0,
+    avgResponseTime: 0,
+    avgRating: 0,
+    totalTickets: 0,
+    resolvedToday: 0,
+    pendingTickets: 0
   }
-
+}) => {
   return (
     <div className="space-y-6">
       {/* Header Principal */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
               <Headphones className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -104,12 +115,23 @@ export const AttendantsHeader: React.FC<AttendantsHeaderProps> = ({
             </motion.button>
           </div>
 
+          {/* Botão Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onToggleFilters}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-600"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
+
           {/* Botão Criar Atendente */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onCreateAttendant}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors shadow-lg shadow-blue-500/25"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-orange-500/25"
           >
             <Plus className="w-4 h-4" />
             Novo Atendente

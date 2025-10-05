@@ -423,9 +423,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
         {
           icon: <Globe />,
           label: 'Sites',
-          href: '/dashboard/sites',
+          hasSubmenu: true,
           isNew: true,
-          newColor: 'from-blue-400 to-blue-500'
+          newColor: 'from-blue-400 to-blue-500',
+          submenuItems: [
+            {
+              icon: <UserCheck />,
+              label: 'Sites Assinantes',
+              href: '/dashboard/sites/assinantes',
+              isNew: false,
+              color: 'text-blue-500'
+            },
+            {
+              icon: <Users />,
+              label: 'Sites Clientes',
+              href: '/dashboard/sites/clientes',
+              isNew: false,
+              color: 'text-purple-500'
+            }
+          ]
         },
         {
           icon: <Megaphone />,
@@ -567,7 +583,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
       },
       {
         icon: <DollarSign />,
-        label: 'Custos',
+        label: 'Custos e Despesas',
         href: '/dashboard/custos',
         isNew: false
       },

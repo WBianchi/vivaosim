@@ -20,12 +20,20 @@ import {
   DollarSign,
   Calendar,
   TrendingUp,
-  Percent
+  Percent,
+  Pause,
+  Play,
+  Archive,
+  Trash2
 } from 'lucide-react'
 
 interface SalesTableProps {
   sales: any[]
   onSaleSelect: (sale: any) => void
+  onPause?: (sale: any) => void
+  onActivate?: (sale: any) => void
+  onArchive?: (sale: any) => void
+  onDelete?: (sale: any) => void
 }
 
 type SortField = 'saleNumber' | 'customer' | 'plan' | 'amount' | 'status' | 'paymentStatus' | 'createdAt' | 'paidAt'
@@ -33,7 +41,11 @@ type SortDirection = 'asc' | 'desc'
 
 export const SalesTable: React.FC<SalesTableProps> = ({
   sales,
-  onSaleSelect
+  onSaleSelect,
+  onPause,
+  onActivate,
+  onArchive,
+  onDelete
 }) => {
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -107,26 +119,49 @@ export const SalesTable: React.FC<SalesTableProps> = ({
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case 'active':
       case 'completed':
         return {
-          label: 'Concluída',
+          label: 'Ativa',
           icon: CheckCircle,
           color: 'text-green-600',
           bg: 'bg-green-100'
+        }
+      case 'paused':
+        return {
+          label: 'Pausada',
+          icon: Pause,
+          color: 'text-yellow-600',
+          bg: 'bg-yellow-100'
         }
       case 'pending':
         return {
           label: 'Pendente',
           icon: Clock,
-          color: 'text-yellow-600',
-          bg: 'bg-yellow-100'
+          color: 'text-orange-600',
+          bg: 'bg-orange-100'
         }
+      case 'canceled':
       case 'cancelled':
         return {
           label: 'Cancelada',
           icon: XCircle,
           color: 'text-red-600',
           bg: 'bg-red-100'
+        }
+      case 'expired':
+        return {
+          label: 'Expirada',
+          icon: AlertTriangle,
+          color: 'text-red-600',
+          bg: 'bg-red-100'
+        }
+      case 'archived':
+        return {
+          label: 'Arquivada',
+          icon: Archive,
+          color: 'text-blue-600',
+          bg: 'bg-blue-100'
         }
       case 'refunded':
         return {
@@ -137,7 +172,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({
         }
       default:
         return {
-          label: 'Desconhecido',
+          label: status || 'Desconhecido',
           icon: ShoppingCart,
           color: 'text-gray-600',
           bg: 'bg-gray-100'
@@ -383,30 +418,69 @@ export const SalesTable: React.FC<SalesTableProps> = ({
                         <Eye className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                       </motion.button>
 
+                      {/* Pausar/Ativar */}
+                      {sale.status === 'active' ? (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (onPause && confirm('Deseja pausar esta assinatura?')) {
+                              onPause(sale)
+                            }
+                          }}
+                          className="p-2 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors"
+                          title="Pausar assinatura"
+                        >
+                          <Pause className="w-4 h-4 text-yellow-600" />
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (onActivate && confirm('Deseja ativar esta assinatura?')) {
+                              onActivate(sale)
+                            }
+                          }}
+                          className="p-2 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                          title="Ativar assinatura"
+                        >
+                          <Play className="w-4 h-4 text-green-600" />
+                        </motion.button>
+                      )}
+
+                      {/* Arquivar */}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          console.log('✏️ Editar venda:', sale.id)
+                          if (onArchive && confirm('Deseja arquivar esta venda?')) {
+                            onArchive(sale)
+                          }
                         }}
-                        className="p-2 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
-                        title="Editar venda"
+                        className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                        title="Arquivar"
                       >
-                        <Edit3 className="w-4 h-4 text-green-600" />
+                        <Archive className="w-4 h-4 text-blue-600" />
                       </motion.button>
 
+                      {/* Excluir */}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          console.log('⚙️ Mais opções:', sale.id)
+                          if (onDelete && confirm('⚠️ Tem certeza que deseja EXCLUIR esta venda? Esta ação não pode ser desfeita!')) {
+                            onDelete(sale)
+                          }
                         }}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                        title="Mais opções"
+                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                        title="Excluir"
                       >
-                        <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </motion.button>
                     </div>
                   </td>

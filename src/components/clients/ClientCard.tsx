@@ -1,32 +1,37 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  User, 
-  Mail, 
+import {
+  User,
+  Mail,
   Phone,
   Building,
-  MapPin,
   Calendar,
   DollarSign,
-  FileText,
-  MessageSquare,
-  Target,
-  Tag,
-  Plus,
-  TrendingUp,
+  MapPin,
   Clock,
-  Trash2,
   CheckCircle,
   XCircle,
+  AlertCircle,
   AlertTriangle,
+  MessageSquare,
   Crown,
   Star,
-  MoreVertical,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Briefcase,
   Users,
+  MessageCircle,
+  FileText,
+  MoreVertical,
   Eye,
-  Edit3
+  Edit3,
+  Tag,
+  Trash2
 } from 'lucide-react'
+import { EditClientModal } from './EditClientModal'
 
 interface ClientCardProps {
   client: any
@@ -41,6 +46,16 @@ export const ClientCard: React.FC<ClientCardProps> = ({
   onClick,
   onDelete
 }) => {
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  const handleEditClick = () => {
+    setShowEditModal(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false)
+  }
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR')
   }
@@ -149,6 +164,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
   const hasHighValue = (client.totalValue || 0) > 1000
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -404,7 +420,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('✏️ Editar cliente:', client.id)
+              handleEditClick()
             }}
             className="px-3 py-2 border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
@@ -445,5 +461,18 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       {/* Hover Effect */}
       <div className="absolute inset-0 bg-gradient-to-t from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </motion.div>
+
+    {/* Edit Modal */}
+    {showEditModal && (
+      <EditClientModal
+        client={client}
+        onClose={handleCloseEditModal}
+        onSuccess={() => {
+          handleCloseEditModal()
+          onDelete?.() // Recarrega a lista
+        }}
+      />
+    )}
+    </>
   )
 }

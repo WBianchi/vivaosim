@@ -29,8 +29,10 @@ const createContractSchema = z.object({
   amount: z.number().positive('Valor deve ser positivo'),
   startDate: z.string().datetime().nullish(),
   endDate: z.string().datetime().nullish(),
+  eventDate: z.string().datetime().nullish(),
   contactId: z.string(),
-  chatId: z.string().nullish()
+  chatId: z.string().nullish(),
+  assignedToId: z.string().nullish()
 })
 
 // GET - Listar contratos
@@ -94,16 +96,40 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createContractSchema.parse(body)
     
+    // Gerar número único do contrato (formato: CTR-YYYY-NNNN)
+    const year = new Date().getFullYear()
+    const lastContract = await prisma.contract.findFirst({
+      where: {
+        numero: {
+          startsWith: `CTR-${year}-`
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+    
+    let nextNumber = 1
+    if (lastContract) {
+      const lastNumber = parseInt(lastContract.numero.split('-')[2])
+      nextNumber = lastNumber + 1
+    }
+    
+    const numero = `CTR-${year}-${String(nextNumber).padStart(4, '0')}`
+    
     const contract = await prisma.contract.create({
       data: {
+        numero,
         title: validatedData.title,
         description: validatedData.description,
         amount: validatedData.amount,
         startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
         endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
+        eventDate: validatedData.eventDate ? new Date(validatedData.eventDate) : null,
         chatId: validatedData.chatId,
         contactId: validatedData.contactId,
-        createdById: user.userId
+        createdById: user.userId,
+        assignedToId: validatedData.assignedToId || null
       },
       include: {
         contact: { 

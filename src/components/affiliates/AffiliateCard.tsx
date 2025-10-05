@@ -1,15 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { User, Mail, Phone, Eye, Edit3, MoreVertical, CheckCircle, XCircle, Clock, AlertTriangle, DollarSign, TrendingUp, Link, Calendar, Award, Percent } from 'lucide-react'
+import { User, Mail, Phone, Eye, Edit3, Trash2, CheckCircle, XCircle, Clock, AlertTriangle, DollarSign, TrendingUp, Link, Calendar, Award, Percent } from 'lucide-react'
 
 interface AffiliateCardProps {
   affiliate: any
   index: number
   onClick: () => void
+  onEdit: (affiliate: any) => void
+  onDelete: (affiliateId: string) => void
 }
 
-export const AffiliateCard: React.FC<AffiliateCardProps> = ({ affiliate, index, onClick }) => {
+export const AffiliateCard: React.FC<AffiliateCardProps> = ({ affiliate, index, onClick, onEdit, onDelete }) => {
   const formatDate = (date: string) => new Date(date).toLocaleDateString('pt-BR')
   const formatCurrency = (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -89,16 +91,6 @@ export const AffiliateCard: React.FC<AffiliateCardProps> = ({ affiliate, index, 
             </div>
           </div>
 
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.stopPropagation(); console.log('⚙️ Mais opções:', affiliate.id) }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </motion.button>
-          </div>
         </div>
 
         <div className="space-y-2 mb-4">
@@ -188,13 +180,15 @@ export const AffiliateCard: React.FC<AffiliateCardProps> = ({ affiliate, index, 
 
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
           <Calendar className="w-4 h-4" />
-          <span>Afiliado desde: {formatDate(affiliate.joinedAt)}</span>
+          <span>Afiliado desde: {formatDate(affiliate.createdAt)}</span>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Clock className="w-4 h-4" />
-          <span>Última venda: {formatDate(affiliate.lastSale)}</span>
-        </div>
+        {affiliate.lastSale && (
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Clock className="w-4 h-4" />
+            <span>Última venda: {formatDate(affiliate.lastSale)}</span>
+          </div>
+        )}
       </div>
 
       <div className="px-6 pb-6">
@@ -212,11 +206,24 @@ export const AffiliateCard: React.FC<AffiliateCardProps> = ({ affiliate, index, 
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={(e) => { e.stopPropagation(); console.log('✏️ Editar afiliado:', affiliate.id) }}
-            className="px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            onClick={(e) => { e.stopPropagation(); onEdit(affiliate) }}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Edit3 className="w-3 h-3" />
-            Editar
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={(e) => { 
+              e.stopPropagation()
+              if (confirm(`Tem certeza que deseja excluir o afiliado ${affiliate.name}?`)) {
+                onDelete(affiliate.id)
+              }
+            }}
+            className="px-3 py-2 border border-red-300 dark:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <Trash2 className="w-3 h-3" />
           </motion.button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AffiliateCard } from './AffiliateCard'
 import { AffiliatesTable } from './AffiliatesTable'
@@ -11,6 +11,8 @@ interface AffiliatesListProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onAffiliateSelect: (affiliate: any) => void
+  onEdit: (affiliate: any) => void
+  onDelete: (affiliateId: string) => void
 }
 
 const mockAffiliates = [
@@ -142,10 +144,49 @@ const mockAffiliates = [
 ]
 
 export const AffiliatesList: React.FC<AffiliatesListProps> = ({
-  filters, searchTerm, viewMode, onAffiliateSelect
+  filters, searchTerm, viewMode, onAffiliateSelect, onEdit, onDelete
 }) => {
-  const [affiliates] = useState(mockAffiliates)
-  const [loading] = useState(false)
+  const [affiliates, setAffiliates] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchAffiliates()
+  }, [])
+
+  const fetchAffiliates = async () => {
+    try {
+      const response = await fetch('/api/affiliates')
+      const data = await response.json()
+      
+      if (data.success) {
+        setAffiliates(data.data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar afiliados:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (affiliateId: string) => {
+    try {
+      const response = await fetch(`/api/affiliates/${affiliateId}`, {
+        method: 'DELETE'
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        alert('✅ Afiliado excluído!')
+        fetchAffiliates()
+      } else {
+        alert('❌ Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao excluir:', error)
+      alert('❌ Erro ao excluir afiliado')
+    }
+  }
 
   const filteredAffiliates = affiliates.filter((affiliate) => {
     if (filters.status !== 'all' && affiliate.status !== filters.status) return false
@@ -192,6 +233,8 @@ export const AffiliatesList: React.FC<AffiliatesListProps> = ({
                 affiliate={affiliate}
                 index={index}
                 onClick={() => onAffiliateSelect(affiliate)}
+                onEdit={onEdit}
+                onDelete={handleDelete}
               />
             ))}
           </AnimatePresence>

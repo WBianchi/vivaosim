@@ -14,6 +14,7 @@ const protectedRoutes = [
   '/dashboard',
   '/admin',
   '/profile',
+  '/cliente',
   '/settings',
   '/events',
   '/leads',
@@ -32,7 +33,8 @@ const roleBasedRoutes = {
   '/admin': ['ADMINISTRADOR'],
   '/dashboard': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
   '/crm': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
-  '/chat': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE']
+  '/chat': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
+  '/cliente': ['CLIENTE']
 }
 
 export function middleware(request: NextRequest) {
@@ -95,7 +97,7 @@ function getRedirectUrlByRole(role: string): string {
     case 'ASSINANTE':
       return '/dashboard'
     case 'CLIENTE':
-      return '/profile'
+      return '/cliente'
     default:
       return '/'
   }

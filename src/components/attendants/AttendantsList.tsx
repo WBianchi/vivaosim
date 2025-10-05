@@ -11,6 +11,8 @@ interface AttendantsListProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onAttendantSelect: (attendant: any) => void
+  onEdit?: (attendant: any) => void
+  onAttendantsLoad?: (attendants: any[]) => void
 }
 
 // Mock data - em produção viria da API
@@ -212,10 +214,45 @@ export const AttendantsList: React.FC<AttendantsListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onAttendantSelect
+  onAttendantSelect,
+  onEdit,
+  onAttendantsLoad
 }) => {
-  const [attendants, setAttendants] = useState(mockAttendants)
-  const [loading, setLoading] = useState(false)
+  const [attendants, setAttendants] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchAttendants()
+  }, [filters])
+
+  const fetchAttendants = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      
+      if (filters.status !== 'all') {
+        params.append('status', filters.status.toUpperCase())
+      }
+      
+      if (searchTerm) {
+        params.append('search', searchTerm)
+      }
+
+      const response = await fetch(`/api/attendants?${params}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setAttendants(data.data)
+        if (onAttendantsLoad) {
+          onAttendantsLoad(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar atendentes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Simular filtros
   const filteredAttendants = attendants.filter((attendant) => {
@@ -331,6 +368,7 @@ export const AttendantsList: React.FC<AttendantsListProps> = ({
                 attendant={attendant}
                 index={index}
                 onClick={() => onAttendantSelect(attendant)}
+                onEdit={onEdit}
               />
             ))}
           </AnimatePresence>

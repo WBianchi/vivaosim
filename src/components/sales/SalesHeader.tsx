@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Plus, 
@@ -13,7 +14,8 @@ import {
   Calendar,
   Users,
   Target,
-  BarChart3
+  BarChart3,
+  Filter
 } from 'lucide-react'
 
 interface SalesHeaderProps {
@@ -22,6 +24,7 @@ interface SalesHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  onToggleFilters?: () => void
 }
 
 export const SalesHeader: React.FC<SalesHeaderProps> = ({
@@ -29,18 +32,65 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({
   onSearchChange,
   searchTerm,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  onToggleFilters
 }) => {
-  // Mock statistics - em produção viria da API
-  const stats = {
-    totalSales: 342,
-    totalRevenue: 156780.50,
-    monthlyRevenue: 28450.00,
-    averageTicket: 458.48,
-    conversionRate: 12.8,
-    pendingSales: 23,
-    completedSales: 289,
-    cancelledSales: 30
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    activeSales: 0,
+    pendingSales: 0,
+    completedSales: 0,
+    cancelledSales: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/subscribers')
+      const data = await response.json()
+
+      if (data.success) {
+        const subscribers = data.data
+
+        // Calcular estatísticas
+        const totalSales = subscribers.filter((s: any) => s.subscription).length
+        const totalRevenue = subscribers.reduce((sum: number, s: any) => {
+          return sum + (s.plan?.price || 0)
+        }, 0)
+        
+        const activeSales = subscribers.filter((s: any) => 
+          s.subscription?.status === 'active'
+        ).length
+        
+        const monthlyRevenue = subscribers
+          .filter((s: any) => s.subscription?.status === 'active')
+          .reduce((sum: number, s: any) => {
+            return sum + (s.plan?.price || 0)
+          }, 0)
+
+        setStats({
+          totalSales,
+          totalRevenue,
+          monthlyRevenue,
+          activeSales,
+          pendingSales: 0,
+          completedSales: activeSales,
+          cancelledSales: subscribers.filter((s: any) => 
+            s.subscription?.status === 'canceled'
+          ).length
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const formatCurrency = (value: number) => {
@@ -108,6 +158,19 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({
             </motion.button>
           </div>
 
+          {/* Botão Filtros */}
+          {onToggleFilters && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onToggleFilters}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </motion.button>
+          )}
+
           {/* Botão Criar Venda */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -122,12 +185,12 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -135,7 +198,11 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({
                 Receita Total
               </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {formatCurrency(stats.totalRevenue)}
+                {loading ? (
+                  <span className="animate-pulse">Carregando...</span>
+                ) : (
+                  formatCurrency(stats.totalRevenue)
+                )}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
@@ -206,42 +273,16 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Ticket Médio
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatCurrency(stats.averageTicket)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-              <Target className="w-5 h-5 text-orange-600" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center">
-            <span className="text-xs text-gray-600 dark:text-gray-400">
-              Por venda
-            </span>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Conversão
+                Vendas Ativas
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.conversionRate}%
+                {stats.activeSales}
               </p>
             </div>
             <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">

@@ -9,9 +9,11 @@ import { ContractsList } from '@/components/contracts/ContractsList'
 import { ContractDetailsModal } from '@/components/contracts/ContractDetailsModal'
 import { CreateContractModal } from '@/components/contracts/CreateContractModal'
 import { SignatureModal } from '@/components/contracts/SignatureModal'
+import EditContractModal from '@/components/contracts/EditContractModal'
 
 export default function ContratosPage() {
   const [selectedContract, setSelectedContract] = useState<any>(null)
+  const [editingContract, setEditingContract] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureContract, setSignatureContract] = useState<any>(null)
@@ -34,7 +36,7 @@ export default function ContratosPage() {
   }
 
   const handleEdit = (contract: any) => {
-    console.log('🔄 Editar contrato:', contract.id)
+    setEditingContract(contract)
   }
 
   const handleDelete = () => {
@@ -80,10 +82,22 @@ export default function ContratosPage() {
             contract={selectedContract}
             onClose={() => setSelectedContract(null)}
             onEdit={() => {
-              console.log('🔄 Editar contrato:', selectedContract.id)
+              handleEdit(selectedContract)
               setSelectedContract(null)
             }}
-            onSignature={() => handleSignature(selectedContract)}
+            onSignatureRequest={() => handleSignature(selectedContract)}
+          />
+        )}
+
+        {/* Modal de Edição */}
+        {editingContract && (
+          <EditContractModal
+            contract={editingContract}
+            onClose={() => setEditingContract(null)}
+            onSave={() => {
+              setEditingContract(null)
+              setRefreshKey(prev => prev + 1)
+            }}
           />
         )}
 
@@ -106,10 +120,10 @@ export default function ContratosPage() {
               setShowSignatureModal(false)
               setSignatureContract(null)
             }}
-            onSign={(signatureData) => {
-              console.log('✍️ Assinando contrato:', signatureData)
+            onSave={() => {
               setShowSignatureModal(false)
               setSignatureContract(null)
+              setRefreshKey(prev => prev + 1)
             }}
           />
         )}

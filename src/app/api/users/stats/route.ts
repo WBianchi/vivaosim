@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const cookieStore = cookies()
+    const accessToken = cookieStore.get('accessToken')?.value
     
-    if (!session?.user?.email) {
+    if (!accessToken) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    // Decodificar token para pegar email
+    const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString())
+    const userEmail = payload.email
+
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: userEmail },
       include: {
         affiliateProfile: {
           include: {

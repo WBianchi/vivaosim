@@ -11,6 +11,7 @@ export default function PlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     status: 'all',
     period: 'all',
@@ -49,12 +50,15 @@ export default function PlansPage() {
         searchTerm={searchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      <PlansFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-      />
+      {showFilters && (
+        <PlansFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
+      )}
 
       <PlansList
         key={refreshKey}

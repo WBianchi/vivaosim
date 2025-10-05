@@ -22,8 +22,13 @@ import {
   CheckCircle,
   AlertTriangle,
   Star,
-  TrendingUp
+  TrendingUp,
+  Eye,
+  Globe,
+  ExternalLink
 } from 'lucide-react'
+import { EditClientModal } from './EditClientModal'
+import { ViewAllClientModal } from './ViewAllClientModal'
 
 interface ClientDetailsModalProps {
   client: any
@@ -37,11 +42,28 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   onEdit
 }) => {
   const [isVisible, setIsVisible] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'contracts' | 'tickets' | 'meetings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview'>('overview')
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showViewAllModal, setShowViewAllModal] = useState(false)
+  const [clientData, setClientData] = useState(client)
+  const [siteData, setSiteData] = useState<any>(null)
 
   useEffect(() => {
     setIsVisible(true)
+    fetchSiteData()
   }, [])
+
+  const fetchSiteData = async () => {
+    try {
+      const response = await fetch(`/api/contacts/${client.id}/site`)
+      const data = await response.json()
+      if (data.success && data.site) {
+        setSiteData(data.site)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar site:', error)
+    }
+  }
 
   const handleClose = () => {
     setIsVisible(false)
@@ -80,6 +102,7 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const isVip = client.type === 'vip'
 
   return (
+    <>
     <AnimatePresence>
       {isVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -137,19 +160,24 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                {onEdit && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      onEdit()
-                      handleClose()
-                    }}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-                  >
-                    <Edit3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  </motion.button>
-                )}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowViewAllModal(true)}
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition flex items-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  Ver Tudo
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowEditModal(true)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                >
+                  <Edit3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </motion.button>
                 
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -160,31 +188,6 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                   <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </motion.button>
               </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
-              {[
-                { id: 'overview', label: 'Visão Geral', icon: User },
-                { id: 'contracts', label: 'Contratos', icon: FileText },
-                { id: 'tickets', label: 'Tickets', icon: MessageSquare },
-                { id: 'meetings', label: 'Reuniões', icon: Calendar }
-              ].map((tab) => (
-                <motion.button
-                  key={tab.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'text-green-600 border-b-2 border-green-600 bg-green-50 dark:bg-green-900/20'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                </motion.button>
-              ))}
             </div>
 
             {/* Content */}
@@ -210,10 +213,10 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                         <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Contratos</span>
                       </div>
                       <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                        {client.contracts.length}
+                        {client.contracts?.length || 0}
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400">
-                        {client.contracts.filter((c: any) => c.status === 'active').length} ativos
+                        {client.contracts?.filter((c: any) => c.status === 'active').length || 0} ativos
                       </p>
                     </div>
 
@@ -223,10 +226,10 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                         <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Tickets</span>
                       </div>
                       <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                        {client.tickets.length}
+                        {client.tickets?.length || 0}
                       </p>
                       <p className="text-xs text-purple-600 dark:text-purple-400">
-                        {client.tickets.filter((t: any) => t.status === 'resolved').length} resolvidos
+                        {client.tickets?.filter((t: any) => t.status === 'resolved').length || 0} resolvidos
                       </p>
                     </div>
 
@@ -236,13 +239,91 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                         <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Reuniões</span>
                       </div>
                       <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                        {client.meetings.length}
+                        {client.meetings?.length || 0}
                       </p>
                       <p className="text-xs text-orange-600 dark:text-orange-400">
-                        {client.meetings.filter((m: any) => m.status === 'scheduled').length} agendadas
+                        {client.meetings?.filter((m: any) => m.status === 'scheduled').length || 0} agendadas
                       </p>
                     </div>
                   </div>
+
+                  {/* Site do Cliente */}
+                  {siteData && (
+                    <div className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-6 rounded-xl border-2 border-orange-200 dark:border-orange-700">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-orange-500 rounded-xl">
+                            <Globe className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 dark:text-white text-lg">Site do Evento</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{siteData.nomeEvento}</p>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          siteData.status === 'PUBLICADO' 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' 
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                        }`}>
+                          {siteData.status}
+                        </span>
+                      </div>
+                      
+                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Globe className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">URL do Site</p>
+                            <a
+                              href={`https://${siteData.subdominio}.vivaosim.com.br`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 transition truncate block"
+                            >
+                              {siteData.subdominio}.vivaosim.com.br
+                            </a>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`https://${siteData.subdominio}.vivaosim.com.br`)
+                              alert('✅ Link copiado!')
+                            }}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                            title="Copiar link"
+                          >
+                            <Copy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          </button>
+                          <a
+                            href={`https://${siteData.subdominio}.vivaosim.com.br`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                            title="Abrir site"
+                          >
+                            <ExternalLink className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 mt-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{siteData.visualizacoes || 0}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Visualizações</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{siteData.produtos?.length || 0}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Presentes</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{siteData.convidados?.length || 0}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Convidados</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Informações Pessoais */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -297,15 +378,15 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Endereço</span>
                             </div>
                             <p className="font-semibold text-gray-900 dark:text-white">
-                              {client.address.street}
+                              {client.address?.street}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {client.address.city}, {client.address.state} - {client.address.zipCode}
+                              {client.address?.city}, {client.address?.state} - {client.address?.zipCode}
                             </p>
                           </div>
                         )}
 
-                        {client.documents.cpf && (
+                        {client.documents?.cpf && (
                           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
                             <div className="flex items-center gap-2 mb-2">
                               <FileText className="w-4 h-4 text-gray-600" />
@@ -317,7 +398,7 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                           </div>
                         )}
 
-                        {client.documents.cnpj && (
+                        {client.documents?.cnpj && (
                           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
                             <div className="flex items-center gap-2 mb-2">
                               <Building className="w-4 h-4 text-gray-600" />
@@ -333,7 +414,7 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                   </div>
 
                   {/* Assinatura Atual */}
-                  {client.subscription.status !== 'none' && (
+                  {client.subscription?.status !== 'none' && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl">
                       <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-4">
                         Assinatura Atual
@@ -342,19 +423,19 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                         <div>
                           <p className="text-sm text-blue-600 dark:text-blue-400">Plano</p>
                           <p className="font-bold text-blue-800 dark:text-blue-200">
-                            {client.subscription.plan}
+                            {client.subscription?.plan}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm text-blue-600 dark:text-blue-400">Valor Mensal</p>
                           <p className="font-bold text-blue-800 dark:text-blue-200">
-                            {formatCurrency(client.subscription.value)}
+                            {formatCurrency(client.subscription?.value || 0)}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm text-blue-600 dark:text-blue-400">Vencimento</p>
                           <p className="font-bold text-blue-800 dark:text-blue-200">
-                            {client.subscription.endDate ? formatDate(client.subscription.endDate) : 'N/A'}
+                            {client.subscription?.endDate ? formatDate(client.subscription.endDate) : 'N/A'}
                           </p>
                         </div>
                       </div>
@@ -392,167 +473,31 @@ export const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
                   )}
                 </div>
               )}
-
-              {/* Contracts Tab */}
-              {activeTab === 'contracts' && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Contratos ({client.contracts.length})
-                  </h3>
-                  {client.contracts.length > 0 ? (
-                    <div className="space-y-3">
-                      {client.contracts.map((contract: any) => (
-                        <div key={contract.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 dark:text-white">
-                              {contract.title}
-                            </h4>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              contract.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {contract.status === 'active' ? 'Ativo' : 'Expirado'}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Valor</p>
-                              <p className="font-medium">{formatCurrency(contract.value)}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Início</p>
-                              <p className="font-medium">{formatDate(contract.startDate)}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Fim</p>
-                              <p className="font-medium">{formatDate(contract.endDate)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-8">Nenhum contrato encontrado</p>
-                  )}
-                </div>
-              )}
-
-              {/* Tickets Tab */}
-              {activeTab === 'tickets' && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Tickets de Suporte ({client.tickets.length})
-                  </h3>
-                  {client.tickets.length > 0 ? (
-                    <div className="space-y-3">
-                      {client.tickets.map((ticket: any) => (
-                        <div key={ticket.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 dark:text-white">
-                              {ticket.title}
-                            </h4>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              ticket.status === 'resolved' ? 'bg-green-100 text-green-700' : 
-                              ticket.status === 'escalated' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {ticket.status === 'resolved' ? 'Resolvido' : 
-                               ticket.status === 'escalated' ? 'Escalado' : 'Em Andamento'}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Prioridade: {ticket.priority === 'high' ? 'Alta' : ticket.priority === 'medium' ? 'Média' : 'Baixa'}
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              {formatDateTime(ticket.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-8">Nenhum ticket encontrado</p>
-                  )}
-                </div>
-              )}
-
-              {/* Meetings Tab */}
-              {activeTab === 'meetings' && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Reuniões ({client.meetings.length})
-                  </h3>
-                  {client.meetings.length > 0 ? (
-                    <div className="space-y-3">
-                      {client.meetings.map((meeting: any) => (
-                        <div key={meeting.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 dark:text-white">
-                              {meeting.title}
-                            </h4>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              meeting.status === 'scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                            }`}>
-                              {meeting.status === 'scheduled' ? 'Agendada' : 'Realizada'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {formatDateTime(meeting.date)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-8">Nenhuma reunião encontrada</p>
-                  )}
-                </div>
-              )}
-
-              {/* Ações */}
-              <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    navigator.clipboard.writeText(client.id)
-                    console.log('📋 ID copiado:', client.id)
-                  }}
-                  className="px-4 py-3 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copiar ID
-                </motion.button>
-                
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    if (onEdit) {
-                      onEdit()
-                      handleClose()
-                    }
-                  }}
-                  className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Editar Cliente
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    console.log('⚙️ Configurações:', client.id)
-                  }}
-                  className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  Configurar
-                </motion.button>
-              </div>
             </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+
+      {/* Modals */}
+      {showEditModal && (
+        <EditClientModal
+          client={client}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false)
+            window.location.reload() // Recarrega para atualizar dados
+          }}
+        />
+      )}
+
+      {showViewAllModal && (
+        <ViewAllClientModal
+          clientId={client.id}
+          clientName={client.name}
+          onClose={() => setShowViewAllModal(false)}
+        />
+      )}
+    </>
   )
 }

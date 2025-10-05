@@ -69,10 +69,11 @@ const updatePlanSchema = z.object({
 // GET - Listar planos
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyAuth(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Remover autenticação para permitir buscar planos no modal
+    // const user = await verifyAuth(request)
+    // if (!user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // }
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -103,13 +104,6 @@ export async function GET(request: NextRequest) {
         { createdAt: 'desc' }
       ],
       include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
         _count: {
           select: {
             subscriptions: true
@@ -136,8 +130,7 @@ export async function GET(request: NextRequest) {
       displayOrder: plan.displayOrder,
       subscribersCount: plan._count.subscriptions,
       createdAt: plan.createdAt.toISOString(),
-      updatedAt: plan.updatedAt.toISOString(),
-      createdBy: plan.createdBy
+      updatedAt: plan.updatedAt.toISOString()
     }))
 
     return NextResponse.json({ plans: formattedPlans })

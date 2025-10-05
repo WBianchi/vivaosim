@@ -17,19 +17,28 @@ import {
   Clock,
   AlertTriangle,
   DollarSign,
-  MapPin
+  MapPin,
+  Trash2,
+  Archive,
+  Globe
 } from 'lucide-react'
 
 interface SubscriberCardProps {
   subscriber: any
   index: number
   onClick: () => void
+  onEdit?: (subscriber: any) => void
+  onDelete?: (subscriber: any) => void
+  onArchive?: (subscriber: any) => void
 }
 
 export const SubscriberCard: React.FC<SubscriberCardProps> = ({
   subscriber,
   index,
-  onClick
+  onClick,
+  onEdit,
+  onDelete,
+  onArchive
 }) => {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR')
@@ -128,12 +137,12 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
     }
   }
 
-  const statusConfig = getStatusConfig(subscriber.status)
-  const subscriptionConfig = getSubscriptionStatusConfig(subscriber.subscription.status)
-  const paymentConfig = getPaymentStatusConfig(subscriber.payment.status)
+  const statusConfig = getStatusConfig(subscriber.status || 'active')
+  const subscriptionConfig = getSubscriptionStatusConfig(subscriber.subscription?.status || 'pending')
+  const paymentConfig = getPaymentStatusConfig(subscriber.payment?.status || 'pending')
 
   const isExpiringSoon = () => {
-    if (!subscriber.subscription.endDate) return false
+    if (!subscriber.subscription?.endDate) return false
     const endDate = new Date(subscriber.subscription.endDate)
     const now = new Date()
     const daysUntilExpiry = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -141,7 +150,7 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
   }
 
   const isExpired = () => {
-    if (!subscriber.subscription.endDate) return false
+    if (!subscriber.subscription?.endDate) return false
     const endDate = new Date(subscriber.subscription.endDate)
     const now = new Date()
     return endDate < now
@@ -153,7 +162,7 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       whileHover={{ y: -4, scale: 1.02 }}
-      className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-2 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group ${
+      className={`relative bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group ${
         isExpired() 
           ? 'border-red-200 ring-2 ring-red-100 dark:ring-red-900/30' 
           : isExpiringSoon()
@@ -162,17 +171,38 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
       }`}
       onClick={onClick}
     >
-      {/* Expired/Expiring Badge */}
-      {isExpired() && (
-        <div className="absolute top-0 right-0 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-bl-xl text-xs font-medium">
-          Expirado
+      {/* Badges */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2 items-end z-10">
+        {/* Contador Badge */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg flex items-center gap-2">
+          <span className="text-2xl">#{index + 1}</span>
         </div>
-      )}
-      {isExpiringSoon() && !isExpired() && (
-        <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-3 py-1 rounded-bl-xl text-xs font-medium">
-          Expira em Breve
-        </div>
-      )}
+        
+        {/* Status Badges com contador de dias */}
+        {isExpired() && (
+          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg animate-pulse">
+            <AlertTriangle className="w-4 h-4" />
+            <div className="flex flex-col items-start">
+              <span>EXPIRADO</span>
+              <span className="text-xs opacity-90">Renovar agora!</span>
+            </div>
+          </div>
+        )}
+        {!isExpired() && isExpiringSoon() && (() => {
+          const endDate = new Date(subscriber.subscription.endDate)
+          const now = new Date()
+          const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          return (
+            <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg">
+              <Clock className="w-4 h-4" />
+              <div className="flex flex-col items-start">
+                <span>{daysLeft} {daysLeft === 1 ? 'DIA' : 'DIAS'}</span>
+                <span className="text-xs opacity-90">para expirar</span>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
 
       {/* Header */}
       <div className="p-6 pb-4">
@@ -189,17 +219,28 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
                 <User className={`w-6 h-6 ${statusConfig.color}`} />
               )}
             </div>
-            <div>
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1">
+            <div className="flex-1 pr-20">
+              <h3 className="font-extrabold text-gray-900 dark:text-white text-2xl line-clamp-1 tracking-tight">
                 {subscriber.name}
               </h3>
-              <div className="flex items-center gap-2 mt-1">
+              {subscriber.subdomain && (
+                <p className="text-sm text-orange-600 dark:text-orange-400 font-semibold mt-1 flex items-center gap-1">
+                  <Globe className="w-3 h-3" />
+                  {subscriber.subdomain}.vivaosim.com.br
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-2">
                 <span className={`px-2 py-0.5 ${statusConfig.bg} ${statusConfig.color} rounded-full text-xs font-medium`}>
                   {statusConfig.label}
                 </span>
                 <span className={`px-2 py-0.5 ${subscriptionConfig.bg} ${subscriptionConfig.color} rounded-full text-xs font-medium`}>
                   {subscriptionConfig.label}
                 </span>
+                {subscriber.plan && (
+                  <span className={`px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-full text-xs font-medium`}>
+                    {subscriber.plan.name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -221,11 +262,11 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
 
         {/* Contato */}
         <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 font-medium">
             <Mail className="w-4 h-4" />
             <span className="line-clamp-1">{subscriber.email}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 font-medium">
             <Phone className="w-4 h-4" />
             <span>{subscriber.phone}</span>
           </div>
@@ -238,75 +279,84 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
         </div>
 
         {/* Plano */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Package className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              {subscriber.plan.name}
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-900/10 p-4 rounded-xl mb-4 border border-orange-200 dark:border-orange-800">
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="w-5 h-5 text-orange-600" />
+            <span className="text-base font-bold text-orange-700 dark:text-orange-300">
+              {subscriber.plan?.name || 'Sem plano'}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
-              {formatPrice(subscriber.plan.price)}
+            <span className="text-2xl font-extrabold text-orange-700 dark:text-orange-300">
+              {formatPrice(subscriber.plan?.price || 0)}
             </span>
-            <span className="text-sm text-blue-600 dark:text-blue-400">
-              /{subscriber.plan.period === 'monthly' ? 'mês' : 'ano'}
+            <span className="text-sm text-orange-600 dark:text-orange-400 font-semibold">
+              /{subscriber.plan?.period === 'monthly' || subscriber.plan?.period === 'MONTHLY' ? 'mês' : 'ano'}
             </span>
           </div>
         </div>
 
         {/* Pagamento */}
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Pagamento
-              </span>
+        {subscriber.payment && (
+          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Pagamento
+                </span>
+              </div>
+              <div>
+                <span className={`px-2 py-0.5 ${paymentConfig.bg} ${paymentConfig.color} rounded-full text-xs font-medium`}>
+                  {paymentConfig.label}
+                </span>
+              </div>
             </div>
-            <span className={`px-2 py-1 ${paymentConfig.bg} ${paymentConfig.color} rounded-full text-xs font-medium`}>
-              {paymentConfig.label}
-            </span>
+            <div className="space-y-2">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                {subscriber.payment.method ? getPaymentMethodLabel(subscriber.payment.method) : 'N/A'}
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Total Pago:</span>
+                <span className="text-gray-900 dark:text-white font-semibold">
+                  {formatPrice(subscriber.payment.totalPaid || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Último Pagamento:</span>
+                <span className="text-gray-900 dark:text-white font-medium">
+                  {subscriber.payment.lastPayment ? formatDate(subscriber.payment.lastPayment) : subscriber.subscription?.startDate ? formatDate(subscriber.subscription.startDate) : 'N/A'}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Método:</span>
-              <span className="text-gray-900 dark:text-white">
-                {getPaymentMethodLabel(subscriber.payment.method)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Total Pago:</span>
-              <span className="text-gray-900 dark:text-white font-medium">
-                {formatPrice(subscriber.payment.totalPaid)}
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Assinatura */}
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Início:</span>
-            <span className="text-gray-900 dark:text-white">
-              {formatDate(subscriber.subscription.startDate)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Vencimento:</span>
-            <span className={`font-medium ${
-              isExpired() ? 'text-red-600' : isExpiringSoon() ? 'text-yellow-600' : 'text-gray-900 dark:text-white'
-            }`}>
-              {formatDate(subscriber.subscription.endDate)}
-            </span>
-          </div>
-          {subscriber.subscription.autoRenewal && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
-              <CheckCircle className="w-3 h-3" />
-              <span>Renovação automática</span>
+        {subscriber.subscription && (
+          <div className="space-y-2 mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">Início:</span>
+              <span className="text-gray-900 dark:text-white font-semibold">
+                {subscriber.subscription.startDate ? formatDate(subscriber.subscription.startDate) : 'N/A'}
+              </span>
             </div>
-          )}
-        </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">Vencimento:</span>
+              <span className={`font-bold ${
+                isExpired() ? 'text-red-600' : isExpiringSoon() ? 'text-yellow-600' : 'text-gray-900 dark:text-white'
+              }`}>
+                {subscriber.subscription.endDate ? formatDate(subscriber.subscription.endDate) : 'N/A'}
+              </span>
+            </div>
+            {subscriber.subscription.autoRenewal && (
+              <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
+                <CheckCircle className="w-3 h-3" />
+                <span>Renovação automática</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Localização */}
         {subscriber.address && (
@@ -327,7 +377,7 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
 
       {/* Actions */}
       <div className="px-6 pb-6">
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-2">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -335,9 +385,9 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
               e.stopPropagation()
               onClick()
             }}
-            className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
           >
-            <Eye className="w-3 h-3" />
+            <Eye className="w-4 h-4" />
             Ver Detalhes
           </motion.button>
           
@@ -346,18 +396,51 @@ export const SubscriberCard: React.FC<SubscriberCardProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('✏️ Editar assinante:', subscriber.id)
+              if (onEdit) {
+                onEdit(subscriber)
+              }
             }}
-            className="px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Edit3 className="w-3 h-3" />
-            Editar
+          </motion.button>
+        </div>
+
+        <div className="flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onArchive && confirm('Deseja arquivar este assinante?')) {
+                onArchive(subscriber)
+              }
+            }}
+            className="flex-1 px-3 py-2 border border-yellow-300 dark:border-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <Archive className="w-3 h-3" />
+            Arquivar
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onDelete && confirm('⚠️ Tem certeza que deseja EXCLUIR este assinante? Esta ação não pode ser desfeita!')) {
+                onDelete(subscriber)
+              }
+            }}
+            className="flex-1 px-3 py-2 border border-red-300 dark:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            <Trash2 className="w-3 h-3" />
+            Excluir
           </motion.button>
         </div>
       </div>
 
       {/* Hover Effect */}
-      <div className="absolute inset-0 bg-gradient-to-t from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </motion.div>
   )
 }

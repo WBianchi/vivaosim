@@ -69,7 +69,7 @@ export default function LoginPage() {
         let redirectUrl = '/dashboard'
         
         if (data.data.user.role === 'CLIENTE') {
-          redirectUrl = '/' // Página inicial para clientes
+          redirectUrl = '/dashboard/cliente' // Área do cliente
         } else if (data.data.user.role === 'ADMINISTRADOR' || data.data.user.role === 'ATENDENTE' || data.data.user.role === 'ASSINANTE') {
           redirectUrl = '/dashboard'
         }
