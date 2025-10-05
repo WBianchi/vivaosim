@@ -421,15 +421,6 @@ enum PaymentStatus {
   CANCELADO
 }
 
-enum PaymentMethod {
-  DINHEIRO
-  CARTAO_CREDITO
-  CARTAO_DEBITO
-  PIX
-  TRANSFERENCIA
-  BOLETO
-}
-
 model Payment {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -439,7 +430,7 @@ model Payment {
   dueDate     DateTime
   paidDate    DateTime?
   status      PaymentStatus @default(PENDENTE)
-  method      PaymentMethod?
+  method      String? // Mudado para String para evitar conflito
   description String?
   
   // Relacionamentos
@@ -449,20 +440,6 @@ model Payment {
   @@map("payments")
 }
 
-// Custos do Evento (para o cliente gerenciar)
-enum ExpenseCategory {
-  ALIMENTACAO
-  DECORACAO
-  MUSICA
-  FOTOGRAFIA
-  TRANSPORTE
-  VESTUARIO
-  FLORES
-  CONVITES
-  LEMBRANCINHAS
-  OUTROS
-}
-
 model EventExpense {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -470,7 +447,7 @@ model EventExpense {
 
   name        String
   description String?
-  category    ExpenseCategory
+  category    String // Mudado para String para evitar conflito
   budgeted    Decimal // Valor orçado
   actual      Decimal? // Valor real gasto
   isPaid      Boolean @default(false)
