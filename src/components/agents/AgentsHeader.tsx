@@ -11,7 +11,8 @@ import {
   Activity,
   Users,
   MessageSquare,
-  Zap
+  Zap,
+  Filter
 } from 'lucide-react'
 
 interface AgentsHeaderProps {
@@ -20,6 +21,8 @@ interface AgentsHeaderProps {
   onViewModeChange: (mode: 'grid' | 'table') => void
   searchTerm: string
   onSearchChange: (term: string) => void
+  showFilters: boolean
+  onToggleFilters: () => void
 }
 
 export const AgentsHeader: React.FC<AgentsHeaderProps> = ({
@@ -27,7 +30,9 @@ export const AgentsHeader: React.FC<AgentsHeaderProps> = ({
   viewMode,
   onViewModeChange,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  showFilters,
+  onToggleFilters
 }) => {
   const [stats, setStats] = useState([
     {
@@ -186,6 +191,21 @@ export const AgentsHeader: React.FC<AgentsHeaderProps> = ({
               <List className="w-4 h-4" />
             </motion.button>
           </div>
+
+          {/* Botão Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onToggleFilters}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+              showFilters
+                ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
 
           {/* Botão Criar Agente */}
           <motion.button

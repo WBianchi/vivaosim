@@ -11,6 +11,7 @@ export default function BlogPage() {
   const [selectedPost, setSelectedPost] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     status: 'all',
     category: 'all',
@@ -81,12 +82,16 @@ export default function BlogPage() {
         searchTerm={searchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      <BlogFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-      />
+      {showFilters && (
+        <BlogFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
+      )}
 
       <BlogList
         key={refreshKey}

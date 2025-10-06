@@ -14,6 +14,7 @@ export default function AgentesPage() {
   const [editingAgent, setEditingAgent] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showActivationModal, setShowActivationModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [activationAgent, setActivationAgent] = useState<any>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
@@ -74,13 +75,17 @@ export default function AgentesPage() {
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
         />
 
         {/* Filtros */}
-        <AgentsFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        {showFilters && (
+          <AgentsFilters 
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
 
         {/* Lista de Agentes */}
         <AgentsList 

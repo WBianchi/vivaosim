@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Search, Grid3X3, List, FileText, Eye, TrendingUp, Clock, Star, MessageSquare } from 'lucide-react'
+import { Plus, Search, Grid3X3, List, FileText, Eye, TrendingUp, Clock, Star, MessageSquare, Filter } from 'lucide-react'
 import { getAuthHeaders } from '@/lib/auth-token'
 
 interface BlogHeaderProps {
@@ -11,10 +11,12 @@ interface BlogHeaderProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onViewModeChange: (mode: 'grid' | 'table') => void
+  showFilters: boolean
+  onToggleFilters: () => void
 }
 
 export const BlogHeader: React.FC<BlogHeaderProps> = ({
-  onCreatePost, onSearchChange, searchTerm, viewMode, onViewModeChange
+  onCreatePost, onSearchChange, searchTerm, viewMode, onViewModeChange, showFilters, onToggleFilters
 }) => {
   const [stats, setStats] = useState({
     totalPosts: 0,
@@ -107,6 +109,20 @@ export const BlogHeader: React.FC<BlogHeaderProps> = ({
               <List className="w-4 h-4" />
             </motion.button>
           </div>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onToggleFilters}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+              showFilters
+                ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
