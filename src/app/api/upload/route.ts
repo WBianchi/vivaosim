@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { put } from '@vercel/blob'
 import { verifyAccessToken } from '@/lib/jwt'
 
 export async function POST(request: NextRequest) {
@@ -19,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const data = await request.formData()
     const file: File | null = data.get('file') as unknown as File
-    const folder: string = (data.get('folder') as string) || 'uploads' // 'avatars', 'logos', etc
+    const folder: string = (data.get('folder') as string) || 'uploads' // 'avatars', 'logos', 'blog', etc
 
     if (!file) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
@@ -36,37 +35,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Arquivo muito grande (máx 5MB)' }, { status: 400 })
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
-    // Criar diretório se não existir
-    const uploadDir = join(process.cwd(), 'public', 'uploads', folder)
-    try {
-      await mkdir(uploadDir, { recursive: true })
-    } catch (error) {
-      // Diretório já existe
-    }
-
-    // Gerar nome único
+    // Gerar nome único para o arquivo
     const timestamp = Date.now()
     const extension = file.name.split('.').pop()
-    const fileName = `${timestamp}.${extension}`
-    const filePath = join(uploadDir, fileName)
+    const fileName = `${folder}/${timestamp}.${extension}`
 
-    // Salvar arquivo
-    await writeFile(filePath, buffer)
+    console.log('📤 Fazendo upload para Vercel Blob:', fileName)
 
-    const fileUrl = `/uploads/${folder}/${fileName}`
+    // Upload para Vercel Blob
+    const blob = await put(fileName, file, {
+      access: 'public',
+      addRandomSuffix: false
+    })
+
+    console.log('✅ Upload concluído! URL:', blob.url)
 
     return NextResponse.json({
       success: true,
-      url: fileUrl,
-      fileName,
+      url: blob.url,
+      fileName: blob.pathname,
       size: file.size
     })
 
   } catch (error: any) {
-    console.error('Erro no upload:', error)
+    console.error('❌ Erro no upload:', error)
     return NextResponse.json({
       success: false,
       error: error.message || 'Erro interno do servidor'

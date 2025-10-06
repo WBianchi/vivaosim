@@ -28,6 +28,7 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [generatingAI, setGeneratingAI] = useState<string | null>(null)
 
   useEffect(() => {
     setIsVisible(true)
@@ -127,9 +128,114 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
     }
   }
 
-  const generateWithAI = (field: string) => {
+  const generateWithAI = async (field: string) => {
     console.log(`🤖 Gerando ${field} com IA...`)
-    // Aqui você integraria com a API do DeepSeek
+    setGeneratingAI(field)
+    setError('')
+    
+    try {
+      let prompt = ''
+      const existingTitle = formData.title
+      const existingContent = formData.content
+      
+      // Definir prompts específicos para cada campo
+      switch(field) {
+        case 'title':
+          prompt = existingContent 
+            ? `Com base neste conteúdo, crie um título atrativo e otimizado para SEO (máximo 60 caracteres):\n\n${existingContent.substring(0, 500)}...`
+            : 'Crie um título criativo e atrativo para um post de blog sobre marketing digital e vendas online.'
+          break
+          
+        case 'excerpt':
+          if (!existingTitle && !existingContent) {
+            setError('Adicione um título ou conteúdo primeiro')
+            setGeneratingAI(null)
+            return
+          }
+          prompt = `Crie um resumo atrativo (máximo 160 caracteres) para um post com o título "${existingTitle}".${existingContent ? `\n\nConteúdo:\n${existingContent.substring(0, 300)}...` : ''}`
+          break
+          
+        case 'content':
+          if (!existingTitle) {
+            setError('Adicione um título primeiro')
+            setGeneratingAI(null)
+            return
+          }
+          prompt = `Escreva um artigo completo e detalhado para blog com o título: "${existingTitle}". 
+          
+Inclua:
+- Introdução envolvente
+- 3-5 seções com subtítulos
+- Exemplos práticos
+- Conclusão com call-to-action
+- Use markdown para formatação (## para títulos, **negrito**, etc)
+
+Mínimo 800 palavras, tom profissional mas acessível.`
+          break
+          
+        case 'seo-title':
+          prompt = existingTitle 
+            ? `Otimize este título para SEO (60 caracteres): "${existingTitle}"`
+            : 'Crie um meta título otimizado para SEO sobre marketing digital'
+          break
+          
+        case 'seo-description':
+          prompt = `Crie uma meta descrição SEO (150-160 caracteres) para: "${existingTitle}".${formData.excerpt ? ` Resumo: ${formData.excerpt}` : ''}`
+          break
+          
+        case 'keywords':
+          prompt = `Liste 5-8 palavras-chave SEO relevantes (separadas por vírgula) para: "${existingTitle}"`
+          break
+      }
+
+      const response = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({ prompt, field })
+      })
+
+      if (!response.ok) {
+        throw new Error('Falha ao gerar conteúdo')
+      }
+
+      const data = await response.json()
+      
+      if (data.success && data.content) {
+        // Atualizar o campo correspondente
+        switch(field) {
+          case 'title':
+            updateFormData('title', data.content)
+            break
+          case 'excerpt':
+            updateFormData('excerpt', data.content)
+            break
+          case 'content':
+            updateFormData('content', data.content)
+            break
+          case 'seo-title':
+            updateFormData('metaTitle', data.content)
+            break
+          case 'seo-description':
+            updateFormData('metaDescription', data.content)
+            break
+          case 'keywords':
+            updateFormData('metaKeywords', data.content)
+            break
+        }
+        
+        console.log('✅ Conteúdo gerado com sucesso!')
+      } else {
+        throw new Error(data.error || 'Erro ao gerar conteúdo')
+      }
+    } catch (error) {
+      console.error('❌ Erro ao gerar com IA:', error)
+      setError('Erro ao gerar conteúdo com IA. Tente novamente.')
+    } finally {
+      setGeneratingAI(null)
+    }
   }
 
   const updateFormData = (key: string, value: any) => {
@@ -189,11 +295,16 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       />
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: generatingAI === 'title' ? 1 : 1.05 }}
                         onClick={() => generateWithAI('title')}
-                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center gap-2"
+                        disabled={generatingAI !== null}
+                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        {generatingAI === 'title' ? (
+                          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
                         IA
                       </motion.button>
                     </div>
@@ -213,11 +324,16 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       />
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: generatingAI === 'excerpt' ? 1 : 1.05 }}
                         onClick={() => generateWithAI('excerpt')}
-                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center gap-2"
+                        disabled={generatingAI !== null}
+                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        {generatingAI === 'excerpt' ? (
+                          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
                         IA
                       </motion.button>
                     </div>
@@ -229,12 +345,22 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       <div className="flex justify-end">
                         <motion.button
                           type="button"
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={{ scale: generatingAI === 'content' ? 1 : 1.05 }}
                           onClick={() => generateWithAI('content')}
-                          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg flex items-center gap-2"
+                          disabled={generatingAI !== null || !formData.title}
+                          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Sparkles className="w-4 h-4" />
-                          Gerar Conteúdo com IA
+                          {generatingAI === 'content' ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              Gerar Conteúdo com IA
+                            </>
+                          )}
                         </motion.button>
                       </div>
                       <textarea
@@ -272,11 +398,16 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       />
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: generatingAI === 'seo-title' ? 1 : 1.05 }}
                         onClick={() => generateWithAI('seo-title')}
-                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg"
+                        disabled={generatingAI !== null}
+                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        {generatingAI === 'seo-title' ? (
+                          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
                       </motion.button>
                     </div>
                   </div>
@@ -293,11 +424,16 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       />
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: generatingAI === 'seo-description' ? 1 : 1.05 }}
                         onClick={() => generateWithAI('seo-description')}
-                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg"
+                        disabled={generatingAI !== null}
+                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        {generatingAI === 'seo-description' ? (
+                          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
                       </motion.button>
                     </div>
                   </div>
@@ -314,11 +450,16 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                       />
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: generatingAI === 'keywords' ? 1 : 1.05 }}
                         onClick={() => generateWithAI('keywords')}
-                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg"
+                        disabled={generatingAI !== null}
+                        className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        {generatingAI === 'keywords' ? (
+                          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
                       </motion.button>
                     </div>
                   </div>
