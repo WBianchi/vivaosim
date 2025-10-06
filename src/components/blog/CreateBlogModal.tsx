@@ -27,6 +27,7 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
@@ -90,6 +91,39 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
       setError('Erro ao salvar post')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return
+    
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', 'blog')
+
+      const token = getAuthToken()
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+      
+      if (data.success && data.url) {
+        updateFormData('coverImage', data.url)
+      } else {
+        setError('Erro ao fazer upload da imagem')
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error)
+      setError('Erro ao fazer upload da imagem')
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -296,13 +330,71 @@ export const CreateBlogModal: React.FC<CreateBlogModalProps> = ({ onClose, onSav
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagem de Capa</label>
-                    <input
-                      type="url"
-                      value={formData.coverImage}
-                      onChange={(e) => updateFormData('coverImage', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                      placeholder="https://exemplo.com/imagem.jpg"
-                    />
+                    
+                    {formData.coverImage ? (
+                      <div className="space-y-3">
+                        <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
+                          <img 
+                            src={formData.coverImage} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const input = document.createElement('input')
+                              input.type = 'file'
+                              input.accept = 'image/*'
+                              input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0]
+                                if (file) handleImageUpload(file)
+                              }
+                              input.click()
+                            }}
+                            disabled={uploadingImage}
+                            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 text-sm"
+                          >
+                            {uploadingImage ? '📤 Enviando...' : '🔄 Alterar Imagem'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateFormData('coverImage', '')}
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                          >
+                            🗑️ Remover
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => {
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.accept = 'image/*'
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0]
+                            if (file) handleImageUpload(file)
+                          }
+                          input.click()
+                        }}
+                        className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-colors bg-gray-50 dark:bg-gray-800"
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-3"></div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Enviando imagem...</p>
+                          </>
+                        ) : (
+                          <>
+                            <Image className="w-12 h-12 text-gray-400 mb-3" />
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Clique para fazer upload</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">PNG, JPG, GIF até 5MB</p>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

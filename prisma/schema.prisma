@@ -2171,3 +2171,171 @@ enum PaymentMethod {
 //   @@index([estimateId])
 //   @@index([category])
 // }
+
+// ========================================
+// 🎨 CONFIGURAÇÕES DO SITE
+// ========================================
+
+model ConfiguracaoSite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ========================================
+  // 📄 SEO & IDENTIDADE
+  // ========================================
+  titulo          String  @default("Viva o Sim - Sistema de Gestão")
+  descricao       String? @db.Text
+  palavrasChave   String? @db.Text // separadas por vírgula
+  logo            String? // URL ou path da logo
+  logoSize        String? @default("medium") // small, medium, large, custom
+  logoWidth       Int?    @default(40) // em pixels para custom
+  logoHeight      Int?    @default(40) // em pixels para custom
+  favicon         String? // URL ou path do favicon
+
+  @@map("configuracoes_site")
+}
+
+// ========================================
+// 🎨 TEMA VISUAL E PERSONALIZAÇÃO
+// ========================================
+model TemaVisual {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CORES PRINCIPAIS
+  corPrimaria       String @default("#F97316") // Cor principal do sistema
+  corSecundaria     String @default("#EA580C") // Cor secundária
+  corDestaque       String @default("#FB923C") // Cor de destaque/hover
+  corSucesso        String @default("#10B981") // Verde para sucesso
+  corErro           String @default("#EF4444") // Vermelho para erro
+  corAlerta         String @default("#F59E0B") // Amarelo para alertas
+  corInfo           String @default("#3B82F6") // Azul para info
+  
+  // CORES DE TEXTO
+  corTextoTitulo    String @default("#111827") // Títulos (dark mode: branco)
+  corTextoParagrafo String @default("#374151") // Parágrafos normais
+  corTextoSecundario String @default("#6B7280") // Texto secundário/subtítulo
+  corTextoMutado    String @default("#9CA3AF") // Texto desabilitado
+  
+  // CORES DE FUNDO
+  corFundoPrincipal String @default("#FFFFFF") // Fundo principal
+  corFundoSecundario String @default("#F9FAFB") // Fundo alternativo
+  corFundoTerciario String @default("#F3F4F6") // Cards, boxes
+  
+  // CORES DE BORDAS
+  corBordaPrimaria  String @default("#E5E7EB") // Bordas padrão
+  corBordaSecundaria String @default("#D1D5DB") // Bordas hover
+  corBordaDestaque  String @default("#F97316") // Bordas ativas
+  
+  // CORES DE BOTÕES
+  corBotaoPrimario  String @default("#F97316") // Botão principal
+  corBotaoSecundario String @default("#6B7280") // Botão secundário
+  corBotaoTexto     String @default("#FFFFFF") // Texto do botão
+  
+  // FONTES
+  fontePrimaria     String @default("Inter") // Fonte principal
+  fonteSecundaria   String @default("Inter") // Fonte secundária (títulos)
+  fonteMonospace    String @default("Fira Code") // Fonte código
+  
+  // TAMANHOS DE FONTE
+  tamanhoFontePequena String @default("0.875rem") // 14px
+  tamanhoFonteNormal  String @default("1rem")     // 16px
+  tamanhoFonteMedia   String @default("1.125rem") // 18px
+  tamanhoFonteGrande  String @default("1.25rem")  // 20px
+  tamanhoFonteTitulo  String @default("1.875rem") // 30px
+  
+  // BORDER RADIUS (Arredondamento)
+  roundPequeno      String @default("0.25rem")  // 4px - badges, tags
+  roundNormal       String @default("0.5rem")   // 8px - inputs, cards pequenos
+  roundMedio        String @default("0.75rem")  // 12px - cards médios
+  roundGrande       String @default("1rem")     // 16px - modais, seções
+  roundBotao        String @default("0.75rem")  // 12px - botões
+  roundInput        String @default("0.5rem")   // 8px - inputs
+  roundCard         String @default("1rem")     // 16px - cards
+  roundModal        String @default("1.5rem")   // 24px - modais
+  
+  // ESPAÇAMENTOS
+  espacamentoPequeno String @default("0.5rem")  // 8px
+  espacamentoNormal  String @default("1rem")    // 16px
+  espacamentoMedio   String @default("1.5rem")  // 24px
+  espacamentoGrande  String @default("2rem")    // 32px
+  
+  // SOMBRAS
+  sombraPequena     String @default("0 1px 2px rgba(0, 0, 0, 0.05)")
+  sombraNormal      String @default("0 1px 3px rgba(0, 0, 0, 0.1)")
+  sombraMedia       String @default("0 4px 6px rgba(0, 0, 0, 0.1)")
+  sombraGrande      String @default("0 10px 15px rgba(0, 0, 0, 0.1)")
+  
+  // BORDAS
+  espessuraBordaPequena String @default("1px")
+  espessuraBordaNormal  String @default("2px")
+  espessuraBordaGrossa  String @default("3px")
+
+  @@map("tema_visual")
+}
+
+// ========================================
+// ⚙️ CONFIGURAÇÕES DO SISTEMA
+// ========================================
+model ConfiguracoesSistema {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Aparência
+  darkMode        Boolean @default(false)
+  modoManutencao  Boolean @default(false)
+  
+  // SMTP
+  smtpAtivo       Boolean @default(false)
+  smtpEmail       String  @default("smtp@vivaosim.com.br")
+  smtpHost        String  @default("smtp.hostinger.com")
+  smtpSenha       String  @default("Lala147??")
+  smtpPorta       Int     @default(465)
+  smtpSecure      Boolean @default(true)
+
+  @@map("configuracoes_sistema")
+}
+
+// ========================================
+// 🏢 INFORMAÇÕES DA EMPRESA
+// ========================================
+model InfosEmpresa {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nomeEmpresa       String   @default("VivaOSim Solutions")
+  cnpj              String?
+  email             String   @default("contato@vivaosim.com")
+  telefone          String?
+  endereco          String?
+  cidade            String?
+  estado            String?
+  pais              String?  @default("Brasil")
+  
+  // Horário de funcionamento
+  horarioAbertura   String?  @default("08:00") // HH:mm
+  horarioFechamento String?  @default("18:00") // HH:mm
+  diasAtendimento   String?  @default("Segunda a Sexta") // texto livre ou JSON
+
+  @@map("infos_empresa")
+}
+
+// ========================================
+// 🔐 PERMISSÕES GLOBAIS (para futuro)
+// ========================================
+// model PermissaoGlobal {
+//   id        String   @id @default(cuid())
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//
+//   role      UserRole // ADMINISTRADOR, ATENDENTE, ASSINANTE, CLIENTE
+//   recurso   String   // sidebar, topbar, sidechat, chatarea, footerchat, kanban
+//   permissoes Json    // { "visualizar": true, "editar": false, "excluir": false }
+//
+//   @@unique([role, recurso])
+//   @@map("permissoes_globais")
+// }

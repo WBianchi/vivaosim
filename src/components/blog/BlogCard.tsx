@@ -1,15 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { FileText, Eye, Clock, Heart, MessageSquare, Tag, User, Calendar, TrendingUp, Edit3, MoreVertical } from 'lucide-react'
+import { FileText, Eye, Clock, Heart, MessageSquare, Tag, User, Calendar, TrendingUp, Edit3, Trash2 } from 'lucide-react'
 
 interface BlogCardProps {
   post: any
   index: number
   onClick: () => void
+  onEdit?: (post: any) => void
+  onDelete?: (postId: string) => void
 }
 
-export const BlogCard: React.FC<BlogCardProps> = ({ post, index, onClick }) => {
+export const BlogCard: React.FC<BlogCardProps> = ({ post, index, onClick, onEdit, onDelete }) => {
   const formatDate = (date: string) => new Date(date).toLocaleDateString('pt-BR')
 
   const getStatusConfig = (status: string) => {
@@ -56,15 +58,29 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, index, onClick }) => {
               {post.excerpt}
             </p>
           </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => { e.stopPropagation(); console.log('⚙️ Mais opções:', post.id) }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </motion.button>
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+            {onEdit && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => { e.stopPropagation(); onEdit(post) }}
+                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                title="Editar post"
+              >
+                <Edit3 className="w-4 h-4" />
+              </motion.button>
+            )}
+            {onDelete && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => { e.stopPropagation(); onDelete(post.id) }}
+                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                title="Excluir post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </motion.button>
+            )}
           </div>
         </div>
 

@@ -19,6 +19,7 @@ import {
   Zap,
   FileText,
   FileSignature,
+  Bot,
   Circle,
   AlertCircle,
   CheckCircle2,
@@ -32,21 +33,32 @@ import {
   Heart,
   Clock,
   TrendingUp,
+  PlayCircle,
+  PauseCircle,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  PlayCircle,
-  PauseCircle
 } from 'lucide-react'
-import { Chat, ChatFilter, TicketStatus } from '@/types/chat'
-import { useChats } from '@/hooks/useChats'
+import { Chat, Contact, ChatAssignmentMeta } from '@/types/chat'
 import { cn } from '@/lib/utils'
+import { useChats } from '@/hooks/useChats'
 import { getAuthToken } from '@/lib/auth-token'
+import { ATTENDANCE_STATUS_OPTIONS, resolveStatusDisplay, AttendanceStatusCode } from '@/lib/chat-status'
+
+const STATUS_ICONS: Record<AttendanceStatusCode, React.ElementType> = {
+  AGUARDANDO: Clock,
+  EM_ANDAMENTO: Zap,
+  PAUSADO: PauseCircle,
+  FINALIZADO: CheckCircle2
+}
 
 interface SideChatProps {
   onChatSelect: (chat: Chat) => void
   activeChat: Chat | null
   onConnectionChange: (connected: boolean) => void
+  onMetaMerge: (chatId: string, patch: Partial<ChatAssignmentMeta>) => void
+  onMetaReplace: (metaMap: Record<string, ChatAssignmentMeta>) => void
+  chatMeta: Record<string, ChatAssignmentMeta>
 }
 
 interface ChatQuote {
@@ -58,15 +70,22 @@ interface ChatQuote {
 export const SideChat: React.FC<SideChatProps> = ({
   onChatSelect,
   activeChat,
-  onConnectionChange
+  onConnectionChange,
+  onMetaMerge,
+  onMetaReplace,
+  chatMeta
 }) => {
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'price' | 'priority'>('recent')
-  const [actionState, setActionState] = useState<{chatId: string, action: 'transfer' | 'favorite' | 'archive' | 'delete' | null}>({chatId: '', action: null})
+  const [actionState, setActionState] = useState<{chatId: string, action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete' | null}>({chatId: '', action: null})
+  const [selectedAttendant, setSelectedAttendant] = useState<string | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatusCode | null>(null)
+  const [attendants, setAttendants] = useState<any[]>([])
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const [chatQuotes, setChatQuotes] = useState<Record<string, ChatQuote>>({})
   const [chatTags, setChatTags] = useState<Record<string, any[]>>({})
   const [chatContracts, setChatContracts] = useState<Record<string, any[]>>({})
+  const [chatAgents, setChatAgents] = useState<Record<string, any>>({})
   
   const {
     chats,
@@ -199,6 +218,88 @@ export const SideChat: React.FC<SideChatProps> = ({
     fetchContracts()
   }, [chats])
 
+  useEffect(() => {
+    const fetchMeta = async () => {
+      if (chats.length === 0) {
+        onMetaReplace({})
+        return
+      }
+
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          return
+        }
+
+        const chatIdsParam = chats.map(c => encodeURIComponent(c.id)).join(',')
+        const response = await fetch(`/api/chats/meta?chatIds=${chatIdsParam}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          console.error('❌ SideChat: Erro ao buscar metadados:', response.status)
+          return
+        }
+
+        const data = await response.json()
+        if (data.success && data.metaByChat) {
+          onMetaReplace(data.metaByChat)
+        }
+      } catch (error) {
+        console.error('❌ SideChat: Erro ao carregar metadados dos chats:', error)
+      }
+    }
+
+    fetchMeta()
+  }, [chats, onMetaReplace])
+
+  // Buscar agentes dos chats
+  useEffect(() => {
+    const fetchAgents = async () => {
+      if (chats.length === 0) return
+      
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        console.log(`🤖 SideChat: Buscando agentes para ${chats.length} chats...`)
+        
+        // Buscar agentes em batch
+        const agentsPromises = chats.map(async (chat) => {
+          try {
+            const response = await fetch(`/api/chats/${chat.id}/agent`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            const data = await response.json()
+            return { chatId: chat.id, agent: data.agent }
+          } catch {
+            return { chatId: chat.id, agent: null }
+          }
+        })
+
+        const results = await Promise.all(agentsPromises)
+        
+        const agentsByChat: Record<string, any> = {}
+        results.forEach(({ chatId, agent }) => {
+          if (agent) {
+            agentsByChat[chatId] = agent
+          }
+        })
+
+        setChatAgents(agentsByChat)
+        console.log(`✅ SideChat: Agentes carregados`, agentsByChat)
+      } catch (error) {
+        console.error('❌ SideChat: Erro ao buscar agentes:', error)
+      }
+    }
+    
+    fetchAgents()
+  }, [chats])
+
   // Notificar mudança de conexão baseada no estado dos chats
   useEffect(() => {
     if (!isLoading && !error) {
@@ -268,21 +369,141 @@ export const SideChat: React.FC<SideChatProps> = ({
     { value: 'priority', label: 'Prioridade', icon: TrendingUp }
   ]
 
-  const handleAction = (chatId: string, action: 'transfer' | 'favorite' | 'archive' | 'delete') => {
+  const handleAction = (chatId: string, action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete') => {
     setActionState({ chatId, action })
+
+    if (action === 'transfer') {
+      setSelectedAttendant(chatMeta[chatId]?.assignedTo?.id || null)
+    } else if (action === 'status') {
+      setSelectedStatus((chatMeta[chatId]?.status?.code as AttendanceStatusCode) || null)
+    } else {
+      setSelectedAttendant(null)
+      setSelectedStatus(null)
+    }
   }
 
-  const confirmAction = (chatId: string, action: string) => {
-    console.log(`✅ Confirmado: ${action} para chat ${chatId}`)
-    // TODO: Implementar ação real
+  // Buscar atendentes quando abrir dialog de transferência
+  useEffect(() => {
+    if (actionState.action === 'transfer') {
+      setSelectedAttendant(chatMeta[actionState.chatId]?.assignedTo?.id || null)
+
+      const fetchAttendants = async () => {
+        try {
+          const token = getAuthToken()
+          if (!token) return
+
+          const response = await fetch('/api/users?role=ATENDENTE,ADMINISTRADOR&status=ATIVO', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          const data = await response.json()
+          if (data.users) {
+            setAttendants(data.users)
+          }
+        } catch (error) {
+          console.error('❌ Erro ao buscar atendentes:', error)
+        }
+      }
+
+      fetchAttendants()
+    }
+
+    if (actionState.action === 'status') {
+      setSelectedStatus((chatMeta[actionState.chatId]?.status?.code as AttendanceStatusCode) || null)
+    }
+
+    if (!actionState.action) {
+      setSelectedAttendant(null)
+      setSelectedStatus(null)
+    }
+  }, [actionState.action, actionState.chatId, chatMeta])
+
+  const updateChatMeta = async (chat: Chat, payload: { assignedToId?: string | null; status?: string | null }) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Token de autenticação não encontrado. Faça login novamente.')
+        return false
+      }
+
+      const response = await fetch(`/api/chats/${encodeURIComponent(chat.id)}/meta`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...payload,
+          chatName: chat.name,
+          chatNumber: chat.contact?.phone || chat.contact?.id?.replace('@c.us', '') || null
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        console.error('❌ SideChat: Erro ao atualizar chat:', data)
+        alert(data.error || 'Erro ao atualizar chat. Tente novamente.')
+        return false
+      }
+
+      if (data.meta) {
+        onMetaMerge(chat.id, data.meta)
+      }
+
+      return true
+    } catch (error) {
+      console.error('❌ SideChat: Erro na atualização do chat:', error)
+      alert('Erro ao atualizar chat. Tente novamente.')
+      return false
+    }
+  }
+
+  const confirmAction = async (chat: Chat, action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete') => {
+    if (!chat) return
+
+    if (action === 'transfer') {
+      if (!selectedAttendant) {
+        alert('Selecione um atendente para concluir a transferência.')
+        return
+      }
+
+      const success = await updateChatMeta(chat, { assignedToId: selectedAttendant })
+      if (success) {
+        setActionState({ chatId: '', action: null })
+        setSelectedAttendant(null)
+        setSelectedStatus(null)
+      }
+      return
+    }
+
+    if (action === 'status') {
+      if (!selectedStatus) {
+        alert('Selecione um status para atualizar o atendimento.')
+        return
+      }
+
+      const success = await updateChatMeta(chat, { status: selectedStatus })
+      if (success) {
+        setActionState({ chatId: '', action: null })
+        setSelectedStatus(null)
+      }
+      return
+    }
+
+    // Demais ações ainda não implementadas
     setActionState({ chatId: '', action: null })
   }
 
   const cancelAction = () => {
     setActionState({ chatId: '', action: null })
+    setSelectedAttendant(null)
+    setSelectedStatus(null)
   }
 
-  const getActionConfig = (action: 'transfer' | 'favorite' | 'archive' | 'delete') => {
+  const getActionConfig = (action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete') => {
     switch (action) {
       case 'transfer':
         return {
@@ -291,6 +512,15 @@ export const SideChat: React.FC<SideChatProps> = ({
           icon: ArrowRightLeft,
           color: 'blue',
           confirmText: 'Transferir',
+          cancelText: 'Cancelar'
+        }
+      case 'status':
+        return {
+          title: 'Alterar Status',
+          description: 'Escolha o status do atendimento',
+          icon: Zap,
+          color: 'green',
+          confirmText: 'Alterar',
           cancelText: 'Cancelar'
         }
       case 'favorite':
@@ -581,28 +811,153 @@ export const SideChat: React.FC<SideChatProps> = ({
           </div>
         ) : (
           <div className="space-y-1 p-2">
-            {filteredChats.map((chat) => (
+            {filteredChats.map((chat) => {
+              const metaInfo = chatMeta[chat.id]
+              const statusDisplay = resolveStatusDisplay(metaInfo?.status)
+              const assignedName = metaInfo?.assignedTo?.name || metaInfo?.assignedTo?.email
+              const queueInfo = metaInfo?.queue
+
+              return (
               <motion.div
                 key={chat.id}
-                whileHover={{ scale: actionState.chatId === chat.id ? 1 : 1.02 }}
+                whileHover={{ scale: actionState.chatId === chat.id ? 1 : 1.01 }}
                 onClick={() => actionState.chatId !== chat.id && onChatSelect(chat)}
                 className={cn(
-                  'group relative flex items-center space-x-3 p-3 rounded-2xl transition-all duration-200',
-                  'shadow-[2px_2px_5px_rgba(0,0,0,0.1),-2px_-2px_5px_rgba(255,255,255,0.7)]',
-                  'dark:shadow-[2px_2px_5px_rgba(0,0,0,0.3),-2px_-2px_5px_rgba(255,255,255,0.05)]',
-                  'border-r-[6px]',
-                  actionState.chatId !== chat.id && 'cursor-pointer',
+                  'group relative flex items-start gap-3 p-4 rounded-2xl transition-all duration-300 border border-transparent',
+                  'bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm',
+                  actionState.chatId !== chat.id && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg',
                   activeChat?.id === chat.id
-                    ? 'bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500'
-                    : 'bg-white dark:bg-gray-800 border-orange-400 hover:shadow-[3px_3px_8px_rgba(0,0,0,0.15),-3px_-3px_8px_rgba(255,255,255,0.8)] hover:border-orange-500'
+                    ? 'shadow-xl'
+                    : 'hover:border-orange-200 dark:hover:border-orange-400/40',
+                  actionState.chatId === chat.id && actionState.action && 'shadow-xl'
                 )}
-              >{actionState.chatId === chat.id && actionState.action ? (
+              >
+                {actionState.chatId !== chat.id && (
+                  <div
+                    className={cn(
+                      'absolute inset-y-3 left-2 w-1.5 rounded-full transition-colors',
+                      activeChat?.id === chat.id
+                        ? 'bg-orange-500'
+                        : 'bg-gray-200 group-hover:bg-orange-400'
+                    )}
+                  />
+                )}
+                {actionState.chatId === chat.id && actionState.action ? (
                   /* Conteúdo de Confirmação */
                   (() => {
                     const config = getActionConfig(actionState.action)
                     const Icon = config.icon
                     
-                    return (
+                    return actionState.action === 'transfer' ? (
+                      // Lista de Atendentes para Transferência
+                      <div className="flex-1 flex flex-col py-2 px-3 max-h-64 overflow-y-auto">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                          Transferir para:
+                        </h3>
+                        <div className="space-y-1">
+                          {attendants.map((attendant) => {
+                            const isActive = selectedAttendant === attendant.id
+
+                            return (
+                              <button
+                                key={attendant.id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedAttendant(attendant.id)
+                                  confirmAction(chat, 'transfer')
+                                }}
+                                className={cn(
+                                  'w-full p-2 flex items-center gap-2 rounded-lg transition-colors text-left border border-transparent',
+                                  isActive
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700'
+                                    : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                )}
+                              >
+                                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-semibold text-xs">
+                                    {attendant.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                    {attendant.name}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 truncate">
+                                    {attendant.role === 'ADMINISTRADOR' ? 'Admin' : 'Atendente'}
+                                  </p>
+                                </div>
+                              </button>
+                            )
+                          })}
+                          {attendants.length === 0 && (
+                            <p className="text-xs text-gray-500 text-center py-4">
+                              Carregando atendentes...
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            cancelAction()
+                          }}
+                          className="mt-2 w-full px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : actionState.action === 'status' ? (
+                      <div className="flex-1 flex flex-col py-2 px-3 max-h-64 overflow-y-auto">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                          Atualizar status para:
+                        </h3>
+                        <div className="space-y-1">
+                          {ATTENDANCE_STATUS_OPTIONS.map((option) => {
+                            const Icon = STATUS_ICONS[option.code]
+                            const isActive = selectedStatus === option.code
+
+                            return (
+                              <button
+                                key={option.code}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedStatus(option.code)
+                                  confirmAction(chat, 'status')
+                                }}
+                                className={cn(
+                                  'w-full p-2 flex items-center gap-2 rounded-lg transition-colors text-left border border-transparent',
+                                  isActive
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700'
+                                    : cn(option.hoverClass, 'bg-white dark:bg-gray-800/70')
+                                )}
+                              >
+                                <Icon className={cn('w-4 h-4', option.textClass)} />
+                                <div className="flex-1">
+                                  <p className="text-xs font-medium text-gray-900 dark:text-white">
+                                    {option.label}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    {option.description}
+                                  </p>
+                                </div>
+                                {isActive && (
+                                  <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            cancelAction()
+                          }}
+                          className="mt-2 w-full px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      // Dialog de Confirmação Normal
                       <div className="flex-1 flex flex-col items-center justify-center py-4">
                         <div className={cn(
                           'w-12 h-12 rounded-full flex items-center justify-center mb-3',
@@ -640,7 +995,7 @@ export const SideChat: React.FC<SideChatProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              confirmAction(chat.id, actionState.action!)
+                              confirmAction(chat, actionState.action!)
                             }}
                             className={cn(
                               'px-4 py-1.5 text-xs font-medium text-white rounded-lg transition-colors',
@@ -658,7 +1013,7 @@ export const SideChat: React.FC<SideChatProps> = ({
                   })()
                 ) : (
                   /* Conteúdo Normal do Card */
-                  <>
+                  <div className="flex w-full gap-3">
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
                   <img
@@ -714,6 +1069,79 @@ export const SideChat: React.FC<SideChatProps> = ({
                     </div>
 
                     <div className="flex items-center space-x-2 flex-shrink-0">
+                      {/* Ações Rápidas - Ao lado do horário */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Alterar Status */}
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAction(chat.id, 'status')
+                          }}
+                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
+                          title="Alterar Status"
+                        >
+                          <Zap className="w-3 h-3" />
+                        </motion.button>
+
+                        {/* Transferir */}
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAction(chat.id, 'transfer')
+                          }}
+                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
+                          title="Transferir"
+                        >
+                          <ArrowRightLeft className="w-3 h-3" />
+                        </motion.button>
+
+                        {/* Favoritar */}
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAction(chat.id, 'favorite')
+                          }}
+                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
+                          title="Favoritar"
+                        >
+                          <Star className="w-3 h-3" />
+                        </motion.button>
+
+                        {/* Arquivar */}
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAction(chat.id, 'archive')
+                          }}
+                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
+                          title="Arquivar"
+                        >
+                          <Archive className="w-3 h-3" />
+                        </motion.button>
+
+                        {/* Deletar */}
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAction(chat.id, 'delete')
+                          }}
+                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
+                          title="Deletar"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </motion.button>
+                      </div>
+                      
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {formatLastSeen(chat.lastMessageTimestamp)}
                       </span>
@@ -735,8 +1163,8 @@ export const SideChat: React.FC<SideChatProps> = ({
                     </p>
                   </div>
 
-                  {/* Informações de Orçamento, Tags, Contratos e Agendamento */}
-                  {(chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id]) && (
+                  {/* Informações de Orçamento, Tags, Contratos, Agente e Agendamento */}
+                  {(chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id] || chatAgents[chat.id]) && (
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       {/* Orçamento - Preço */}
                       {chatQuotes[chat.id] && (
@@ -783,101 +1211,62 @@ export const SideChat: React.FC<SideChatProps> = ({
                           </span>
                         </div>
                       )}
+
+                      {/* Agente IA */}
+                      {chatAgents[chat.id] && (
+                        <div className="flex items-center gap-1 text-[11px]">
+                          <div className="relative">
+                            <Bot className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-green-500 border border-white" />
+                          </div>
+                          <span className="font-semibold text-purple-700 dark:text-purple-400">
+                            {chatAgents[chat.id].name}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Badges - Tags, Atendente, Status, Contrato */}
+                  {/* Badges - Status, Atendente, Tags, Contrato */}
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {/* Tags */}
+                    {statusDisplay && (
+                      <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium capitalize', statusDisplay.badgeClass)}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', statusDisplay.dotClass)} />
+                        {statusDisplay.label}
+                      </span>
+                    )}
+
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                      <User className="w-2.5 h-2.5" />
+                      {assignedName || 'Não atribuído'}
+                    </span>
+
+                    {queueInfo?.name && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                        <Users className="w-2.5 h-2.5" />
+                        {queueInfo.name}
+                      </span>
+                    )}
+
                     {chat.labels.length > 0 && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                         <Tag className="w-2.5 h-2.5" />
                         {chat.labels.length}
                       </span>
                     )}
-                    
-                    {/* Atendente */}
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                      <User className="w-2.5 h-2.5" />
-                      João
-                    </span>
-                    
-                    {/* Status */}
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                      <Zap className="w-2.5 h-2.5" />
-                      Ativo
-                    </span>
-                    
-                    {/* Contrato */}
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                      <FileText className="w-2.5 h-2.5" />
-                      1
-                    </span>
+
+                    {chatContracts[chat.id] && chatContracts[chat.id].length > 0 && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                        <FileText className="w-2.5 h-2.5" />
+                        {chatContracts[chat.id].length}
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                {/* Ações Rápidas - Canto Inferior Direito */}
-                <div className="absolute bottom-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {/* Transferir */}
-                  <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.85 }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAction(chat.id, 'transfer')
-                    }}
-                    className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
-                    title="Transferir"
-                  >
-                    <ArrowRightLeft className="w-3.5 h-3.5" />
-                  </motion.button>
-
-                  {/* Favoritar */}
-                  <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.85 }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAction(chat.id, 'favorite')
-                    }}
-                    className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
-                    title="Favoritar"
-                  >
-                    <Star className="w-3.5 h-3.5" />
-                  </motion.button>
-
-                  {/* Arquivar */}
-                  <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.85 }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAction(chat.id, 'archive')
-                    }}
-                    className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
-                    title="Arquivar"
-                  >
-                    <Archive className="w-3.5 h-3.5" />
-                  </motion.button>
-
-                  {/* Deletar */}
-                  <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.85 }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAction(chat.id, 'delete')
-                    }}
-                    className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
-                    title="Deletar"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </motion.button>
                 </div>
-                </>
                 )}
               </motion.div>
-            ))}
+            )})}
             
             {/* Botão Carregar Mais */}
             {hasMore && !isLoading && filteredChats.length > 0 && (

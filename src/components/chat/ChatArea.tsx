@@ -7,7 +7,7 @@ import {
   Video,
   Info,
   Search,
-  MoreVertical,
+  StickyNote,
   Star,
   Reply,
   Forward,
@@ -31,20 +31,22 @@ import {
   Ticket,
   User
 } from 'lucide-react'
-import { Chat, Message, MessageType, MessageAck } from '@/types/chat'
+import { Chat, Message, MessageType, MessageAck, ChatAssignmentMeta } from '@/types/chat'
 import { SidebarType } from '@/app/chat/page'
 import { useMessages } from '@/hooks/useMessages'
 import { cn } from '@/lib/utils'
 import { getAuthToken } from '@/lib/auth-token'
+import { resolveStatusDisplay } from '@/lib/chat-status'
 
 interface ChatAreaProps {
   chat: Chat
   onSidebarToggle: (sidebar: SidebarType) => void
   chatQuoteCount?: number
   chatContractCount?: number
+  meta?: ChatAssignmentMeta
 }
 
-export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQuoteCount: propQuoteCount, chatContractCount: propContractCount }) => {
+export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQuoteCount: propQuoteCount, chatContractCount: propContractCount, meta }) => {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -109,6 +111,66 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
   }, [])
+
+  const scheduleCount = 0
+  const quoteCount = chatQuoteCount || 0
+  const tagCount = Array.isArray(chat.labels) ? chat.labels.length : 0
+  const contractCount = chatContractCount || 0
+  const ticketCount = chat.ticket ? 1 : 0
+
+  const handleNotesClick = () => {
+    console.log('📝 Abrindo anotações do chat', chat.id)
+  }
+
+  const renderIconButton = ({
+    id,
+    label,
+    icon: Icon,
+    onClick,
+    bgClass,
+    textClass,
+    badgeBgClass,
+    count,
+    iconClassName,
+  }: {
+    id: string
+    label: string
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+    onClick?: () => void
+    bgClass: string
+    textClass: string
+    badgeBgClass?: string
+    count?: number
+    iconClassName?: string
+  }) => {
+    const badgeValue = typeof count === 'number' ? (count > 99 ? '99+' : count.toString()) : null
+
+    return (
+      <motion.button
+        key={id}
+        onClick={onClick}
+        whileHover={{ scale: 1.05, translateY: -2 }}
+        whileTap={{ scale: 0.95 }}
+        className="relative p-2 rounded-xl transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        title={label}
+      >
+        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shadow-sm', bgClass)}>
+          <Icon className={cn('w-5 h-5', textClass, iconClassName)} />
+        </div>
+        {badgeValue !== null && badgeBgClass && (
+          <span className={cn(
+            'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-semibold text-white rounded-full flex items-center justify-center shadow-sm',
+            badgeBgClass
+          )}>
+            {badgeValue}
+          </span>
+        )}
+      </motion.button>
+    )
+  }
+
+  const assignedAttendant = meta?.assignedTo || null
+  const statusInfo = resolveStatusDisplay(meta?.status)
 
   // Formatar timestamp
   const formatMessageTime = (timestamp: Date) => {
@@ -194,6 +256,119 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
   
   MessageBubble.displayName = 'MessageBubble'
 
+  const primaryActions = [
+    {
+      id: 'schedule',
+      label: 'Agendamentos',
+      icon: Calendar,
+      onClick: () => onSidebarToggle('schedule'),
+      bgClass: 'bg-sky-500/10 dark:bg-sky-500/20',
+      textClass: 'text-sky-600 dark:text-sky-300',
+      badgeBgClass: 'bg-sky-500',
+      count: scheduleCount
+    },
+    {
+      id: 'quote',
+      label: 'Orçamentos',
+      icon: DollarSign,
+      onClick: () => onSidebarToggle('quote'),
+      bgClass: 'bg-purple-500/10 dark:bg-purple-500/20',
+      textClass: 'text-purple-600 dark:text-purple-300',
+      badgeBgClass: 'bg-purple-500',
+      count: quoteCount
+    },
+    {
+      id: 'tag',
+      label: 'Tags',
+      icon: Tag,
+      onClick: () => onSidebarToggle('tag'),
+      bgClass: 'bg-amber-500/10 dark:bg-amber-500/20',
+      textClass: 'text-amber-600 dark:text-amber-300',
+      badgeBgClass: 'bg-amber-500',
+      count: tagCount
+    },
+    {
+      id: 'contract',
+      label: 'Contratos',
+      icon: FileSignature,
+      onClick: () => onSidebarToggle('contract'),
+      bgClass: 'bg-indigo-500/10 dark:bg-indigo-500/20',
+      textClass: 'text-indigo-600 dark:text-indigo-300',
+      badgeBgClass: 'bg-indigo-500',
+      count: contractCount
+    },
+    {
+      id: 'ticket',
+      label: 'Tickets',
+      icon: Ticket,
+      onClick: () => onSidebarToggle('ticket'),
+      bgClass: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+      textClass: 'text-emerald-600 dark:text-emerald-300',
+      badgeBgClass: 'bg-emerald-500',
+      count: ticketCount
+    }
+  ]
+
+  const utilityButtons = [
+    {
+      id: 'contact-shortcut',
+      label: 'Informações do Contato',
+      icon: User,
+      onClick: () => onSidebarToggle('contact'),
+      bgClass: 'bg-orange-500/10 dark:bg-orange-500/20',
+      textClass: 'text-orange-600 dark:text-orange-300'
+    },
+    {
+      id: 'refresh',
+      label: 'Atualizar mensagens',
+      icon: RefreshCw,
+      onClick: refreshMessages,
+      bgClass: 'bg-blue-500/10 dark:bg-blue-500/20',
+      textClass: 'text-blue-600 dark:text-blue-300',
+      iconClassName: isLoading ? 'animate-spin' : undefined
+    },
+    {
+      id: 'call',
+      label: 'Iniciar ligação',
+      icon: Phone,
+      onClick: () => console.log('📞 Iniciando chamada com', chat.id),
+      bgClass: 'bg-emerald-500/10 dark:bg-emerald-500/20',
+      textClass: 'text-emerald-600 dark:text-emerald-300'
+    },
+    {
+      id: 'video',
+      label: 'Iniciar vídeo chamada',
+      icon: Video,
+      onClick: () => console.log('🎥 Iniciando vídeo com', chat.id),
+      bgClass: 'bg-fuchsia-500/10 dark:bg-fuchsia-500/20',
+      textClass: 'text-fuchsia-600 dark:text-fuchsia-300'
+    },
+    {
+      id: 'search',
+      label: 'Buscar na conversa',
+      icon: Search,
+      onClick: () => console.log('🔍 Buscando em', chat.id),
+      bgClass: 'bg-gray-500/10 dark:bg-gray-500/20',
+      textClass: 'text-gray-600 dark:text-gray-300'
+    },
+    {
+      id: 'info',
+      label: 'Visão geral do contato',
+      icon: Info,
+      onClick: () => onSidebarToggle('contact'),
+      bgClass: 'bg-cyan-500/10 dark:bg-cyan-500/20',
+      textClass: 'text-cyan-600 dark:text-cyan-300'
+    },
+    {
+      id: 'notes',
+      label: 'Anotações do chat',
+      icon: StickyNote,
+      onClick: handleNotesClick,
+      bgClass: 'bg-amber-500/10 dark:bg-amber-500/20',
+      textClass: 'text-amber-600 dark:text-amber-300'
+    }
+  ]
+
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Header do Chat */}
@@ -230,17 +405,27 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
               </h3>
               
               {/* Linha 1: Atendente, Status, Visto por último */}
-              <div className="flex items-center gap-2 text-xs mt-1">
-                {/* Atendente */}
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full">
-                  <User className="w-3 h-3" />
-                  <span className="font-medium">João Silva</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs mt-1">
+                {assignedAttendant ? (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full">
+                    <User className="w-3 h-3" />
+                    <span className="font-medium truncate max-w-[140px]">
+                      {assignedAttendant.name || assignedAttendant.email || 'Sem responsável'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
+                    <User className="w-3 h-3" />
+                    <span className="font-medium">Não atribuído</span>
+                  </div>
+                )}
 
-                {/* Status */}
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
-                  <span className="font-medium">Em Atendimento</span>
-                </div>
+                {statusInfo && (
+                  <div className={cn('flex items-center gap-1 px-2 py-0.5 rounded-full capitalize', statusInfo.badgeClass)}>
+                    <span className={cn('w-2 h-2 rounded-full', statusInfo.dotClass)} />
+                    <span className="font-medium">{statusInfo.label}</span>
+                  </div>
+                )}
 
                 {/* Visto por último */}
                 {!chat.isGroup && (
@@ -280,132 +465,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
           </div>
 
           {/* Ações do Header */}
-          <div className="flex items-center space-x-1">
-            {/* Funcionalidades Business */}
-            <motion.button
-              onClick={() => onSidebarToggle('schedule')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-              title="Agendamentos"
-            >
-              <Calendar className="w-5 h-5" />
-            </motion.button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {primaryActions.map((action) => renderIconButton(action))}
+            </div>
 
-            <motion.button
-              onClick={() => onSidebarToggle('quote')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative p-2 text-gray-600 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-              title="Orçamentos"
-            >
-              <DollarSign className="w-5 h-5" />
-              {chatQuoteCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {chatQuoteCount}
-                </span>
-              )}
-            </motion.button>
+            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
 
-            <motion.button
-              onClick={() => onSidebarToggle('tag')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-              title="Tags"
-            >
-              <Tag className="w-5 h-5" />
-            </motion.button>
-
-            <motion.button
-              onClick={() => onSidebarToggle('contract')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative p-2 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
-              title="Contratos"
-            >
-              <FileSignature className="w-5 h-5" />
-              {chatContractCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {chatContractCount}
-                </span>
-              )}
-            </motion.button>
-
-            <motion.button
-              onClick={() => onSidebarToggle('ticket')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-              title="Tickets"
-            >
-              <Ticket className="w-5 h-5" />
-            </motion.button>
-
-            <motion.button
-              onClick={() => onSidebarToggle('contact')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
-              title="Informações do Contato"
-            >
-              <User className="w-5 h-5" />
-            </motion.button>
-
-            {/* Divisor */}
-            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-
-            {/* Ações Tradicionais */}
-            <motion.button
-              onClick={refreshMessages}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="Atualizar mensagens"
-            >
-              <RefreshCw className={cn("w-5 h-5", isLoading && "animate-spin")} />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <Phone className="w-5 h-5" />
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <Video className="w-5 h-5" />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <Search className="w-5 h-5" />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onSidebarToggle('contact')}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <Info className="w-5 h-5" />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <MoreVertical className="w-5 h-5" />
-            </motion.button>
+            <div className="flex items-center gap-2">
+              {utilityButtons.map((action) => renderIconButton(action))}
+            </div>
           </div>
         </div>
       </div>

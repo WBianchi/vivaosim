@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/contexts/ThemeProvider'
 import { CustomizationProvider } from '@/contexts/CustomizationProvider'
 import CookieConsent from '@/components/shared/CookieConsent'
 import ChatWidget from '@/components/shared/ChatWidget'
+import DynamicHead from '@/components/shared/DynamicHead'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,6 +26,7 @@ export default function RootLayout({
         <ThemeProvider>
           <CustomizationProvider>
             <AuthProvider>
+              <DynamicHead />
               {children}
               <CookieConsent />
               <ChatWidget />

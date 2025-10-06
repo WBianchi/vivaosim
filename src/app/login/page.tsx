@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, User, Facebook, Sparkles } from 'lucide-react'
@@ -16,6 +16,12 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
 
+  const [logoConfig, setLogoConfig] = useState<{ 
+    logo: string | null
+    logoSize: string
+    logoWidth: number
+    logoHeight: number
+  }>({ logo: null, logoSize: 'medium', logoWidth: 40, logoHeight: 40 })
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,6 +34,55 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotLoading, setForgotLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState('')
+
+  // Calcular tamanho da logo
+  const getLogoSize = () => {
+    const sizes: Record<string, number> = {
+      small: 32,
+      medium: 64,
+      large: 80,
+      custom: logoConfig.logoHeight
+    }
+    return sizes[logoConfig.logoSize] || 64
+  }
+
+  // Carregar logo do site
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/api/settings/site')
+        const data = await response.json()
+        if (data.success && data.config) {
+          setLogoConfig({
+            logo: data.config.logo,
+            logoSize: data.config.logoSize || 'medium',
+            logoWidth: data.config.logoWidth || 40,
+            logoHeight: data.config.logoHeight || 40
+          })
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar logo:', error)
+      }
+    }
+    
+    loadLogo()
+
+    // Listener para atualização em tempo real
+    const handleConfigUpdate = (event: any) => {
+      const config = event.detail
+      if (config) {
+        setLogoConfig({
+          logo: config.logo,
+          logoSize: config.logoSize || 'medium',
+          logoWidth: config.logoWidth || 40,
+          logoHeight: config.logoHeight || 40
+        })
+      }
+    }
+
+    window.addEventListener('siteConfigUpdated', handleConfigUpdate)
+    return () => window.removeEventListener('siteConfigUpdated', handleConfigUpdate)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -172,11 +227,31 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-2xl">V</span>
+          {logoConfig.logo ? (
+            <div className="flex justify-center mb-4">
+              <img 
+                src={logoConfig.logo} 
+                alt="Viva o Sim" 
+                style={{ 
+                  height: `${getLogoSize()}px`,
+                  width: logoConfig.logoSize === 'custom' ? `${logoConfig.logoWidth * 1.6}px` : 'auto'
+                }}
+                className="object-contain"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center mb-4">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg mb-3">
+                <span className="text-white font-bold text-2xl">V</span>
+              </div>
+              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Viva o Sim
+              </h2>
+              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                CRM Eventos
+              </p>
+            </div>
+          )}
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Bem-vindo de volta
           </h1>

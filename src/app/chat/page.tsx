@@ -21,7 +21,7 @@ import { AllContractsSidebar } from '@/components/chat/sidebars/AllContractsSide
 // import { TicketSidebar } from '@/components/chat/sidebars/TicketSidebar'
 
 // Tipos
-import { Chat, Message, Contact } from '@/types/chat'
+import { Chat, Message, Contact, ChatAssignmentMeta } from '@/types/chat'
 
 export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | null
 
@@ -45,6 +45,32 @@ export default function ChatPage() {
     unreadCount: 0
   })
 
+  const [chatContractCount, setChatContractCount] = useState(0)
+  const [chatMeta, setChatMeta] = useState<Record<string, ChatAssignmentMeta>>({})
+
+  // Buscar contratos do chat ativo
+  useEffect(() => {
+    const fetchChatContracts = async () => {
+      if (!state.activeChat) {
+        setChatContractCount(0)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/contracts?chatId=${state.activeChat.id}`)
+        const data = await response.json()
+        
+        if (data.contracts) {
+          setChatContractCount(data.contracts.length)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar contratos do chat:', error)
+      }
+    }
+
+    fetchChatContracts()
+  }, [state.activeChat])
+
   // Verificar autenticação (só redireciona se não está carregando)
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -57,6 +83,26 @@ export default function ChatPage() {
   const handleChatSelect = (chat: Chat) => {
     setState(prev => ({ ...prev, activeChat: chat, activeSidebar: null }))
   }
+
+  const handleMetaReplace = React.useCallback((metaMap: Record<string, ChatAssignmentMeta>) => {
+    setChatMeta(prev => ({ ...prev, ...metaMap }))
+  }, [])
+
+  const handleMetaMerge = React.useCallback((chatId: string, patch: Partial<ChatAssignmentMeta>) => {
+    setChatMeta(prev => {
+      const existing = prev[chatId] || {}
+      const next: ChatAssignmentMeta = { ...existing }
+
+      Object.entries(patch).forEach(([key, value]) => {
+        ;(next as any)[key] = value
+      })
+
+      return {
+        ...prev,
+        [chatId]: next
+      }
+    })
+  }, [])
 
   const handleSidebarToggle = (sidebar: SidebarType) => {
     setState(prev => ({ 
@@ -103,6 +149,9 @@ export default function ChatPage() {
           onChatSelect={handleChatSelect}
           activeChat={state.activeChat}
           onConnectionChange={handleConnectionChange}
+          chatMeta={chatMeta}
+          onMetaMerge={handleMetaMerge}
+          onMetaReplace={handleMetaReplace}
         />
 
         {/* Área do Chat - Flex restante */}
@@ -116,6 +165,8 @@ export default function ChatPage() {
                   <ChatArea 
                     chat={state.activeChat}
                     onSidebarToggle={handleSidebarToggle}
+                    chatContractCount={chatContractCount}
+                    meta={state.activeChat ? chatMeta[state.activeChat.id] : undefined}
                   />
                 </div>
                 

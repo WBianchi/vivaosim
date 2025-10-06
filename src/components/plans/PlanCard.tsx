@@ -6,6 +6,7 @@ import {
   Users, 
   Eye,
   Edit3,
+  Trash2,
   Crown,
   CheckCircle,
   XCircle,
@@ -21,12 +22,16 @@ interface PlanCardProps {
   plan: any
   index: number
   onClick: () => void
+  onEdit?: (plan: any) => void
+  onDelete?: (planId: string) => void
 }
 
 export const PlanCard: React.FC<PlanCardProps> = ({
   plan,
   index,
-  onClick
+  onClick,
+  onEdit,
+  onDelete
 }) => {
   const formatPrice = (price: number) => {
     if (price === 0) return 'Gratuito'
@@ -132,6 +137,37 @@ export const PlanCard: React.FC<PlanCardProps> = ({
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(plan)
+                }}
+                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                title="Editar plano"
+              >
+                <Edit3 className="w-4 h-4" />
+              </motion.button>
+            )}
+            {onDelete && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(plan.id)
+                }}
+                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                title="Excluir plano"
+              >
+                <Trash2 className="w-4 h-4" />
+              </motion.button>
+            )}
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { 
   X, 
@@ -25,8 +25,17 @@ interface QuoteSidebarProps {
 
 export function QuoteSidebar({ isOpen, onClose, chatId, contactId, contactName }: QuoteSidebarProps) {
   const [loading, setLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const [tags, setTags] = useState<any[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+
+  // Remover loading inicial após montar
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => setIsInitializing(false), 50)
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen])
   const [newTagName, setNewTagName] = useState('')
   const [newTagColor, setNewTagColor] = useState('#F97316') // laranja padrão
   

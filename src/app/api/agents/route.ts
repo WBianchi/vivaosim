@@ -174,3 +174,128 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+// PATCH - Atualizar agente
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const data = await request.json()
+    const { id, ...updateData } = data
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID do agente é obrigatório' }, { status: 400 })
+    }
+
+    // Verificar se o agente existe
+    const existingAgent = await prisma.agent.findUnique({
+      where: { id }
+    })
+
+    if (!existingAgent) {
+      return NextResponse.json({ error: 'Agente não encontrado' }, { status: 404 })
+    }
+
+    // Atualizar agente
+    const agent = await prisma.agent.update({
+      where: { id },
+      data: {
+        name: updateData.name,
+        description: updateData.description,
+        model: updateData.model,
+        niche: updateData.niche,
+        role: updateData.role,
+        status: updateData.status?.toUpperCase(),
+        prompt: updateData.prompt,
+        temperature: updateData.temperature,
+        maxTokens: updateData.maxTokens,
+        userTypes: updateData.userTypes,
+        activationModes: updateData.activationModes,
+        integrations: updateData.integrations
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true
+          }
+        }
+      }
+    })
+
+    // Formatar resposta
+    const formattedAgent = {
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
+      model: agent.model,
+      niche: agent.niche,
+      role: agent.role,
+      status: agent.status.toLowerCase(),
+      userTypes: Array.isArray(agent.userTypes) ? agent.userTypes : [],
+      activationModes: Array.isArray(agent.activationModes) ? agent.activationModes : [],
+      prompt: agent.prompt,
+      createdAt: agent.createdAt.toISOString(),
+      updatedAt: agent.updatedAt.toISOString(),
+      createdBy: agent.createdBy,
+      usage: {
+        totalInteractions: agent.totalInteractions,
+        successRate: agent.successRate,
+        avgResponseTime: agent.avgResponseTime,
+        lastUsed: agent.lastUsed?.toISOString() || null
+      },
+      integrations: agent.integrations || {
+        chat: { active: false, config: {} },
+        kanban: { active: false, config: {} },
+        columns: { active: false, config: {} }
+      }
+    }
+
+    return NextResponse.json({ agent: formattedAgent })
+
+  } catch (error) {
+    console.error('Erro ao atualizar agente:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// DELETE - Deletar agente
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID do agente é obrigatório' }, { status: 400 })
+    }
+
+    // Verificar se o agente existe
+    const existingAgent = await prisma.agent.findUnique({
+      where: { id }
+    })
+
+    if (!existingAgent) {
+      return NextResponse.json({ error: 'Agente não encontrado' }, { status: 404 })
+    }
+
+    // Deletar agente
+    await prisma.agent.delete({
+      where: { id }
+    })
+
+    return NextResponse.json({ message: 'Agente deletado com sucesso' })
+
+  } catch (error) {
+    console.error('Erro ao deletar agente:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

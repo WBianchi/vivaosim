@@ -245,7 +245,7 @@ export const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({
                         <span className="font-medium text-blue-700 dark:text-blue-300">Assinantes</span>
                       </div>
                       <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
-                        {plan.subscribers.toLocaleString()}
+                        {(plan.subscribers || 0).toLocaleString()}
                       </p>
                     </div>
 

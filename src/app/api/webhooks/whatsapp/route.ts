@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { prisma } from '@/lib/prisma'
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'webhook-secret'
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
+const WAHA_URL = process.env.WAHA_URL || 'http://159.65.34.199:3000'
 
 // Tipos para webhooks do WAHA
 interface WAHAWebhookPayload {
@@ -179,16 +182,54 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
     const { session, payload } = webhook
     const messageData = payload as WAHAMessagePayload
     
-    console.log(`New message in session ${session}:`, {
+    console.log(`📨 Nova mensagem na sessão ${session}:`, {
       id: messageData.id,
       from: messageData.from,
       fromMe: messageData.fromMe,
       type: messageData.type,
-      hasBody: !!messageData.body
+      body: messageData.body?.substring(0, 50)
     })
 
     // Verificar se é uma mensagem de entrada (não nossa)
-    if (!messageData.fromMe) {
+    if (!messageData.fromMe && messageData.body) {
+      const chatId = messageData.from
+      
+      // Verificar se o chat tem um agente IA ativo
+      const agent = await prisma.agent.findFirst({
+        where: { 
+          chatId: chatId,
+          status: 'ACTIVE'
+        }
+      })
+
+      if (agent) {
+        console.log(`🤖 Agente ativo encontrado: ${agent.name} (${agent.model})`)
+        
+        // Gerar resposta com IA
+        const aiResponse = await generateAIResponse(
+          messageData.body,
+          agent.prompt,
+          agent.model,
+          agent.temperature || 0.7
+        )
+
+        if (aiResponse) {
+          // Enviar resposta automática
+          await sendAutoReply(session, chatId, aiResponse)
+          
+          // Atualizar estatísticas do agente
+          await prisma.agent.update({
+            where: { id: agent.id },
+            data: {
+              totalInteractions: { increment: 1 },
+              lastUsed: new Date()
+            }
+          })
+        }
+      } else {
+        console.log(`👤 Nenhum agente ativo para o chat ${chatId}`)
+      }
+      
       // Processar contato se não existe
       await processContact(session, messageData.from, messageData)
       
@@ -203,7 +244,7 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
     }
 
   } catch (error) {
-    console.error('Error handling message:', error)
+    console.error('❌ Erro ao processar mensagem:', error)
   }
 }
 
@@ -252,6 +293,94 @@ async function saveMessage(sessionId: string, messageData: WAHAMessagePayload) {
 async function triggerAutomations(sessionId: string, messageData: WAHAMessagePayload) {
   // Mock - implementar automações
   console.log(`Checking automations for session ${sessionId}`)
+}
+
+// Gerar resposta com IA (DeepSeek)
+async function generateAIResponse(
+  userMessage: string,
+  systemPrompt: string,
+  model: string,
+  temperature: number
+): Promise<string | null> {
+  try {
+    console.log(`🧠 Gerando resposta com ${model}...`)
+    
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: userMessage
+          }
+        ],
+        temperature: temperature,
+        max_tokens: 500
+      })
+    })
+
+    if (!response.ok) {
+      console.error(`❌ Erro na API DeepSeek: ${response.status}`)
+      return null
+    }
+
+    const data = await response.json()
+    const aiMessage = data.choices[0]?.message?.content
+
+    if (aiMessage) {
+      console.log(`✅ Resposta gerada: ${aiMessage.substring(0, 100)}...`)
+      return aiMessage
+    }
+
+    return null
+  } catch (error) {
+    console.error('❌ Erro ao gerar resposta com IA:', error)
+    return null
+  }
+}
+
+// Enviar resposta automática via WAHA
+async function sendAutoReply(
+  sessionId: string,
+  chatId: string,
+  message: string
+): Promise<boolean> {
+  try {
+    console.log(`📤 Enviando auto-resposta para ${chatId}...`)
+    
+    const response = await fetch(`${WAHA_URL}/api/sendText`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session: sessionId,
+        chatId: chatId,
+        text: message
+      })
+    })
+
+    if (!response.ok) {
+      console.error(`❌ Erro ao enviar mensagem: ${response.status}`)
+      return false
+    }
+
+    const data = await response.json()
+    console.log(`✅ Auto-resposta enviada: ${data.id}`)
+    return true
+  } catch (error) {
+    console.error('❌ Erro ao enviar auto-resposta:', error)
+    return false
+  }
 }
 
 // GET - Health check do webhook

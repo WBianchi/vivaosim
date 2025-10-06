@@ -17,23 +17,25 @@ import {
 interface CreateAgentModalProps {
   onClose: () => void
   onSave: (agentData: any) => void
+  agent?: any
 }
 
 export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   onClose,
-  onSave
+  onSave,
+  agent
 }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    model: 'gpt-4',
-    niche: 'geral',
-    role: 'assistant',
-    status: 'active',
-    userTypes: [] as string[],
-    activationModes: [] as string[],
-    prompt: ''
+    name: agent?.name || '',
+    description: agent?.description || '',
+    model: agent?.model || 'gpt-4',
+    niche: agent?.niche || 'geral',
+    role: agent?.role || 'assistant',
+    status: agent?.status || 'active',
+    userTypes: agent?.userTypes || [] as string[],
+    activationModes: agent?.activationModes || [] as string[],
+    prompt: agent?.prompt || ''
   })
 
   useEffect(() => {
@@ -54,25 +56,30 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         .find(row => row.startsWith('accessToken='))
         ?.split('=')[1]
 
+      const method = agent?.id ? 'PATCH' : 'POST'
+      const body = agent?.id 
+        ? { id: agent.id, ...formData }
+        : {
+            ...formData,
+            integrations: {
+              chat: { active: false, config: {} },
+              kanban: { active: false, config: {} },
+              columns: { active: false, config: {} }
+            }
+          }
+
       const response = await fetch('/api/agents', {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({
-          ...formData,
-          integrations: {
-            chat: { active: false, config: {} },
-            kanban: { active: false, config: {} },
-            columns: { active: false, config: {} }
-          }
-        })
+        body: JSON.stringify(body)
       })
 
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Agente criado:', data.agent)
+        console.log(agent?.id ? '✅ Agente atualizado:' : '✅ Agente criado:', data.agent)
         onSave(data.agent)
         handleClose()
       } else {

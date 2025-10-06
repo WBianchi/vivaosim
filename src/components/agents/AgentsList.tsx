@@ -12,6 +12,8 @@ interface AgentsListProps {
   viewMode: 'grid' | 'table'
   onAgentSelect: (agent: any) => void
   onActivationRequest: (agent: any) => void
+  onEdit?: (agent: any) => void
+  onDelete?: (agentId: string) => void
 }
 
 // Mock data - em produção viria da API
@@ -203,7 +205,9 @@ export const AgentsList: React.FC<AgentsListProps> = ({
   searchTerm,
   viewMode,
   onAgentSelect,
-  onActivationRequest
+  onActivationRequest,
+  onEdit,
+  onDelete
 }) => {
   const [agents, setAgents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -331,6 +335,8 @@ export const AgentsList: React.FC<AgentsListProps> = ({
                 index={index}
                 onClick={() => onAgentSelect(agent)}
                 onActivationRequest={() => onActivationRequest(agent)}
+                onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))}
           </AnimatePresence>

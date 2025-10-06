@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Menu, X, Sun, Moon, Phone, TrendingUp, Users, Calendar, Truck, Megaphone, Zap, DollarSign, BarChart3, FileText, LogOut, User, MessageSquare, Columns3, UserCircle, Wallet, Settings, Briefcase, GitBranch, MessageCircle, BookOpen, PieChart } from 'lucide-react'
@@ -10,8 +10,63 @@ import { useAuth } from '@/contexts/AuthContext'
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const [logoConfig, setLogoConfig] = useState<{ 
+    logo: string | null
+    logoSize: string
+    logoWidth: number
+    logoHeight: number
+  }>({ logo: null, logoSize: 'medium', logoWidth: 40, logoHeight: 40 })
   const { isDarkMode, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
+
+  // Calcular tamanho da logo
+  const getLogoSize = () => {
+    const sizes: Record<string, number> = {
+      small: 32,
+      medium: 40,
+      large: 56,
+      custom: logoConfig.logoHeight
+    }
+    return sizes[logoConfig.logoSize] || 40
+  }
+
+  // Carregar logo do site
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/api/settings/site')
+        const data = await response.json()
+        if (data.success && data.config) {
+          setLogoConfig({
+            logo: data.config.logo,
+            logoSize: data.config.logoSize || 'medium',
+            logoWidth: data.config.logoWidth || 40,
+            logoHeight: data.config.logoHeight || 40
+          })
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar logo:', error)
+      }
+    }
+    
+    loadLogo()
+
+    // Listener para atualização em tempo real
+    const handleConfigUpdate = (event: any) => {
+      const config = event.detail
+      if (config) {
+        setLogoConfig({
+          logo: config.logo,
+          logoSize: config.logoSize || 'medium',
+          logoWidth: config.logoWidth || 40,
+          logoHeight: config.logoHeight || 40
+        })
+      }
+    }
+
+    window.addEventListener('siteConfigUpdated', handleConfigUpdate)
+    return () => window.removeEventListener('siteConfigUpdated', handleConfigUpdate)
+  }, [])
 
   const solucoesItems = [
     { name: 'Vendas', description: 'Gerencie todo processo de vendas e propostas comerciais', icon: TrendingUp, href: '/solucoes/vendas' },
@@ -122,18 +177,32 @@ const Header = () => {
             <motion.div 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-3"
             >
-              <div className={`w-10 h-10 rounded-xl ${
-                isDarkMode ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-orange-500 to-orange-600'
-              } flex items-center justify-center shadow-lg`}>
-                <span className="text-white font-bold text-xl">V</span>
-              </div>
-              <span className="text-2xl font-bold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }">
-                Viva o Sim
-              </span>
+              {logoConfig.logo ? (
+                <img 
+                  src={logoConfig.logo} 
+                  alt="Viva o Sim" 
+                  style={{ 
+                    height: `${getLogoSize()}px`,
+                    width: logoConfig.logoSize === 'custom' ? `${logoConfig.logoWidth}px` : 'auto'
+                  }}
+                  className="object-contain"
+                />
+              ) : (
+                <>
+                  <div className={`w-10 h-10 rounded-xl ${
+                    isDarkMode ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-orange-500 to-orange-600'
+                  } flex items-center justify-center shadow-lg`}>
+                    <span className="text-white font-bold text-xl">V</span>
+                  </div>
+                  <span className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Viva o Sim
+                  </span>
+                </>
+              )}
             </motion.div>
 
             {/* Desktop Navigaetsion */}

@@ -6,10 +6,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const role = searchParams.get('role')
+    const status = searchParams.get('status')
 
     const where: any = {}
+    
+    // Suportar múltiplos roles separados por vírgula
     if (role) {
-      where.role = role
+      const roles = role.split(',').map(r => r.trim())
+      where.role = { in: roles }
+    }
+
+    // Suportar múltiplos status separados por vírgula
+    if (status) {
+      const statuses = status.split(',').map(s => s.trim())
+      where.status = { in: statuses }
     }
 
     const users = await prisma.user.findMany({
@@ -23,13 +33,13 @@ export async function GET(request: NextRequest) {
         createdAt: true
       },
       orderBy: {
-        createdAt: 'desc'
+        name: 'asc'
       }
     })
 
     return NextResponse.json({
       success: true,
-      data: users
+      users: users
     })
   } catch (error) {
     console.error('Erro ao buscar usuários:', error)

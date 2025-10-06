@@ -37,6 +37,38 @@ export default function BlogPage() {
     setRefreshKey(prev => prev + 1)
   }
 
+  const handleEditPost = (post: any) => {
+    setSelectedPost(post)
+    setShowCreateModal(true)
+  }
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este post?')) return
+
+    try {
+      const token = localStorage.getItem('accessToken') || 
+                   document.cookie.split(';').find(c => c.trim().startsWith('accessToken='))?.split('=')[1]
+
+      const response = await fetch(`/api/blog?id=${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setRefreshKey(prev => prev + 1)
+        alert('✅ Post excluído com sucesso!')
+      } else {
+        const data = await response.json()
+        alert(`❌ Erro ao excluir post: ${data.error || 'Erro desconhecido'}`)
+      }
+    } catch (error) {
+      console.error('Erro ao excluir post:', error)
+      alert('❌ Erro ao excluir post')
+    }
+  }
+
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters)
   }
@@ -62,6 +94,8 @@ export default function BlogPage() {
         searchTerm={searchTerm}
         viewMode={viewMode}
         onPostSelect={handlePostSelect}
+        onEdit={handleEditPost}
+        onDelete={handleDeletePost}
       />
 
       {showDetailsModal && selectedPost && (

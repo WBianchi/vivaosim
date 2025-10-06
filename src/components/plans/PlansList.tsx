@@ -11,6 +11,8 @@ interface PlansListProps {
   filters: any
   searchTerm: string
   viewMode: 'grid' | 'table'
+  onEdit?: (plan: any) => void
+  onDelete?: (planId: string) => void
   onPlanSelect: (plan: any) => void
   onRefresh?: () => void
 }
@@ -331,6 +333,8 @@ export const PlansList: React.FC<PlansListProps> = ({
   filters,
   searchTerm,
   viewMode,
+  onEdit,
+  onDelete,
   onPlanSelect,
   onRefresh
 }) => {
@@ -449,6 +453,8 @@ export const PlansList: React.FC<PlansListProps> = ({
                 key={plan.id}
                 plan={plan}
                 index={index}
+                onEdit={onEdit}
+                onDelete={onDelete}
                 onClick={() => onPlanSelect(plan)}
               />
             ))}

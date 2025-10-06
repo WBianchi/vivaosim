@@ -87,42 +87,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null
     }
 
-    // Verificar token no localStorage primeiro, depois no cookie
-    let token = localStorage.getItem('accessToken')
-    if (!token) {
-      token = getTokenFromCookie()
+    const initAuth = async () => {
+      console.log('🔐 AuthContext: Inicializando autenticação...')
+      
+      // Verificar token no localStorage primeiro, depois no cookie
+      let token = localStorage.getItem('accessToken')
+      if (!token) {
+        token = getTokenFromCookie()
+        console.log('🍪 Token do cookie:', token ? 'encontrado' : 'não encontrado')
+      } else {
+        console.log('💾 Token do localStorage:', token ? 'encontrado' : 'não encontrado')
+      }
+
+      if (token) {
+        try {
+          const payload = decodeToken(token)
+          console.log('🔓 Token decodificado:', payload)
+          
+          if (payload && payload.exp > Date.now() / 1000) {
+            setAccessToken(token)
+            setUser({
+              id: payload.userId,
+              name: payload.name,
+              email: payload.email,
+              role: payload.role as any,
+              status: payload.status as any,
+              avatar: null
+            })
+            
+            console.log('✅ Usuário autenticado:', payload.name, payload.role)
+            
+            // Sincronizar localStorage com cookie
+            if (!localStorage.getItem('accessToken')) {
+              localStorage.setItem('accessToken', token)
+            }
+          } else {
+            console.log('⏰ Token expirado')
+            localStorage.removeItem('accessToken')
+            document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
+            await refreshToken()
+          }
+        } catch (error) {
+          console.error('❌ Erro ao decodificar token:', error)
+          localStorage.removeItem('accessToken')
+          document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
+        }
+      } else {
+        console.log('🚫 Nenhum token encontrado')
+      }
+      
+      setLoading(false)
     }
 
-    if (token) {
-      try {
-        const payload = decodeToken(token)
-        if (payload && payload.exp > Date.now() / 1000) {
-          setAccessToken(token)
-          setUser({
-            id: payload.userId,
-            name: payload.name,
-            email: payload.email,
-            role: payload.role as any,
-            status: payload.status as any,
-            avatar: null
-          })
-          
-          // Sincronizar localStorage com cookie
-          if (!localStorage.getItem('accessToken')) {
-            localStorage.setItem('accessToken', token)
-          }
-        } else {
-          localStorage.removeItem('accessToken')
-          // Limpar cookie também
-          document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
-          refreshToken()
-        }
-      } catch (error) {
-        localStorage.removeItem('accessToken')
-        document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
-      }
-    }
-    setLoading(false)
+    initAuth()
   }, [])
 
   const login = async (email: string, password: string, rememberMe = false) => {

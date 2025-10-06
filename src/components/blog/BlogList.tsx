@@ -13,6 +13,8 @@ interface BlogListProps {
   viewMode: 'grid' | 'table'
   onPostSelect: (post: any) => void
   onRefresh?: () => void
+  onEdit?: (post: any) => void
+  onDelete?: (postId: string) => void
 }
 
 const mockPosts_DEPRECATED = [
@@ -97,7 +99,7 @@ const mockPosts_DEPRECATED = [
 ]
 
 export const BlogList: React.FC<BlogListProps> = ({
-  filters, searchTerm, viewMode, onPostSelect, onRefresh
+  filters, searchTerm, viewMode, onPostSelect, onRefresh, onEdit, onDelete
 }) => {
   const [posts, setPosts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -173,6 +175,8 @@ export const BlogList: React.FC<BlogListProps> = ({
                 post={post}
                 index={index}
                 onClick={() => onPostSelect(post)}
+                onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))}
           </AnimatePresence>

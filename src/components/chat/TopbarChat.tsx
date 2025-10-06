@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   MessageSquare,
   Users,
@@ -9,7 +9,6 @@ import {
   FileText,
   FileSignature,
   Ticket,
-  Tag,
   Search,
   Bell,
   Settings,
@@ -20,7 +19,12 @@ import {
   Palette,
   Wifi,
   WifiOff,
-  MoreVertical
+  ChevronDown,
+  Shield,
+  UserCircle,
+  BarChart3,
+  CreditCard,
+  HelpCircle
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { useCustomization } from '@/contexts/CustomizationProvider'
@@ -29,6 +33,7 @@ import { cn } from '@/lib/utils'
 import { ChatNotifications } from './ChatNotifications'
 import { AllQuotesSidebar } from './sidebars/AllQuotesSidebar'
 import { getAuthToken } from '@/lib/auth-token'
+import { useAuth } from '@/contexts/AuthContext'
 
 export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | null
 
@@ -59,9 +64,26 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
     resetSettings,
     getTopbarClasses 
   } = useCustomization()
+  const { logout } = useAuth()
   const [showColorPicker, setShowColorPicker] = React.useState(false)
   const [customizationTab, setCustomizationTab] = React.useState<'topbar' | 'sidebar' | 'chat' | 'messages'>('topbar')
-  
+  const [showUserMenu, setShowUserMenu] = React.useState(false)
+
+  const roleLabel =
+    user?.role === 'ADMINISTRADOR'
+      ? 'Administrador'
+      : user?.role === 'ATENDENTE'
+        ? 'Atendente'
+        : user?.role === 'ASSINANTE'
+          ? 'Assinante'
+          : user?.role === 'CLIENTE'
+            ? 'Cliente'
+            : user?.role || 'Usuário'
+
+  const userDisplayName = user?.name || user?.email || 'Usuário'
+  const userEmail = user?.email || 'Sem e-mail'
+  const userInitial = (user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()
+
   const gradients = [
     { name: 'Oceano', from: 'from-blue-400', to: 'to-cyan-500', preview: 'bg-gradient-to-r from-blue-400 to-cyan-500' },
     { name: 'Pôr do Sol', from: 'from-orange-400', to: 'to-pink-500', preview: 'bg-gradient-to-r from-orange-400 to-pink-500' },
@@ -87,7 +109,6 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   ]
   
   const [totalQuotes, setTotalQuotes] = React.useState(0)
-  const [totalTags, setTotalTags] = React.useState(0)
   const [totalContracts, setTotalContracts] = React.useState(0)
   const [showQuotesSidebar, setShowQuotesSidebar] = React.useState(false)
 
@@ -122,39 +143,6 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
     }
     
     fetchTotalQuotes()
-  }, [])
-
-  // Buscar total de tags
-  React.useEffect(() => {
-    const fetchTotalTags = async () => {
-      try {
-        const token = getAuthToken()
-        if (!token) {
-          console.log('⚠️ TopBar: Token não encontrado (tags)')
-          return
-        }
-
-        console.log('🔍 TopBar: Buscando estatísticas de tags...')
-        
-        const response = await fetch('/api/tags/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        const data = await response.json()
-        
-        console.log('📊 TopBar: Resposta da API tags stats:', data)
-        
-        if (data.success) {
-          setTotalTags(data.total || 0)
-          console.log(`✅ TopBar: Total de tags: ${data.total}`)
-        }
-      } catch (error) {
-        console.error('❌ TopBar: Erro ao buscar total de tags:', error)
-      }
-    }
-    
-    fetchTotalTags()
   }, [])
 
   // Buscar total de contratos
@@ -204,13 +192,6 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
       label: 'Orçamentos',
       color: 'green',
       shortcut: 'O'
-    },
-    {
-      id: 'tag' as SidebarType,
-      icon: Tag,
-      label: 'Tags',
-      color: 'orange',
-      shortcut: 'T'
     },
     {
       id: 'contract' as SidebarType,
@@ -303,11 +284,6 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
                 {button.id === 'quote' && totalQuotes > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                     {totalQuotes > 99 ? '99+' : totalQuotes}
-                  </span>
-                )}
-                {button.id === 'tag' && totalTags > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {totalTags > 99 ? '99+' : totalTags}
                   </span>
                 )}
                 {button.id === 'contract' && totalContracts > 0 && (
@@ -623,40 +599,328 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
         </motion.button>
 
         {/* Menu do Usuário */}
-        <div className="flex items-center space-x-3 pl-4 border-l border-gray-200 dark:border-gray-700">
-          <div className="text-right">
-            <div className="text-sm font-medium text-gray-900 dark:text-white">
-              {user.name || user.email}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Atendente
-            </div>
-          </div>
-          
+        <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-700">
           <div className="relative">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name || user.email}
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-white">
-                  {(user.name || user.email).charAt(0).toUpperCase()}
-                </span>
+            <motion.button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className={cn(
+                'flex items-center gap-2 md:gap-3 p-2 rounded-xl transition-all duration-300',
+                isDarkMode
+                  ? 'hover:bg-gray-700/50 text-gray-300'
+                  : 'hover:bg-gray-100/50 text-gray-600'
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-white font-semibold text-sm">
+                {userInitial}
               </div>
-            )}
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></div>
-          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="p-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </motion.button>
+              <div className="text-left hidden md:block">
+                <p
+                  className={cn(
+                    'text-sm font-medium leading-none',
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  )}
+                >
+                  {userDisplayName}
+                </p>
+                <p
+                  className={cn(
+                    'text-xs leading-none mt-1',
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  )}
+                >
+                  {roleLabel}
+                </p>
+              </div>
+
+              <motion.div
+                animate={{ rotate: showUserMenu ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                className="hidden sm:block"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </motion.div>
+            </motion.button>
+
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  key="chat-user-menu"
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className={cn(
+                    'absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl border backdrop-blur-xl z-50',
+                    isDarkMode
+                      ? 'bg-gray-900/95 border-gray-700/50'
+                      : 'bg-white/95 border-gray-200/50'
+                  )}
+                >
+                  {/* Profile Header */}
+                  <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-lg">
+                          <span className="text-white font-bold text-lg">
+                            {userInitial}
+                          </span>
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-900" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className={cn(
+                            'font-semibold text-lg',
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          )}
+                        >
+                          {userDisplayName}
+                        </h3>
+                        <p
+                          className={cn(
+                            'text-sm truncate',
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          )}
+                        >
+                          {userEmail}
+                        </p>
+                        <div
+                          className={cn(
+                            'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium mt-1',
+                            isDarkMode
+                              ? 'bg-orange-900/30 text-orange-300'
+                              : 'bg-orange-100 text-orange-600'
+                          )}
+                        >
+                          <Shield className="w-3 h-3" />
+                          {roleLabel}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div
+                          className={cn(
+                            'text-lg font-bold',
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          )}
+                        >
+                          {totalQuotes}
+                        </div>
+                        <div
+                          className={cn(
+                            'text-xs',
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          )}
+                        >
+                          Orçamentos
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div
+                          className={cn(
+                            'text-lg font-bold',
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          )}
+                        >
+                          {totalTags}
+                        </div>
+                        <div
+                          className={cn(
+                            'text-xs',
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          )}
+                        >
+                          Tags
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div
+                          className={cn(
+                            'text-lg font-bold',
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          )}
+                        >
+                          {totalContracts}
+                        </div>
+                        <div
+                          className={cn(
+                            'text-xs',
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          )}
+                        >
+                          Contratos
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="p-2">
+                    <button
+                      onClick={() => setShowUserMenu(false)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
+                        isDarkMode
+                          ? 'hover:bg-gray-700/50 text-gray-300'
+                          : 'hover:bg-gray-100/50 text-gray-600'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                          isDarkMode
+                            ? 'bg-gray-800 group-hover:bg-gray-700'
+                            : 'bg-gray-100 group-hover:bg-gray-200'
+                        )}
+                      >
+                        <UserCircle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Meu Perfil</div>
+                        <div
+                          className={cn(
+                            'text-xs',
+                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                          )}
+                        >
+                          Dados pessoais e configurações
+                        </div>
+                      </div>
+                    </button>
+
+                    {user?.role !== 'CLIENTE' && (
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
+                          isDarkMode
+                            ? 'hover:bg-gray-700/50 text-gray-300'
+                            : 'hover:bg-gray-100/50 text-gray-600'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                            isDarkMode
+                              ? 'bg-gray-800 group-hover:bg-gray-700'
+                              : 'bg-gray-100 group-hover:bg-gray-200'
+                          )}
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">Analytics</div>
+                          <div
+                            className={cn(
+                              'text-xs',
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            )}
+                          >
+                            Relatórios e métricas
+                          </div>
+                        </div>
+                      </button>
+                    )}
+
+                    {user?.role !== 'CLIENTE' && (
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
+                          isDarkMode
+                            ? 'hover:bg-gray-700/50 text-gray-300'
+                            : 'hover:bg-gray-100/50 text-gray-600'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                            isDarkMode
+                              ? 'bg-gray-800 group-hover:bg-gray-700'
+                              : 'bg-gray-100 group-hover:bg-gray-200'
+                          )}
+                        >
+                          <CreditCard className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">Planos & Billing</div>
+                          <div
+                            className={cn(
+                              'text-xs',
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            )}
+                          >
+                            Assinaturas e pagamentos
+                          </div>
+                        </div>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setShowUserMenu(false)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group',
+                        isDarkMode
+                          ? 'hover:bg-gray-700/50 text-gray-300'
+                          : 'hover:bg-gray-100/50 text-gray-600'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                          isDarkMode
+                            ? 'bg-gray-800 group-hover:bg-gray-700'
+                            : 'bg-gray-100 group-hover:bg-gray-200'
+                        )}
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Central de Ajuda</div>
+                        <div
+                          className={cn(
+                            'text-xs',
+                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                          )}
+                        >
+                          Suporte e documentação
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Logout */}
+                  <div className="p-2 border-t border-gray-200/50 dark:border-gray-700/50">
+                    <button
+                      onClick={() => {
+                        logout()
+                        setShowUserMenu(false)
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <LogOut className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Sair da Conta</div>
+                        <div className="text-xs opacity-60">
+                          Encerrar sessão atual
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

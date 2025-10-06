@@ -11,6 +11,7 @@ import { AgentActivationModal } from '@/components/agents/AgentActivationModal'
 
 export default function AgentesPage() {
   const [selectedAgent, setSelectedAgent] = useState<any>(null)
+  const [editingAgent, setEditingAgent] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showActivationModal, setShowActivationModal] = useState(false)
   const [activationAgent, setActivationAgent] = useState<any>(null)
@@ -29,6 +30,38 @@ export default function AgentesPage() {
   const handleActivation = (agent: any) => {
     setActivationAgent(agent)
     setShowActivationModal(true)
+  }
+
+  const handleEditAgent = (agent: any) => {
+    setEditingAgent(agent)
+    setShowCreateModal(true)
+  }
+
+  const handleDeleteAgent = async (agentId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este agente?')) return
+
+    try {
+      const token = localStorage.getItem('accessToken') || 
+                   document.cookie.split(';').find(c => c.trim().startsWith('accessToken='))?.split('=')[1]
+
+      const response = await fetch(`/api/agents?id=${agentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setRefreshKey(prev => prev + 1)
+        alert('✅ Agente excluído com sucesso!')
+      } else {
+        const data = await response.json()
+        alert(`❌ Erro ao excluir agente: ${data.error || 'Erro desconhecido'}`)
+      }
+    } catch (error) {
+      console.error('Erro ao excluir agente:', error)
+      alert('❌ Erro ao excluir agente')
+    }
   }
 
   return (
@@ -57,6 +90,8 @@ export default function AgentesPage() {
           viewMode={viewMode}
           onAgentSelect={setSelectedAgent}
           onActivationRequest={handleActivation}
+          onEdit={handleEditAgent}
+          onDelete={handleDeleteAgent}
         />
 
         {/* Modal de Detalhes */}
@@ -75,10 +110,15 @@ export default function AgentesPage() {
         {/* Modal de Criação */}
         {showCreateModal && (
           <CreateAgentModal
-            onClose={() => setShowCreateModal(false)}
+            agent={editingAgent}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingAgent(null)
+            }}
             onSave={(agentData) => {
               console.log('💾 Agente salvo:', agentData)
               setShowCreateModal(false)
+              setEditingAgent(null)
               setRefreshKey(prev => prev + 1) // Recarrega a lista
             }}
           />

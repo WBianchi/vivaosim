@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Send,
@@ -55,10 +55,13 @@ import { SendAudioModal } from './modals/SendAudioModal'
 import { SendImageModal } from './modals/SendImageModal'
 import { SendVideoModal } from './modals/SendVideoModal'
 import { SendDocumentModal } from './modals/SendDocumentModal'
+import { AgentSelectionModal } from './modals/AgentSelectionModal'
 import { SendLocationModal } from './modals/SendLocationModal'
 import { SendContactModal } from './modals/SendContactModal'
+import { EmojiPicker } from './modals/EmojiPicker'
 import { Chat } from '@/types/chat'
 import { cn } from '@/lib/utils'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface FooterChatAreaProps {
   chat: Chat
@@ -66,7 +69,6 @@ interface FooterChatAreaProps {
 
 export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
   const [message, setMessage] = useState('')
-  const [isRecording, setIsRecording] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [showActionsMenu, setShowActionsMenu] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
@@ -79,6 +81,41 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
   const [showContractSidebar, setShowContractSidebar] = useState(false)
   const [isAgentActive, setIsAgentActive] = useState<boolean>(true) // Status do agente
   const [aiMode, setAiMode] = useState<'manual' | 'assistant' | 'auto'>('manual') // Modo da IA
+  const [showAgentModal, setShowAgentModal] = useState(false)
+  const [currentAgent, setCurrentAgent] = useState<any>(null)
+
+  // Buscar agente atual do chat
+  useEffect(() => {
+    const fetchChatAgent = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const response = await fetch(`/api/chats/${chat.id}/agent`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const data = await response.json()
+
+        if (data.success && data.agent) {
+          setCurrentAgent(data.agent)
+          setAiMode('auto') // Se tem agente, ativa modo auto
+          setIsAgentActive(true)
+          console.log(`🤖 Agente do chat: ${data.agent.name}`)
+        } else {
+          setCurrentAgent(null)
+          setAiMode('manual')
+          setIsAgentActive(false)
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar agente do chat:', error)
+      }
+    }
+
+    fetchChatAgent()
+  }, [chat.id])
+
   const [showPollModal, setShowPollModal] = useState(false)
   const [showListModal, setShowListModal] = useState(false)
   const [showEventModal, setShowEventModal] = useState(false)
@@ -89,6 +126,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [showContactModal, setShowContactModal] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -284,7 +322,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
     setShowAttachMenu(false)
     
     // Abrir modais para tipos especiais (sem arquivo)
-    switch (type) {
+  switch (type) {
       case 'poll':
         setShowPollModal(true)
         return
@@ -303,6 +341,18 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
       case 'contact':
         setShowContactModal(true)
         return
+      case 'image':
+        setSelectedFile(null)
+        setShowImageModal(true)
+        return
+      case 'video':
+        setSelectedFile(null)
+        setShowVideoModal(true)
+        return
+      case 'document':
+        setSelectedFile(null)
+        setShowDocumentModal(true)
+        return
     }
     
     // Configurar input file baseado no tipo e abrir seletor
@@ -310,11 +360,15 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
     if (input) {
       // Armazenar tipo para usar no handleFileSelected
       input.dataset.fileType = type
+      input.removeAttribute('capture')
       
       switch (type) {
         case 'image':
         case 'camera':
           input.accept = 'image/*'
+          if (type === 'camera') {
+            input.setAttribute('capture', 'environment')
+          }
           break
         case 'video':
           input.accept = 'video/*'
@@ -350,18 +404,6 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
 
     // Limpar input
     e.target.value = ''
-  }
-
-  const startRecording = () => {
-    setIsRecording(true)
-    console.log('Iniciando gravação de áudio...')
-    // Implementar gravação de áudio
-  }
-
-  const stopRecording = () => {
-    setIsRecording(false)
-    console.log('Parando gravação de áudio...')
-    // Implementar parar gravação
   }
 
   // Função auxiliar para enviar arquivo com upload
@@ -909,86 +951,66 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
             />
 
             {/* Emoji */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors ml-2"
-            >
-              <Smile className="w-5 h-5" />
-            </motion.button>
+            <div className="relative">
+              <motion.button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={cn(
+                  "p-1 transition-colors ml-2",
+                  showEmojiPicker 
+                    ? "text-blue-500" 
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                )}
+              >
+                <Smile className="w-5 h-5" />
+              </motion.button>
+
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <EmojiPicker
+                  isOpen={showEmojiPicker}
+                  onClose={() => setShowEmojiPicker(false)}
+                  onSelect={(emoji) => {
+                    setMessage(prev => prev + emoji)
+                    // Focar no textarea após inserir emoji
+                    setTimeout(() => textareaRef.current?.focus(), 0)
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
 
         {/* Botão de Gravação de Áudio */}
         <motion.button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onMouseLeave={stopRecording}
+          onClick={() => setShowAudioModal(true)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className={cn(
-            'p-3 rounded-full transition-colors',
-            isRecording
-              ? 'bg-red-500 text-white animate-pulse'
-              : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'
-          )}
-          title="Gravar áudio (segure para gravar)"
+          className="p-3 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+          title="Enviar áudio"
         >
           <Mic className="w-5 h-5" />
         </motion.button>
 
         {/* Botão de IA/Agente */}
         <motion.button
-          onClick={() => {
-            // Cicla entre os modos: manual → assistant → auto → manual
-            const modes: Array<'manual' | 'assistant' | 'auto'> = ['manual', 'assistant', 'auto']
-            const currentIndex = modes.indexOf(aiMode)
-            const nextMode = modes[(currentIndex + 1) % modes.length]
-            
-            setAiMode(nextMode)
-            
-            // Atualiza status do agente baseado no modo
-            const isActive = nextMode !== 'manual'
-            setIsAgentActive(isActive)
-            
-            console.log('🤖 Modo IA alterado:', {
-              modo: nextMode,
-              status: isActive ? 'ATIVO ✅' : 'MANUAL 👤',
-              descrição: {
-                manual: 'Atendimento manual apenas',
-                assistant: 'IA assistente (sugere respostas)',
-                auto: 'IA automática (responde sozinha)'
-              }[nextMode]
-            })
-          }}
+          onClick={() => setShowAgentModal(true)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className={cn(
             'relative p-3 rounded-full transition-colors',
-            aiMode === 'manual' && 'bg-gray-500 text-white hover:bg-gray-600',
-            aiMode === 'assistant' && 'bg-blue-500 text-white hover:bg-blue-600',
-            aiMode === 'auto' && 'bg-purple-500 text-white hover:bg-purple-600'
+            currentAgent ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700' : 'bg-gray-500 text-white hover:bg-gray-600'
           )}
-          title={
-            aiMode === 'manual' ? "🧑 Modo Manual - Clique para IA Assistente" :
-            aiMode === 'assistant' ? "🤖 IA Assistente - Clique para IA Automática" :
-            "⚡ IA Automática - Clique para Modo Manual"
-          }
+          title={currentAgent ? `🤖 Agente: ${currentAgent.name}` : "🧑 Modo Manual - Clique para selecionar agente"}
         >
-          {/* Ícone baseado no modo */}
-          {aiMode === 'manual' && <User className="w-5 h-5" />}
-          {aiMode === 'assistant' && <Bot className="w-5 h-5" />}
-          {aiMode === 'auto' && <Zap className="w-5 h-5" />}
+          {/* Ícone baseado no agente */}
+          {currentAgent ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
           
-          {/* Pin indicador */}
-          <div 
-            className={cn(
-              'absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white',
-              aiMode === 'manual' && 'bg-gray-400',
-              aiMode === 'assistant' && 'bg-blue-400',
-              aiMode === 'auto' && 'bg-purple-400 animate-pulse'
-            )}
-          />
+          {/* Pin indicador verde quando tem agente */}
+          {currentAgent && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white bg-green-500 animate-pulse" />
+          )}
         </motion.button>
 
         {/* Botão de Envio de Mensagem */}
@@ -1008,62 +1030,6 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
           <Send className="w-5 h-5" />
         </motion.button>
       </div>
-
-      {/* Indicador de Status da IA/Agente */}
-      {aiMode !== 'manual' && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          className={cn(
-            "mb-2 px-4 py-2 border rounded-lg",
-            aiMode === 'assistant' && "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700",
-            aiMode === 'auto' && "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <div 
-              className={cn(
-                "w-2 h-2 rounded-full",
-                aiMode === 'assistant' && "bg-blue-500 animate-pulse",
-                aiMode === 'auto' && "bg-purple-500 animate-pulse"
-              )}
-            />
-            <span 
-              className={cn(
-                "text-sm font-medium",
-                aiMode === 'assistant' && "text-blue-700 dark:text-blue-300",
-                aiMode === 'auto' && "text-purple-700 dark:text-purple-300"
-              )}
-            >
-              {aiMode === 'assistant' && '🤖 IA Assistente Ativa'}
-              {aiMode === 'auto' && '⚡ IA Automática Ativa'}
-            </span>
-            <span 
-              className={cn(
-                "text-xs",
-                aiMode === 'assistant' && "text-blue-600 dark:text-blue-400",
-                aiMode === 'auto' && "text-purple-600 dark:text-purple-400"
-              )}
-            >
-              {aiMode === 'assistant' && '• Sugerindo respostas inteligentes'}
-              {aiMode === 'auto' && '• Respondendo automaticamente'}
-            </span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Indicadores */}
-      {isRecording && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center mt-3 text-red-500 text-sm"
-        >
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-          Gravando áudio... Solte para enviar
-        </motion.div>
-      )}
 
       {/* Input file escondido */}
       <input
@@ -1784,6 +1750,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         }}
         file={selectedFile}
         chatName={chat.name}
+        onFileChange={setSelectedFile}
       />
 
       <SendVideoModal
@@ -1798,6 +1765,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         }}
         file={selectedFile}
         chatName={chat.name}
+        onFileChange={setSelectedFile}
       />
 
       <SendDocumentModal
@@ -1812,6 +1780,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         }}
         file={selectedFile}
         chatName={chat.name}
+        onFileChange={setSelectedFile}
       />
 
       {/* Modais de Localização e Contato */}
@@ -1901,6 +1870,25 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         contactId={clientData?.id}
         contactName={clientData?.name || chat.name}
       />
+
+      {/* Agent Selection Modal */}
+      <AgentSelectionModal
+        isOpen={showAgentModal}
+        onClose={() => setShowAgentModal(false)}
+        onSelect={(agent) => {
+          setCurrentAgent(agent)
+          if (agent) {
+            setAiMode('auto')
+            setIsAgentActive(true)
+          } else {
+            setAiMode('manual')
+            setIsAgentActive(false)
+          }
+        }}
+        currentAgent={currentAgent}
+        chatId={chat.id}
+      />
+
     </div>
   )
 }

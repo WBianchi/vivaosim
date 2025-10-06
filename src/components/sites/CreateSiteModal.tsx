@@ -173,7 +173,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({ onClose, onSuc
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="">Selecione o assinante</option>
-              {subscribers.map(sub => (
+              {subscribers?.map(sub => (
                 <option key={sub.id} value={sub.id}>{sub.name} - {sub.email}</option>
               ))}
             </select>
@@ -191,7 +191,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({ onClose, onSuc
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="">Selecione o plano</option>
-              {plans.map(plan => (
+              {plans?.map(plan => (
                 <option key={plan.id} value={plan.id}>{plan.name} - R$ {Number(plan.price).toFixed(2)}</option>
               ))}
             </select>
@@ -210,17 +210,17 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({ onClose, onSuc
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
             >
               <option value="">
-                {subscriptions.length === 0 && formData.subscriberId 
+                {(subscriptions?.length === 0 || !subscriptions) && formData.subscriberId 
                   ? 'Nenhuma assinatura ativa encontrada' 
                   : 'Selecione a assinatura'}
               </option>
-              {subscriptions.map(sub => (
+              {subscriptions?.map(sub => (
                 <option key={sub.id} value={sub.id}>
                   {sub.plan?.name} - {sub.status.toUpperCase()} - Expira: {sub.endDate ? new Date(sub.endDate).toLocaleDateString('pt-BR') : 'N/A'}
                 </option>
               ))}
             </select>
-            {subscriptions.length > 0 && (
+            {subscriptions && subscriptions.length > 0 && (
               <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                 ✅ {subscriptions.length} assinatura(s) ativa(s) encontrada(s)
               </p>

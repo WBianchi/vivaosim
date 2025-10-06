@@ -9,9 +9,9 @@ import {
   MessageSquare,
   Target,
   Zap,
-  MoreVertical,
   Eye,
   Edit3,
+  Trash2,
   Play,
   TrendingUp,
   Clock,
@@ -25,13 +25,17 @@ interface AgentCardProps {
   index: number
   onClick: () => void
   onActivationRequest: () => void
+  onEdit?: (agent: any) => void
+  onDelete?: (agentId: string) => void
 }
 
 export const AgentCard: React.FC<AgentCardProps> = ({
   agent,
   index,
   onClick,
-  onActivationRequest
+  onActivationRequest,
+  onEdit,
+  onDelete
 }) => {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR')
@@ -202,18 +206,35 @@ export const AgentCard: React.FC<AgentCardProps> = ({
             </div>
           </div>
 
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => {
-                e.stopPropagation()
-                console.log('⚙️ Mais opções:', agent.id)
-              }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </motion.button>
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(agent)
+                }}
+                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                title="Editar agente"
+              >
+                <Edit3 className="w-4 h-4" />
+              </motion.button>
+            )}
+            {onDelete && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(agent.id)
+                }}
+                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
+                title="Excluir agente"
+              >
+                <Trash2 className="w-4 h-4" />
+              </motion.button>
+            )}
           </div>
         </div>
 
@@ -378,19 +399,6 @@ export const AgentCard: React.FC<AgentCardProps> = ({
               Ativar
             </motion.button>
           )}
-          
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              console.log('✏️ Editar agente:', agent.id)
-            }}
-            className="px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <Edit3 className="w-3 h-3" />
-            Editar
-          </motion.button>
         </div>
       </div>
     </motion.div>

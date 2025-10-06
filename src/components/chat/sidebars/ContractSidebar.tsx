@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { 
   X, 
@@ -23,6 +23,7 @@ interface ContractSidebarProps {
 
 export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactName }: ContractSidebarProps) {
   const [loading, setLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -33,9 +34,22 @@ export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactNam
     status: 'draft'
   })
 
+  // Simular carregamento inicial
+  useEffect(() => {
+    if (isOpen) {
+      setIsInitializing(true)
+      setTimeout(() => setIsInitializing(false), 100)
+    }
+  }, [isOpen])
+
   const handleSubmit = async () => {
     if (!formData.title || !formData.value) {
       alert('❌ Preencha título e valor')
+      return
+    }
+
+    if (!contactId) {
+      alert('❌ Contato não encontrado')
       return
     }
 
@@ -49,21 +63,43 @@ export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactNam
         return
       }
 
+      // Preparar dados
+      const payload: any = {
+        title: formData.title,
+        description: formData.description || null,
+        amount: parseFloat(formData.value),
+        chatId: chatId || null,
+        contactId: contactId
+      }
+
+      // Adicionar datas apenas se preenchidas
+      if (formData.startDate) {
+        payload.startDate = new Date(formData.startDate).toISOString()
+      }
+      if (formData.endDate) {
+        payload.endDate = new Date(formData.endDate).toISOString()
+      }
+
+      console.log('📋 Enviando contrato:', payload)
+
       const response = await fetch('/api/contracts', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...formData,
-          value: parseFloat(formData.value),
-          chatId,
-          contactId
-        })
+        body: JSON.stringify(payload)
       })
 
       const data = await response.json()
+
+      console.log('📋 Resposta da API:', data)
+
+      if (data.error) {
+        alert(`❌ Erro: ${data.error}`)
+        setLoading(false)
+        return
+      }
 
       if (data.contract) {
         // Toast de sucesso

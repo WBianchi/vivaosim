@@ -109,6 +109,27 @@ export interface Chat {
   ticket?: Ticket
 }
 
+export interface ChatAssignmentMeta {
+  contactId?: string
+  assignedTo?: {
+    id: string
+    name: string
+    email?: string
+    avatar?: string | null
+  } | null
+  status?: {
+    code?: string
+    label?: string
+    description?: string | null
+  } | null
+  queue?: {
+    id?: string
+    name?: string
+    color?: string | null
+  } | null
+  updatedAt?: string | Date
+}
+
 export interface Ticket {
   id: string
   chatId: string

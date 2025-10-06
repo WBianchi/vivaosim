@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -238,8 +238,63 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = false, className }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>([])
+  const [logoConfig, setLogoConfig] = useState<{ 
+    logo: string | null
+    logoSize: string
+    logoWidth: number
+    logoHeight: number
+  }>({ logo: null, logoSize: 'medium', logoWidth: 40, logoHeight: 40 })
   const { user } = useAuth()
   const { isDarkMode } = useTheme()
+
+  // Calcular tamanho da logo
+  const getLogoSize = () => {
+    const sizes: Record<string, number> = {
+      small: 32,
+      medium: 40,
+      large: 56,
+      custom: logoConfig.logoHeight
+    }
+    return sizes[logoConfig.logoSize] || 40
+  }
+
+  // Carregar logo do site
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/api/settings/site')
+        const data = await response.json()
+        if (data.success && data.config) {
+          setLogoConfig({
+            logo: data.config.logo,
+            logoSize: data.config.logoSize || 'medium',
+            logoWidth: data.config.logoWidth || 40,
+            logoHeight: data.config.logoHeight || 40
+          })
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar logo:', error)
+      }
+    }
+    
+    loadLogo()
+
+    // Listener para atualização em tempo real
+    const handleConfigUpdate = (event: any) => {
+      const config = event.detail
+      if (config) {
+        setLogoConfig({
+          logo: config.logo,
+          logoSize: config.logoSize || 'medium',
+          logoWidth: config.logoWidth || 40,
+          logoHeight: config.logoHeight || 40
+        })
+      }
+    }
+
+    window.addEventListener('siteConfigUpdated', handleConfigUpdate)
+    return () => window.removeEventListener('siteConfigUpdated', handleConfigUpdate)
+  }, [])
   const pathname = usePathname()
 
   // Menu items baseado no role do usuário
@@ -669,40 +724,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <motion.div 
-              className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30"
-              whileHover={{ 
-                rotate: [0, -5, 5, 0],
-                scale: 1.05
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <span className="text-white font-bold text-lg">V</span>
-            </motion.div>
-            
-            <AnimatePresence>
-              {isExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
+            {logoConfig.logo ? (
+              <img 
+                src={logoConfig.logo} 
+                alt="Viva o Sim" 
+                style={{ 
+                  height: `${getLogoSize()}px`,
+                  width: logoConfig.logoSize === 'custom' ? `${logoConfig.logoWidth}px` : 'auto'
+                }}
+                className="object-contain"
+              />
+            ) : (
+              <>
+                <motion.div 
+                  className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl shadow-orange-500/30"
+                  whileHover={{ 
+                    rotate: [0, -5, 5, 0],
+                    scale: 1.05
+                  }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <h1 className={cn(
-                    'font-bold text-lg',
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  )}>
-                    Viva o Sim
-                  </h1>
-                  <p className={cn(
-                    'text-xs opacity-60',
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  )}>
-                    CRM Eventos
-                  </p>
+                  <span className="text-white font-bold text-lg">V</span>
                 </motion.div>
-              )}
-            </AnimatePresence>
+                
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                    >
+                      <h1 className={cn(
+                        'font-bold text-lg',
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      )}>
+                        Viva o Sim
+                      </h1>
+                      <p className={cn(
+                        'text-xs opacity-60',
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      )}>
+                        CRM Eventos
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
           </motion.div>
         </Link>
       </div>
