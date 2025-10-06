@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { put } from '@vercel/blob'
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,33 +49,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
-    // Criar diretório se não existir
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'chat')
-    try {
-      await mkdir(uploadDir, { recursive: true })
-    } catch (error) {
-      // Diretório já existe
-    }
-
     // Gerar nome único
     const timestamp = Date.now()
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-    const fileName = `${timestamp}-${sanitizedFileName}`
-    const filePath = join(uploadDir, fileName)
+    const randomId = Math.random().toString(36).substring(2, 15)
+    const extension = file.name.split('.').pop()
+    const fileName = `chat-media/${timestamp}_${randomId}.${extension}`
 
-    // Salvar arquivo
-    await writeFile(filePath, buffer)
+    console.log('📤 Fazendo upload para Vercel Blob:', fileName)
 
-    // URL pública do arquivo - Usar URL que o WAHA consegue acessar
-    // Se estiver em produção, use o domínio público
-    // Se estiver em desenvolvimento, use ngrok ou IP público
-    const publicUrl = process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const fileUrl = `${publicUrl}/uploads/chat/${fileName}`
-    
-    console.log('📤 URL do arquivo:', fileUrl)
+    // Upload para Vercel Blob Storage (URL pública e acessível globalmente)
+    const blob = await put(fileName, file, {
+      access: 'public',
+      addRandomSuffix: false
+    })
+
+    console.log('✅ Upload concluído! URL pública:', blob.url)
 
     // Determinar tipo de mídia
     let mediaType: 'image' | 'video' | 'audio' | 'document' = 'document'
@@ -88,8 +75,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Arquivo enviado com sucesso',
       data: {
-        fileName,
-        fileUrl,
+        fileName: blob.pathname,
+        fileUrl: blob.url, // URL pública do Vercel Blob - acessível globalmente!
         mediaType,
         mimeType: file.type,
         size: file.size,

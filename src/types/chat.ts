@@ -26,12 +26,16 @@ export interface Message {
   from: string
   to: string
   body?: string
+  content?: string // Alias para body
   type: MessageType
   timestamp: Date
   hasMedia: boolean
   mediaUrl?: string
   mimeType?: string
   fileName?: string
+  mediaFilename?: string
+  mediaSize?: number
+  caption?: string
   isForwarded: boolean
   isFromMe: boolean
   isGif: boolean
@@ -41,16 +45,50 @@ export interface Message {
     longitude: number
     description?: string
   }
+  latitude?: number
+  longitude?: number
+  locationTitle?: string
+  locationAddress?: string
   vcard?: string
+  contactName?: string
+  contactPhone?: string
+  contactAvatar?: string
   quotedMessage?: {
     id: string
     body?: string
+    content?: string
     from: string
+    fromMe: boolean
+    senderName?: string
   }
   reactions?: MessageReaction[]
-  ack: MessageAck
+  ack: MessageAck | number
   editedTimestamp?: Date
   revokedTimestamp?: Date
+  // Poll fields
+  pollOptions?: string[]
+  pollAllowMultiple?: boolean
+  pollVotes?: number[]
+  pollTotalVotes?: number
+  // List fields
+  listTitle?: string
+  listDescription?: string
+  listButtonText?: string
+  listSections?: Array<{
+    title?: string
+    rows: Array<{
+      title: string
+      description?: string
+      rowId?: string
+    }>
+  }>
+  // Event fields
+  eventTitle?: string
+  eventDescription?: string
+  eventStartDate?: string
+  eventEndDate?: string
+  eventLocation?: string
+  eventAttendees?: string[]
 }
 
 export enum MessageType {
@@ -60,10 +98,13 @@ export enum MessageType {
   AUDIO = 'audio',
   VOICE = 'ptt',
   DOCUMENT = 'document',
+  FILE = 'file',
   STICKER = 'sticker',
   LOCATION = 'location',
   CONTACT = 'vcard',
   POLL = 'poll',
+  LIST = 'list',
+  EVENT = 'event',
   SYSTEM = 'system',
   UNKNOWN = 'unknown'
 }

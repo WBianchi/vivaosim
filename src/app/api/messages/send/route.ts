@@ -7,7 +7,7 @@ interface SendMessageRequest {
   chatId: string
   sessionId?: string
   message: string
-  type?: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contact'
+  type?: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contact' | 'poll' | 'list' | 'event'
   mediaUrl?: string
   fileName?: string
   caption?: string
@@ -15,12 +15,15 @@ interface SendMessageRequest {
   longitude?: number
   contactName?: string
   contactPhone?: string
+  pollData?: any
+  listData?: any
+  eventData?: any
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: SendMessageRequest = await request.json()
-    const { chatId, sessionId, message, type = 'text', mediaUrl, fileName, caption, latitude, longitude, contactName, contactPhone } = body
+    const { chatId, sessionId, message, type = 'text', mediaUrl, fileName, caption, latitude, longitude, contactName, contactPhone, pollData, listData, eventData } = body
 
     if (!chatId || !message) {
       return NextResponse.json(
@@ -154,17 +157,75 @@ export async function POST(request: NextRequest) {
         payload = {
           session: finalSessionId,
           chatId,
-          latitude,
-          longitude
+          latitude: parseFloat(latitude as any),
+          longitude: parseFloat(longitude as any),
+          title: message || 'Localização'
         }
         break
       case 'contact':
-        endpoint = `${WAHA_BASE_URL}/api/sendContact`
+        endpoint = `${WAHA_BASE_URL}/api/sendContactVcard`
         payload = {
           session: finalSessionId,
           chatId,
-          contactId: contactPhone,
-          name: contactName
+          contacts: [
+            {
+              fullName: contactName,
+              phoneNumber: contactPhone,
+              whatsappId: contactPhone.replace(/[^0-9]/g, '') // Apenas números, sem @c.us
+            }
+          ]
+        }
+        break
+      case 'poll':
+        endpoint = `${WAHA_BASE_URL}/api/sendPoll`
+        payload = {
+          session: finalSessionId,
+          chatId,
+          poll: {
+            name: pollData.question,
+            options: pollData.options,
+            multipleAnswers: pollData.allowMultipleAnswers || false
+          }
+        }
+        break
+      case 'list':
+        endpoint = `${WAHA_BASE_URL}/api/sendList`
+        // Ajustar formato: buttonText -> button e adicionar rowId
+        const formattedSections = listData.sections.map((section: any) => ({
+          ...section,
+          rows: section.rows.map((row: any, index: number) => ({
+            title: row.title,
+            rowId: row.rowId || `row_${index}`,
+            description: row.description || null
+          }))
+        }))
+        
+        payload = {
+          session: finalSessionId,
+          chatId,
+          reply_to: null,
+          message: {
+            title: listData.title,
+            description: listData.description,
+            button: listData.buttonText || 'Ver opções',
+            sections: formattedSections
+          }
+        }
+        break
+      case 'event':
+        endpoint = `${WAHA_BASE_URL}/api/${finalSessionId}/events`
+        // Converter para formato Unix timestamp
+        const startDateTime = `${eventData.startDate}T${eventData.startTime}:00`
+        const startTime = Math.floor(new Date(startDateTime).getTime() / 1000)
+        
+        payload = {
+          chatId,
+          event: {
+            name: eventData.title,
+            startTime: startTime,
+            isCanceled: false,
+            extraGuestsAllowed: true
+          }
         }
         break
     }

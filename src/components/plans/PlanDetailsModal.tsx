@@ -283,7 +283,7 @@ export const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({
                   </div>
 
                   {/* Trial Info */}
-                  {plan.trial.enabled && (
+                  {plan.trial?.enabled && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="w-5 h-5 text-blue-600" />
@@ -292,7 +292,7 @@ export const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({
                         </h3>
                       </div>
                       <p className="text-blue-700 dark:text-blue-300">
-                        Este plano oferece {plan.trial.days} dias de teste gratuito para novos assinantes.
+                        Este plano oferece {plan.trial?.days || 0} dias de teste gratuito para novos assinantes.
                       </p>
                     </div>
                   )}
@@ -327,50 +327,56 @@ export const PlanDetailsModal: React.FC<PlanDetailsModalProps> = ({
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Recursos */}
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                        Recursos Inclusos ({plan.features.length})
-                      </h3>
-                      <div className="space-y-3">
-                        {plan.features.map((feature: string, index: number) => (
-                          <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                            <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                          </div>
-                        ))}
+                    {plan.features && plan.features.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                          Recursos Inclusos ({plan.features.length})
+                        </h3>
+                        <div className="space-y-3">
+                          {plan.features.map((feature: string, index: number) => (
+                            <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Benefícios */}
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                        Benefícios ({plan.benefits.length})
-                      </h3>
-                      <div className="space-y-3">
-                        {plan.benefits.map((benefit: string, index: number) => (
-                          <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <Gift className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                            <span className="text-gray-700 dark:text-gray-300">{benefit}</span>
-                          </div>
-                        ))}
+                    {plan.benefits && plan.benefits.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                          Benefícios ({plan.benefits.length})
+                        </h3>
+                        <div className="space-y-3">
+                          {plan.benefits.map((benefit: string, index: number) => (
+                            <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                              <Gift className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                              <span className="text-gray-700 dark:text-gray-300">{benefit}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Vantagens */}
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                      Vantagens Competitivas
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {plan.advantages.map((advantage: string, index: number) => (
-                        <div key={index} className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                          <Star className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                          <span className="text-gray-700 dark:text-gray-300">{advantage}</span>
-                        </div>
-                      ))}
+                  {plan.advantages && plan.advantages.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                        Vantagens Competitivas
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {plan.advantages.map((advantage: string, index: number) => (
+                          <div key={index} className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+                            <Star className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                            <span className="text-gray-700 dark:text-gray-300">{advantage}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 

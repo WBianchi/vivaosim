@@ -39,48 +39,64 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   }
 
   const formatPeriod = (period: string) => {
-    switch (period) {
+    const periodLower = period?.toLowerCase() || ''
+    switch (periodLower) {
+      case 'monthly': return 'Mensal'
+      case 'quarterly': return 'Trimestral'
+      case 'semiannual': return 'Semestral'
+      case 'annual': return 'Anual'
+      case 'lifetime': return 'Vitalício'
+      default: return period || 'Mensal'
+    }
+  }
+
+  const formatPeriodShort = (period: string) => {
+    const periodLower = period?.toLowerCase() || ''
+    switch (periodLower) {
       case 'monthly': return '/mês'
       case 'quarterly': return '/trimestre'
       case 'semiannual': return '/semestre'
       case 'annual': return '/ano'
+      case 'lifetime': return ''
       default: return ''
     }
   }
 
   const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'active':
+    const statusUpper = status?.toUpperCase() || ''
+    switch (statusUpper) {
+      case 'ACTIVE':
         return {
           label: 'Ativo',
           icon: CheckCircle,
           color: 'text-green-600',
-          bg: 'bg-green-100',
-          border: 'border-green-200'
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          border: 'border-green-200 dark:border-green-800'
         }
-      case 'inactive':
+      case 'INACTIVE':
         return {
           label: 'Inativo',
           icon: XCircle,
           color: 'text-red-600',
-          bg: 'bg-red-100',
-          border: 'border-red-200'
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          border: 'border-red-200 dark:border-red-800'
         }
-      case 'draft':
+      case 'DRAFT':
+      case 'ARCHIVED':
         return {
-          label: 'Rascunho',
+          label: status === 'ARCHIVED' ? 'Arquivado' : 'Rascunho',
           icon: Clock,
           color: 'text-yellow-600',
-          bg: 'bg-yellow-100',
-          border: 'border-yellow-200'
+          bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+          border: 'border-yellow-200 dark:border-yellow-800'
         }
       default:
         return {
-          label: 'Desconhecido',
-          icon: Package,
-          color: 'text-gray-600',
-          bg: 'bg-gray-100',
-          border: 'border-gray-200'
+          label: 'Ativo',
+          icon: CheckCircle,
+          color: 'text-green-600',
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          border: 'border-green-200 dark:border-green-800'
         }
     }
   }
@@ -179,11 +195,10 @@ export const PlanCard: React.FC<PlanCardProps> = ({
             </span>
             {!isFree && (
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {formatPeriod(plan.period)}
+                {formatPeriodShort(plan.period)}
               </span>
             )}
           </div>
-          
         </div>
 
         {/* Descrição */}
@@ -244,7 +259,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         <div className="flex items-center gap-2 mb-4">
           <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            Cobrança: {formatPeriod(plan.period).replace('/', '')}
+            Periodicidade: {formatPeriod(plan.period)}
           </span>
         </div>
 
@@ -282,18 +297,20 @@ export const PlanCard: React.FC<PlanCardProps> = ({
             Ver Detalhes
           </motion.button>
           
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              console.log('✏️ Editar plano:', plan.id)
-            }}
-            className="px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <Edit3 className="w-3 h-3" />
-            Editar
-          </motion.button>
+          {onEdit && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(plan)
+              }}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <Edit3 className="w-3 h-3" />
+              Editar
+            </motion.button>
+          )}
         </div>
       </div>
 

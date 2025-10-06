@@ -1,8 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, Send, User, Phone, Mail, Building } from 'lucide-react'
+import { X, Send, User, Phone, Search, Loader2 } from 'lucide-react'
+
+interface WhatsAppContact {
+  id: string
+  name: string
+  pushname?: string
+  number: string
+  isBusiness?: boolean
+}
 
 interface SendContactModalProps {
   isOpen: boolean
@@ -10,43 +18,84 @@ interface SendContactModalProps {
   onSend: (contactData: {
     name: string
     phone: string
-    email?: string
-    organization?: string
   }) => void
   chatName: string
+  sessionId?: string
 }
 
 export const SendContactModal: React.FC<SendContactModalProps> = ({
   isOpen,
   onClose,
   onSend,
-  chatName
+  chatName,
+  sessionId
 }) => {
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [organization, setOrganization] = useState('')
+  const [contacts, setContacts] = useState<WhatsAppContact[]>([])
+  const [filteredContacts, setFilteredContacts] = useState<WhatsAppContact[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedContact, setSelectedContact] = useState<WhatsAppContact | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Buscar contatos do WhatsApp
+  useEffect(() => {
+    if (isOpen) {
+      loadContacts()
+    }
+  }, [isOpen])
+
+  // Filtrar contatos com base na pesquisa
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      const filtered = contacts.filter(contact => 
+        contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.pushname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.number.includes(searchTerm)
+      )
+      setFilteredContacts(filtered)
+    } else {
+      setFilteredContacts(contacts)
+    }
+  }, [searchTerm, contacts])
+
+  const loadContacts = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/whatsapp/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionId })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setContacts(data.contacts || [])
+        setFilteredContacts(data.contacts || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contatos:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!isOpen) return null
 
   const handleSend = () => {
-    if (!name.trim() || !phone.trim()) {
-      alert('Nome e telefone são obrigatórios')
+    if (!selectedContact) {
+      alert('Selecione um contato')
       return
     }
 
     onSend({
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.trim() || undefined,
-      organization: organization.trim() || undefined
+      name: selectedContact.name || selectedContact.pushname || 'Contato',
+      phone: selectedContact.number
     })
 
     // Reset
-    setName('')
-    setPhone('')
-    setEmail('')
-    setOrganization('')
+    setSelectedContact(null)
+    setSearchTerm('')
     onClose()
   }
 
@@ -92,69 +141,74 @@ export const SendContactModal: React.FC<SendContactModalProps> = ({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Nome */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <User className="w-4 h-4 inline mr-1" />
-              Nome Completo *
-            </label>
+          {/* Campo de Pesquisa */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: João Silva"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 dark:text-white"
-              maxLength={100}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Pesquisar contatos..."
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 dark:text-white"
             />
           </div>
 
-          {/* Telefone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Phone className="w-4 h-4 inline mr-1" />
-              Telefone *
-            </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Ex: +55 11 99999-9999"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 dark:text-white"
-              maxLength={20}
-            />
+          {/* Lista de Contatos */}
+          <div className="max-h-96 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="text-center py-12">
+                <User className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">Nenhum contato encontrado</p>
+              </div>
+            ) : (
+              filteredContacts.map((contact) => (
+                <motion.div
+                  key={contact.id}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={() => setSelectedContact(contact)}
+                  className={`p-3 rounded-lg cursor-pointer transition-all ${
+                    selectedContact?.id === contact.id
+                      ? 'bg-indigo-100 dark:bg-indigo-900/30 border-2 border-indigo-500'
+                      : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        {contact.name || contact.pushname || 'Sem nome'}
+                      </p>
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {contact.number}
+                      </p>
+                    </div>
+                    {selectedContact?.id === contact.id && (
+                      <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Mail className="w-4 h-4 inline mr-1" />
-              Email (opcional)
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Ex: joao@exemplo.com"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 dark:text-white"
-              maxLength={100}
-            />
-          </div>
-
-          {/* Organização */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Building className="w-4 h-4 inline mr-1" />
-              Empresa/Organização (opcional)
-            </label>
-            <input
-              type="text"
-              value={organization}
-              onChange={(e) => setOrganization(e.target.value)}
-              placeholder="Ex: Empresa XYZ"
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 dark:text-white"
-              maxLength={100}
-            />
-          </div>
+          {selectedContact && (
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Contato selecionado:</strong> {selectedContact.name || selectedContact.pushname}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -167,7 +221,7 @@ export const SendContactModal: React.FC<SendContactModalProps> = ({
           </button>
           <button
             onClick={handleSend}
-            disabled={!name.trim() || !phone.trim()}
+            disabled={!selectedContact}
             className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
             <Send className="w-4 h-4" />

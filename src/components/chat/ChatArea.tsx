@@ -41,6 +41,18 @@ import { useMessages } from '@/hooks/useMessages'
 import { cn } from '@/lib/utils'
 import { getAuthToken } from '@/lib/auth-token'
 import { resolveStatusDisplay } from '@/lib/chat-status'
+import {
+  MessageText,
+  MessageImage,
+  MessageVideo,
+  MessageAudio,
+  MessageDocument,
+  MessagePoll,
+  MessageList,
+  MessageEvent,
+  MessageContact,
+  MessageLocation
+} from './message-types'
 
 interface ChatAreaProps {
   chat: Chat
@@ -199,8 +211,23 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
   }
 
   // Ícone de status da mensagem
-  const getMessageStatusIcon = (ack: MessageAck) => {
-    switch (ack) {
+  const getMessageStatusIcon = (ack: MessageAck | number) => {
+    // Converter number para MessageAck se necessário (WAHA usa números)
+    let status: MessageAck
+    if (typeof ack === 'number') {
+      switch (ack) {
+        case 0: status = MessageAck.PENDING; break
+        case 1: status = MessageAck.SERVER; break
+        case 2: status = MessageAck.DEVICE; break
+        case 3: status = MessageAck.READ; break
+        case 4: status = MessageAck.PLAYED; break
+        default: status = MessageAck.PENDING; break
+      }
+    } else {
+      status = ack
+    }
+
+    switch (status) {
       case MessageAck.PENDING:
         return <Clock className="w-3 h-3 text-gray-400" />
       case MessageAck.SERVER:
@@ -216,14 +243,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     }
   }
 
-  // Componente de mensagem - CORRIGIDO
+  // Componente de mensagem - SIMPLIFICADO
   const MessageBubble: React.FC<{ message: Message }> = React.memo(({ message }) => {
     const isFromMe = message.isFromMe
-    
-    // Verificar se a mensagem tem conteúdo válido
-    if (!message.body && !message.mediaUrl) {
-      return null
-    }
+    const content = message.body || message.content || 'Mensagem'
     
     return (
       <div
@@ -234,21 +257,19 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
       >
         <div
           className={cn(
-            'max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-2xl relative group min-h-[40px]',
+            'max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-2xl shadow-lg',
             isFromMe
               ? 'bg-blue-500 text-white rounded-br-md'
-              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-md border border-gray-200 dark:border-gray-600'
+              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-md'
           )}
         >
-          {/* Conteúdo da mensagem */}
-          <div className="break-words whitespace-pre-wrap text-sm leading-relaxed">
-            {message.body || 'Mídia'}
+          <div className="break-words whitespace-pre-wrap text-sm">
+            {content}
           </div>
           
-          {/* Timestamp e Status */}
           <div className={cn(
-            'flex items-center justify-end space-x-1 mt-2 text-xs opacity-70',
-            isFromMe ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+            'flex items-center justify-end space-x-1 mt-2 text-xs',
+            isFromMe ? 'text-blue-100' : 'text-gray-500'
           )}>
             <span>{formatMessageTime(message.timestamp)}</span>
             {isFromMe && getMessageStatusIcon(message.ack)}

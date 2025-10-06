@@ -1721,8 +1721,26 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         onClose={() => setShowPollModal(false)}
         onSend={async (pollData) => {
           console.log('📊 Enviando enquete:', pollData)
-          // TODO: Implementar envio de enquete via WAHA
-          alert('Enquete enviada! (implementação pendente)')
+          
+          try {
+            const response = await fetch('/api/messages/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId: chat.id,
+                message: pollData.question,
+                type: 'poll',
+                pollData: pollData
+              })
+            })
+
+            if (!response.ok) throw new Error('Erro ao enviar enquete')
+            
+            alert('✅ Enquete enviada com sucesso!')
+          } catch (error) {
+            console.error('Erro ao enviar enquete:', error)
+            alert('Erro ao enviar enquete')
+          }
         }}
         chatName={chat.name}
       />
@@ -1732,8 +1750,26 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         onClose={() => setShowListModal(false)}
         onSend={async (listData) => {
           console.log('📋 Enviando lista:', listData)
-          // TODO: Implementar envio de lista via WAHA
-          alert('Lista enviada! (implementação pendente)')
+          
+          try {
+            const response = await fetch('/api/messages/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId: chat.id,
+                message: listData.title || 'Lista',
+                type: 'list',
+                listData: listData
+              })
+            })
+
+            if (!response.ok) throw new Error('Erro ao enviar lista')
+            
+            alert('✅ Lista enviada com sucesso!')
+          } catch (error) {
+            console.error('Erro ao enviar lista:', error)
+            alert('Erro ao enviar lista')
+          }
         }}
         chatName={chat.name}
       />
@@ -1743,8 +1779,26 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         onClose={() => setShowEventModal(false)}
         onSend={async (eventData) => {
           console.log('📅 Enviando evento:', eventData)
-          // TODO: Implementar envio de evento via WAHA
-          alert('Evento enviado! (implementação pendente)')
+          
+          try {
+            const response = await fetch('/api/messages/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId: chat.id,
+                message: eventData.title || 'Evento',
+                type: 'event',
+                eventData: eventData
+              })
+            })
+
+            if (!response.ok) throw new Error('Erro ao enviar evento')
+            
+            alert('✅ Evento enviado com sucesso!')
+          } catch (error) {
+            console.error('Erro ao enviar evento:', error)
+            alert('Erro ao enviar evento')
+          }
         }}
         chatName={chat.name}
       />
