@@ -23,9 +23,10 @@ interface Board {
 
 interface KanbanBoardListProps {
   kanbanActions?: any
+  onCreateBoard?: () => void
 }
 
-export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions }) => {
+export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions, onCreateBoard }) => {
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null)
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,7 +40,13 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions 
     try {
       const response = await fetch('/api/boards')
       const data = await response.json()
-      setBoards(data.boards || [])
+      // Mapear _count.clients para clientCount
+      const mappedBoards = (data.boards || []).map((board: any) => ({
+        ...board,
+        clientCount: board._count?.clients || 0,
+        columnsCount: board._count?.columns || 0
+      }))
+      setBoards(mappedBoards)
     } catch (error) {
       console.error('❌ Erro ao carregar boards:', error)
     } finally {
@@ -141,7 +148,7 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions 
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total de Clientes</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {boards.reduce((acc, board) => acc + board.clientCount, 0)}
+                {boards.reduce((acc, board) => acc + (board.clientCount || 0), 0)}
               </p>
             </div>
             <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center">
@@ -191,6 +198,7 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
+            onClick={onCreateBoard}
             className="bg-white dark:bg-gray-900 p-8 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 transition-colors cursor-pointer group"
           >
             <div className="text-center">

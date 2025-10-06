@@ -60,25 +60,32 @@ export async function POST(request: NextRequest) {
     // Templates predefinidos
     const templates: Record<string, Array<{title: string, color: string, position: number}>> = {
       sales: [
-        { title: 'Novos Leads', color: 'from-blue-500 to-cyan-500', position: 0 },
-        { title: 'Qualificados', color: 'from-green-500 to-emerald-500', position: 1 },
-        { title: 'Proposta', color: 'from-yellow-500 to-orange-500', position: 2 },
-        { title: 'Negociação', color: 'from-purple-500 to-pink-500', position: 3 },
-        { title: 'Fechados', color: 'from-emerald-500 to-green-600', position: 4 }
+        { title: 'Novos Leads', color: '#3B82F6', position: 0 },
+        { title: 'Qualificados', color: '#10B981', position: 1 },
+        { title: 'Proposta', color: '#F59E0B', position: 2 },
+        { title: 'Negociação', color: '#8B5CF6', position: 3 },
+        { title: 'Fechados', color: '#059669', position: 4 }
       ],
       ecommerce: [
-        { title: 'Carrinho Abandonado', color: 'from-red-500 to-pink-500', position: 0 },
-        { title: 'Pedido Confirmado', color: 'from-blue-500 to-cyan-500', position: 1 },
-        { title: 'Em Produção', color: 'from-yellow-500 to-orange-500', position: 2 },
-        { title: 'Enviado', color: 'from-purple-500 to-pink-500', position: 3 },
-        { title: 'Entregue', color: 'from-green-500 to-emerald-500', position: 4 }
+        { title: 'Carrinho Abandonado', color: '#EF4444', position: 0 },
+        { title: 'Pedido Confirmado', color: '#3B82F6', position: 1 },
+        { title: 'Em Produção', color: '#F59E0B', position: 2 },
+        { title: 'Enviado', color: '#8B5CF6', position: 3 },
+        { title: 'Entregue', color: '#10B981', position: 4 }
       ],
       support: [
-        { title: 'Novo Ticket', color: 'from-gray-500 to-slate-500', position: 0 },
-        { title: 'Em Análise', color: 'from-blue-500 to-cyan-500', position: 1 },
-        { title: 'Aguardando Cliente', color: 'from-yellow-500 to-orange-500', position: 2 },
-        { title: 'Em Resolução', color: 'from-purple-500 to-pink-500', position: 3 },
-        { title: 'Resolvido', color: 'from-green-500 to-emerald-500', position: 4 }
+        { title: 'Novo Ticket', color: '#6B7280', position: 0 },
+        { title: 'Em Análise', color: '#3B82F6', position: 1 },
+        { title: 'Aguardando Cliente', color: '#F59E0B', position: 2 },
+        { title: 'Em Resolução', color: '#8B5CF6', position: 3 },
+        { title: 'Resolvido', color: '#10B981', position: 4 }
+      ],
+      project: [
+        { title: 'Briefing', color: '#06B6D4', position: 0 },
+        { title: 'Em Desenvolvimento', color: '#F97316', position: 1 },
+        { title: 'Revisão', color: '#8B5CF6', position: 2 },
+        { title: 'Aprovação', color: '#F59E0B', position: 3 },
+        { title: 'Entregue', color: '#10B981', position: 4 }
       ]
     }
 

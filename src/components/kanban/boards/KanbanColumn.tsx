@@ -69,6 +69,22 @@ const colorOptions = [
   { name: 'Cinza', value: '#6B7280' }
 ]
 
+// Função para converter classes Tailwind antigas em cores hex
+const convertTailwindToHex = (color: string): string => {
+  if (!color || color.startsWith('#')) return color || '#6B7280'
+  
+  const tailwindMap: Record<string, string> = {
+    'blue': '#3B82F6', 'green': '#10B981', 'yellow': '#F59E0B',
+    'orange': '#F97316', 'purple': '#8B5CF6', 'pink': '#EC4899',
+    'red': '#EF4444', 'cyan': '#06B6D4', 'gray': '#6B7280'
+  }
+  
+  for (const [key, hex] of Object.entries(tailwindMap)) {
+    if (color.includes(key)) return hex
+  }
+  
+  return '#6B7280'
+}
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanActions, onUpdateColumn, agents = [], onAddClient }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -97,7 +113,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
     setShowAgentPicker(false)
   }
 
-  const headerColor = column.color || '#6B7280'
+  const headerColor = convertTailwindToHex(column.color)
   
   return (
     <div className="flex flex-col h-full relative">

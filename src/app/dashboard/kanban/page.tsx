@@ -22,7 +22,11 @@ export default function KanbanPage() {
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="w-full p-8">
         <KanbanHeader onCreateBoard={() => setShowCreateBoard(true)} />
-        <KanbanBoardList key={refreshTrigger} kanbanActions={kanbanActions} />
+        <KanbanBoardList 
+          key={refreshTrigger} 
+          kanbanActions={kanbanActions}
+          onCreateBoard={() => setShowCreateBoard(true)}
+        />
         
         {showCreateBoard && (
           <CreateBoardModal 

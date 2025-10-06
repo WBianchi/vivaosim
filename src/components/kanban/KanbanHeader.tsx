@@ -10,9 +10,10 @@ import {
 
 interface KanbanHeaderProps {
   onCreateBoard: () => void
+  onCreateWithAI?: () => void
 }
 
-export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard }) => {
+export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard, onCreateWithAI }) => {
   return (
     <div className="mb-8">
       {/* Título e Botões */}
@@ -29,6 +30,7 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({ onCreateBoard }) => 
         <div className="flex items-center gap-3">
           {/* Botão IA */}
           <motion.button
+            onClick={onCreateWithAI || onCreateBoard}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors shadow-sm"
