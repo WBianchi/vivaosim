@@ -596,6 +596,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
           isNew: false
         },
         {
+          icon: <MessageCircleMore />,
+          label: 'Chat Interno',
+          href: '/dashboard/chat-interno',
+          isNew: true
+        },
+        {
           icon: <FileText />,
           label: 'Contratos',
           href: '/dashboard/contratos',

@@ -2352,6 +2352,95 @@ model InfosEmpresa {
 }
 
 // ========================================
+// 💬 CHAT INTERNO (Admin ↔ Atendente)
+// ========================================
+model InternalChat {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Participantes (sempre 2: admin + atendente)
+  user1Id String
+  user2Id String
+  
+  // Último estado
+  lastMessage   String?
+  lastMessageAt DateTime?
+  
+  // Controle de não lidas
+  user1UnreadCount Int @default(0)
+  user2UnreadCount Int @default(0)
+  
+  // Flags
+  user1Pinned Boolean @default(false)
+  user2Pinned Boolean @default(false)
+  user1Muted  Boolean @default(false)
+  user2Muted  Boolean @default(false)
+  user1Archived Boolean @default(false)
+  user2Archived Boolean @default(false)
+  
+  // Mensagens
+  messages InternalMessage[]
+  
+  @@unique([user1Id, user2Id])
+  @@map("internal_chats")
+}
+
+enum InternalMessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  FILE
+}
+
+enum InternalMessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+model InternalMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Conteúdo
+  content       String?  @db.Text
+  messageType   InternalMessageType @default(TEXT)
+  
+  // Mídia
+  mediaUrl      String?
+  mediaFilename String?
+  mediaMimeType String?
+  mediaSize     Int?
+  
+  // Remetente
+  senderId String
+  
+  // Status
+  status InternalMessageStatus @default(SENT)
+  readAt DateTime?
+  
+  // Reações e flags
+  edited    Boolean @default(false)
+  deleted   Boolean @default(false)
+  deletedAt DateTime?
+  
+  // Reply/Forward
+  replyToId String?
+  isForwarded Boolean @default(false)
+  
+  // Relacionamento
+  chatId String
+  chat   InternalChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  @@index([chatId, createdAt])
+  @@map("internal_messages")
+}
+
+// ========================================
 // 🔐 PERMISSÕES GLOBAIS (para futuro)
 // ========================================
 // model PermissaoGlobal {

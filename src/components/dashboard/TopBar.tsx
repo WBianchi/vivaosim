@@ -332,9 +332,10 @@ interface TopBarProps {
   className?: string
   onMenuClick?: () => void
   showMenuButton?: boolean
+  disableWhatsApp?: boolean
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenuButton = false }) => {
+export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenuButton = false, disableWhatsApp = false }) => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
@@ -381,8 +382,10 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
     return () => clearInterval(interval)
   }, [])
 
-  // Buscar sessões WhatsApp
+  // Buscar sessões WhatsApp (apenas se não estiver desabilitado)
   useEffect(() => {
+    if (disableWhatsApp) return
+
     const fetchSessions = async () => {
       try {
         const token = document.cookie
@@ -407,7 +410,7 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
     // Atualizar a cada 30 segundos
     const interval = setInterval(fetchSessions, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [disableWhatsApp])
 
   const handleOpenWhatsAppModal = () => {
     console.log('🚀 Abrindo gerenciador de conexões WhatsApp')
@@ -542,7 +545,7 @@ export const TopBar: React.FC<TopBarProps> = ({ className, onMenuClick, showMenu
       </div>
 
       {/* Center - Status Indicators - Hidden on mobile and for CLIENTE */}
-      {user?.role !== 'CLIENTE' && (
+      {!disableWhatsApp && user?.role !== 'CLIENTE' && (
         <div className="hidden lg:flex items-center gap-4">
           <WhatsAppStatus 
             onOpenModal={handleOpenWhatsAppModal}

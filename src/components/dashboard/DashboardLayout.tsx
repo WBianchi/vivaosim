@@ -34,6 +34,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     return <>{children}</>
   }
 
+  // Verificar se é página de chat interno
+  const isChatInterno = pathname === '/dashboard/chat-interno'
+
   return (
     <div className={cn(
       'min-h-screen flex transition-colors duration-300',
@@ -125,6 +128,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <TopBar 
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           showMenuButton={isMobile}
+          disableWhatsApp={isChatInterno}
         />
         
         {/* Page Content */}

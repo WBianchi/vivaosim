@@ -179,9 +179,21 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Erro WAHA:', errorText)
-      throw new Error(`WAHA API error: ${response.statusText}`)
+      let errorDetails = response.statusText
+      try {
+        const errorData = await response.json()
+        errorDetails = JSON.stringify(errorData)
+      } catch {
+        errorDetails = await response.text()
+      }
+      console.error('❌ Erro WAHA:', {
+        status: response.status,
+        statusText: response.statusText,
+        details: errorDetails,
+        endpoint,
+        payload
+      })
+      throw new Error(`WAHA API error: ${response.statusText} - ${errorDetails}`)
     }
 
     const result = await response.json()

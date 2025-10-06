@@ -19,6 +19,11 @@ interface Board {
   clientCount: number
   lastUpdated: string
   createdBy: string
+  columnsCount?: number
+  quotesCount?: number
+  appointmentsCount?: number
+  contractsCount?: number
+  ticketsCount?: number
 }
 
 interface KanbanBoardListProps {
@@ -44,7 +49,11 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions,
       const mappedBoards = (data.boards || []).map((board: any) => ({
         ...board,
         clientCount: board._count?.clients || 0,
-        columnsCount: board._count?.columns || 0
+        columnsCount: board._count?.columns || 0,
+        quotesCount: board._count?.quotes || board.quotesCount || 0,
+        appointmentsCount: board._count?.appointments || board.appointmentsCount || 0,
+        contractsCount: board._count?.contracts || board.contractsCount || 0,
+        ticketsCount: board._count?.tickets || board.ticketsCount || 0
       }))
       setBoards(mappedBoards)
     } catch (error) {
@@ -181,7 +190,7 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions,
           Seus Quadros
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {boards.map((board, index) => (
             <BoardCard 
               key={board.id}
@@ -194,29 +203,29 @@ export const KanbanBoardList: React.FC<KanbanBoardListProps> = ({ kanbanActions,
           ))}
           
           {/* Card para adicionar novo quadro */}
-          <motion.div
+          <motion.button
+            type="button"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             onClick={onCreateBoard}
-            className="bg-white dark:bg-gray-900 p-8 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 transition-colors cursor-pointer group"
+            className="group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center transition-all hover:-translate-y-1 hover:border-orange-400 hover:shadow-2xl dark:border-gray-700 dark:bg-gray-900"
           >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                >
-                  <HiPlus className="w-8 h-8 text-gray-500 group-hover:text-orange-600" />
-                </motion.div>
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/10 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative flex flex-col items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors group-hover:bg-orange-500 group-hover:text-white dark:bg-gray-800">
+                <HiPlus className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Criar Novo Quadro
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Configure um novo quadro kanban para seu projeto
-              </p>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Criar Novo Quadro
+                </h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Configure um novo quadro Kanban para o seu projeto
+                </p>
+              </div>
             </div>
-          </motion.div>
+          </motion.button>
         </div>
       </div>
     </div>

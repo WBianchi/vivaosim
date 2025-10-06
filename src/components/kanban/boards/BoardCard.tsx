@@ -2,8 +2,18 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FiUsers, FiTrash2, FiColumns, FiFileText, FiCalendar, FiTag, FiAlertCircle } from 'react-icons/fi'
-import { HiOutlineDocumentText } from 'react-icons/hi2'
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  CalendarClock,
+  FileSignature,
+  Ticket,
+  Trash2,
+  ArrowRight,
+  Sparkles
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Board {
   id: string
@@ -19,7 +29,6 @@ interface Board {
   columnsCount?: number
   quotesCount?: number
   appointmentsCount?: number
-  tagsCount?: number
   ticketsCount?: number
   contractsCount?: number
 }
@@ -62,12 +71,75 @@ export const BoardCard: React.FC<BoardCardProps> = ({ board, index, onClick, onD
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString)
-      if (isNaN(date.getTime())) return ''
-      return date.toLocaleDateString('pt-BR')
-    } catch {
-      return ''
-    }
+    if (isNaN(date.getTime())) return ''
+    return date.toLocaleDateString('pt-BR')
+  } catch {
+    return ''
   }
+}
+
+  const stats = [
+    {
+      id: 'columns',
+      label: 'Colunas',
+      value: board.columnsCount || 0,
+      icon: LayoutDashboard,
+      tone: 'text-sky-600',
+      chip: 'bg-sky-500/10',
+      badgeBg: 'bg-sky-500/15',
+      badgeText: 'text-sky-600'
+    },
+    {
+      id: 'clients',
+      label: 'Clientes',
+      value: board.clientCount || 0,
+      icon: Users,
+      tone: 'text-emerald-600',
+      chip: 'bg-emerald-500/10',
+      badgeBg: 'bg-emerald-500/15',
+      badgeText: 'text-emerald-600'
+    },
+    {
+      id: 'quotes',
+      label: 'Orçamentos',
+      value: board.quotesCount || 0,
+      icon: FileText,
+      tone: 'text-purple-600',
+      chip: 'bg-purple-500/10',
+      badgeBg: 'bg-purple-500/15',
+      badgeText: 'text-purple-600'
+    },
+    {
+      id: 'appointments',
+      label: 'Agendamentos',
+      value: board.appointmentsCount || 0,
+      icon: CalendarClock,
+      tone: 'text-blue-600',
+      chip: 'bg-blue-500/10',
+      badgeBg: 'bg-blue-500/15',
+      badgeText: 'text-blue-600'
+    },
+    {
+      id: 'contracts',
+      label: 'Contratos',
+      value: board.contractsCount || 0,
+      icon: FileSignature,
+      tone: 'text-amber-600',
+      chip: 'bg-amber-500/10',
+      badgeBg: 'bg-amber-500/15',
+      badgeText: 'text-amber-600'
+    },
+    {
+      id: 'tickets',
+      label: 'Tickets',
+      value: board.ticketsCount || 0,
+      icon: Ticket,
+      tone: 'text-rose-600',
+      chip: 'bg-rose-500/10',
+      badgeBg: 'bg-rose-500/15',
+      badgeText: 'text-rose-600'
+    }
+  ]
 
   return (
     <motion.div
@@ -75,15 +147,14 @@ export const BoardCard: React.FC<BoardCardProps> = ({ board, index, onClick, onD
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       onClick={onClick}
-      className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-orange-300 dark:hover:border-orange-700 transition-all cursor-pointer group overflow-hidden"
+      className="group relative h-full cursor-pointer overflow-hidden rounded-3xl border border-transparent bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl dark:bg-gray-900"
     >
-      {/* Accent Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-400/10 via-transparent to-amber-400/10 opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400" />
       
-      {/* Header */}
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 pr-4">
+      <div className="relative flex h-full flex-col p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
             {isEditingName ? (
               <input
                 type="text"
@@ -94,20 +165,20 @@ export const BoardCard: React.FC<BoardCardProps> = ({ board, index, onClick, onD
                 onClick={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
                 autoFocus
-                className="text-xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-orange-500 outline-none w-full pb-1"
+                className="w-full border-b-2 border-orange-500 bg-transparent pb-1 text-lg font-semibold text-gray-900 outline-none transition dark:text-white"
               />
             ) : (
               <h3 
                 onDoubleClick={handleDoubleClick}
                 onClick={(e) => e.stopPropagation()}
-                className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 hover:text-orange-600 transition-colors cursor-text"
+                className="mb-2 line-clamp-2 cursor-text text-xl font-semibold text-gray-900 transition-colors hover:text-orange-600 dark:text-white"
                 title="Duplo clique para editar"
               >
                 {board.name}
               </h3>
             )}
-            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-              {board.description}
+            <p className="line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
+              {board.description || 'Organize seus processos do primeiro contato ao fechamento.'}
             </p>
           </div>
           
@@ -120,104 +191,62 @@ export const BoardCard: React.FC<BoardCardProps> = ({ board, index, onClick, onD
                 onDelete?.(board.id)
               }
             }}
-            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+            className="rounded-xl p-2 text-red-400 transition-all hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
             title="Excluir"
           >
-            <FiTrash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" />
           </motion.button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <FiColumns className="w-4 h-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.columnsCount || 0}</p>
-                <p className="text-xs text-gray-500">colunas</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-                <FiUsers className="w-4 h-4 text-green-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.clientCount}</p>
-                <p className="text-xs text-gray-500">clientes</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
-                <FiFileText className="w-4 h-4 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.quotesCount || 0}</p>
-                <p className="text-xs text-gray-500">orçamentos</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-                <FiCalendar className="w-4 h-4 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.appointmentsCount || 0}</p>
-                <p className="text-xs text-gray-500">agendamentos</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                <HiOutlineDocumentText className="w-4 h-4 text-red-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.contractsCount || 0}</p>
-                <p className="text-xs text-gray-500">contratos</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center">
-                <FiTag className="w-4 h-4 text-pink-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{board.tagsCount || 0}</p>
-                <p className="text-xs text-gray-500">tags</p>
-              </div>
-            </div>
+        <div className="rounded-2xl border border-gray-100 bg-white/70 p-4 shadow-inner dark:border-gray-800 dark:bg-gray-900/80">
+          <div className="grid gap-3 md:grid-cols-2">
+            {stats.map((stat) => {
+              const Icon = stat.icon
+              return (
+                <div
+                  key={stat.id}
+                  className="flex items-center justify-between rounded-2xl bg-white/90 px-3 py-2 shadow-sm transition-colors dark:bg-gray-900/90"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        'flex h-9 w-9 items-center justify-center rounded-xl',
+                        stat.chip
+                      )}
+                    >
+                      <Icon className={cn('h-4.5 w-4.5', stat.tone)} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {stat.label}
+                    </span>
+                  </div>
+                  <span
+                    className={cn(
+                      'rounded-full px-3 py-1 text-xs font-semibold shadow-sm',
+                      stat.badgeBg,
+                      stat.badgeText
+                    )}
+                  >
+                    {stat.value}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-          {formatDate(board.lastUpdated) ? (
-            <span className="text-xs text-gray-500">
-              Atualizado {formatDate(board.lastUpdated)}
-            </span>
-          ) : (
-            <span className="text-xs text-gray-500">Novo quadro</span>
-          )}
+        <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4 dark:border-gray-800">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{formatDate(board.lastUpdated) ? `Atualizado ${formatDate(board.lastUpdated)}` : 'Novo quadro'}</span>
+          </div>
 
           <motion.div
-            whileHover={{ x: 3 }}
-            className="flex items-center gap-1.5 text-orange-500 group-hover:text-orange-600 transition-colors"
+            whileHover={{ x: 2 }}
+            className="flex items-center gap-1 rounded-full bg-orange-500/10 px-3 py-1 text-sm font-medium text-orange-600 transition-colors group-hover:bg-orange-500/20 group-hover:text-orange-700"
           >
-            <span className="text-sm font-medium">Abrir</span>
-            <span>→</span>
+            Abrir
+            <ArrowRight className="h-4 w-4" />
           </motion.div>
         </div>
       </div>

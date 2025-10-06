@@ -70,8 +70,13 @@ export async function POST(request: NextRequest) {
     // Salvar arquivo
     await writeFile(filePath, buffer)
 
-    // URL pública do arquivo
-    const fileUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/uploads/chat/${fileName}`
+    // URL pública do arquivo - Usar URL que o WAHA consegue acessar
+    // Se estiver em produção, use o domínio público
+    // Se estiver em desenvolvimento, use ngrok ou IP público
+    const publicUrl = process.env.PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const fileUrl = `${publicUrl}/uploads/chat/${fileName}`
+    
+    console.log('📤 URL do arquivo:', fileUrl)
 
     // Determinar tipo de mídia
     let mediaType: 'image' | 'video' | 'audio' | 'document' = 'document'

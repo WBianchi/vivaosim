@@ -14,7 +14,7 @@ export const ChatFilters: React.FC<ChatFiltersProps> = ({
   searchTerm, onSearchChange, filterType, onFilterChange
 }) => {
   return (
-    <div className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+    <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
       <div className="flex items-center justify-between">
         {/* Busca na conversa */}
         <div className="flex items-center gap-4">

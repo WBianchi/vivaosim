@@ -14,7 +14,7 @@ export default function ChatInternoPage() {
   const [onlineStatus, setOnlineStatus] = useState<'online' | 'away' | 'busy' | 'offline'>('online')
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Sidebar com lista de chats */}
       <ChatSidebar
         selectedChat={selectedChat}
@@ -24,7 +24,7 @@ export default function ChatInternoPage() {
       />
 
       {/* Área principal do chat */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar com informações e ações */}
         <ChatTopBar
           selectedChat={selectedChat}
