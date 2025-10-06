@@ -29,7 +29,11 @@ import {
   FileSignature,
   Tag,
   Ticket,
-  User
+  User,
+  Users,
+  Receipt,
+  Globe,
+  ClipboardList
 } from 'lucide-react'
 import { Chat, Message, MessageType, MessageAck, ChatAssignmentMeta } from '@/types/chat'
 import { SidebarType } from '@/app/chat/page'
@@ -311,21 +315,20 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
 
   const utilityButtons = [
     {
-      id: 'contact-shortcut',
-      label: 'Informações do Contato',
-      icon: User,
-      onClick: () => onSidebarToggle('contact'),
-      bgClass: 'bg-orange-500/10 dark:bg-orange-500/20',
-      textClass: 'text-orange-600 dark:text-orange-300'
+      id: 'guests',
+      label: 'Lista de convidados',
+      icon: Users,
+      onClick: () => onSidebarToggle('guests'),
+      bgClass: 'bg-purple-500/10 dark:bg-purple-500/20',
+      textClass: 'text-purple-600 dark:text-purple-300'
     },
     {
-      id: 'refresh',
-      label: 'Atualizar mensagens',
-      icon: RefreshCw,
-      onClick: refreshMessages,
+      id: 'site',
+      label: 'Site do cliente',
+      icon: Globe,
+      onClick: () => onSidebarToggle('site'),
       bgClass: 'bg-blue-500/10 dark:bg-blue-500/20',
-      textClass: 'text-blue-600 dark:text-blue-300',
-      iconClassName: isLoading ? 'animate-spin' : undefined
+      textClass: 'text-blue-600 dark:text-blue-300'
     },
     {
       id: 'call',
@@ -336,10 +339,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
       textClass: 'text-emerald-600 dark:text-emerald-300'
     },
     {
-      id: 'video',
-      label: 'Iniciar vídeo chamada',
-      icon: Video,
-      onClick: () => console.log('🎥 Iniciando vídeo com', chat.id),
+      id: 'expenses',
+      label: 'Custos e Despesas',
+      icon: Receipt,
+      onClick: () => onSidebarToggle('expenses'),
       bgClass: 'bg-fuchsia-500/10 dark:bg-fuchsia-500/20',
       textClass: 'text-fuchsia-600 dark:text-fuchsia-300'
     },
@@ -347,25 +350,17 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
       id: 'search',
       label: 'Buscar na conversa',
       icon: Search,
-      onClick: () => console.log('🔍 Buscando em', chat.id),
+      onClick: () => onSidebarToggle('search'),
       bgClass: 'bg-gray-500/10 dark:bg-gray-500/20',
       textClass: 'text-gray-600 dark:text-gray-300'
     },
     {
-      id: 'info',
-      label: 'Visão geral do contato',
-      icon: Info,
-      onClick: () => onSidebarToggle('contact'),
+      id: 'notes',
+      label: 'Anotações',
+      icon: ClipboardList,
+      onClick: () => onSidebarToggle('notes'),
       bgClass: 'bg-cyan-500/10 dark:bg-cyan-500/20',
       textClass: 'text-cyan-600 dark:text-cyan-300'
-    },
-    {
-      id: 'notes',
-      label: 'Anotações do chat',
-      icon: StickyNote,
-      onClick: handleNotesClick,
-      bgClass: 'bg-amber-500/10 dark:bg-amber-500/20',
-      textClass: 'text-amber-600 dark:text-amber-300'
     }
   ]
 

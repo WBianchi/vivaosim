@@ -1,6 +1,8 @@
 'use client'
 
 import { Calendar } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface CreateScheduleSheetProps {
   chat: any
@@ -9,6 +11,33 @@ interface CreateScheduleSheetProps {
 }
 
 export const CreateScheduleSheet: React.FC<CreateScheduleSheetProps> = ({ chat, clientData, onClose }) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Buscar usuário atual em background (não bloqueia)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const fetchCurrentUser = async () => {
+        try {
+          const token = getAuthToken()
+          if (!token) return
+
+          const response = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          if (response.ok) {
+            const data = await response.json()
+            setCurrentUserId(data.user?.id || null)
+          }
+        } catch (error) {
+          console.error('Erro ao buscar usuário:', error)
+        }
+      }
+      fetchCurrentUser()
+    }, 50) // Delay mínimo para não bloquear abertura
+    
+    return () => clearTimeout(timer)
+  }, [])
+
   const handleCreateSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log('📅 Criando agendamento...')
@@ -25,10 +54,11 @@ export const CreateScheduleSheet: React.FC<CreateScheduleSheetProps> = ({ chat, 
       datetime: datetime.toISOString(),
       duration: parseInt(formData.get('duration') as string),
       location: formData.get('location') as string,
+      meetingLink: formData.get('meetingLink') as string || undefined,
       description: formData.get('description') as string,
       contactId: clientData?.id,
-      whatsappChatId: chat.id,
-      status: 'scheduled'
+      status: 'scheduled',
+      createdById: currentUserId
     }
 
     try {
@@ -119,33 +149,48 @@ export const CreateScheduleSheet: React.FC<CreateScheduleSheetProps> = ({ chat, 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Duração (minutos) *
-            </label>
-            <select 
-              name="duration"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white"
-              required
-            >
-              <option value="30">30 minutos</option>
-              <option value="60">1 hora</option>
-              <option value="90">1h 30min</option>
-              <option value="120">2 horas</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Local/Link
-            </label>
-            <input
-              type="text"
-              name="location"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Endereço ou link da reunião"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Duração (minutos) *
+          </label>
+          <select 
+            name="duration"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white"
+            required
+          >
+            <option value="30">30 minutos</option>
+            <option value="60">1 hora</option>
+            <option value="90">1h 30min</option>
+            <option value="120">2 horas</option>
+            <option value="180">3 horas</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Local (presencial)
+          </label>
+          <input
+            type="text"
+            name="location"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white"
+            placeholder="Ex: Av. Paulista, 1000 - São Paulo"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Link da Reunião Online
+          </label>
+          <input
+            type="url"
+            name="meetingLink"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-gray-700 dark:text-white"
+            placeholder="https://meet.google.com/abc-defg-hij ou Zoom..."
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            💡 Google Meet, Zoom, Teams, etc.
+          </p>
         </div>
 
         <div>

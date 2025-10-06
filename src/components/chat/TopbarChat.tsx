@@ -34,8 +34,7 @@ import { ChatNotifications } from './ChatNotifications'
 import { AllQuotesSidebar } from './sidebars/AllQuotesSidebar'
 import { getAuthToken } from '@/lib/auth-token'
 import { useAuth } from '@/contexts/AuthContext'
-
-export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | null
+import type { SidebarType } from '@/app/chat/page'
 
 interface TopbarChatProps {
   user: any

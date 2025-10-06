@@ -1,6 +1,8 @@
 'use client'
 
 import { Ticket } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface CreateTicketSheetProps {
   chat: any
@@ -9,6 +11,64 @@ interface CreateTicketSheetProps {
 }
 
 export const CreateTicketSheet: React.FC<CreateTicketSheetProps> = ({ chat, clientData, onClose }) => {
+  const [users, setUsers] = useState<any[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [hasLoadedUsers, setHasLoadedUsers] = useState(false)
+
+  // Buscar usuários SOMENTE quando necessário (lazy load)
+  useEffect(() => {
+    // Buscar apenas o usuário atual primeiro (mais rápido)
+    const fetchCurrentUser = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const userResponse = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          setCurrentUserId(userData.user?.id || null)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar usuário atual:', error)
+      }
+    }
+    
+    fetchCurrentUser()
+    
+    // Carregar lista de usuários em background (não bloqueia abertura)
+    const timer = setTimeout(() => {
+      fetchUsersList()
+    }, 100) // Pequeno delay para não bloquear a abertura
+    
+    return () => clearTimeout(timer)
+  }, [])
+
+  const fetchUsersList = async () => {
+    if (hasLoadedUsers) return
+    
+    setLoadingUsers(true)
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const response = await fetch('/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.users || [])
+        setHasLoadedUsers(true)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error)
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log('🎫 Criando ticket...')
@@ -16,14 +76,18 @@ export const CreateTicketSheet: React.FC<CreateTicketSheetProps> = ({ chat, clie
     const form = e.target as HTMLFormElement
     const formData = new FormData(form)
     
+    const assignedToId = formData.get('assignedToId') as string
+    
     const ticketData = {
       title: formData.get('title') as string,
       priority: formData.get('priority') as string,
       category: formData.get('category') as string,
       description: formData.get('description') as string,
       contactId: clientData?.id,
-      whatsappChatId: chat.id,
-      status: 'open'
+      chatId: chat.id,
+      status: 'open',
+      createdById: currentUserId,
+      assignedToId: assignedToId && assignedToId !== '' ? assignedToId : undefined
     }
 
     try {
@@ -114,13 +178,34 @@ export const CreateTicketSheet: React.FC<CreateTicketSheetProps> = ({ chat, clie
               name="category"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white"
             >
-              <option value="">Selecionar...</option>
+              <option value="">Geral</option>
               <option value="technical">Técnico</option>
               <option value="billing">Financeiro</option>
-              <option value="support">Suporte Geral</option>
-              <option value="complaint">Reclamação</option>
+              <option value="general">Geral</option>
             </select>
           </div>
+        </div>
+
+        {/* Atribuir Atendente */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Atribuir para (opcional)
+          </label>
+          <select 
+            name="assignedToId"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white"
+            disabled={loadingUsers}
+          >
+            <option value="">Não atribuído</option>
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.name} {user.email && `(${user.email})`}
+              </option>
+            ))}
+          </select>
+          {loadingUsers && (
+            <p className="text-xs text-gray-500 mt-1">Carregando atendentes...</p>
+          )}
         </div>
 
         <div>

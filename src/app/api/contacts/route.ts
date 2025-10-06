@@ -98,6 +98,8 @@ export async function GET(request: NextRequest) {
     const queueId = searchParams.get('queueId')
     const status = searchParams.get('status')
     const assignedToId = searchParams.get('assignedToId')
+    const whatsappChatId = searchParams.get('whatsappChatId')
+    const phone = searchParams.get('phone')
 
     const skip = (page - 1) * limit
 
@@ -116,6 +118,8 @@ export async function GET(request: NextRequest) {
     if (queueId) where.queueId = queueId
     if (status) where.status = status
     if (assignedToId) where.assignedToId = assignedToId
+    if (whatsappChatId) where.whatsappChatId = whatsappChatId
+    if (phone) where.phone = phone
 
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({

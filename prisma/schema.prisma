@@ -125,6 +125,7 @@ model User {
   assignedContracts   Contract[] @relation("AssignedContracts")
   createdTicketsNew   Ticket[] @relation("CreatedTickets")
   assignedTicketsNew  Ticket[] @relation("AssignedTickets")
+  createdNotes        Note[] @relation("CreatedNotes")
   // createdExpenses     Expense[] @relation("ExpenseCreatedBy")
   
   // Kanban Boards
@@ -901,6 +902,7 @@ model Contact {
   quotes       Quote[]     // Orçamentos
   contracts    Contract[]  // Contratos
   tickets      Ticket[]    // Tickets de suporte
+  contactNotes Note[]   @relation("ContactNotes") // Anotações do contato
   tags         ContactTag[] // Tags personalizadas
   activities   ContactActivity[] // Log de atividades
   appointments Appointment[] @relation("AppointmentClient") // Agendamentos
@@ -2297,6 +2299,31 @@ model ConfiguracoesSistema {
   smtpSecure      Boolean @default(true)
 
   @@map("configuracoes_sistema")
+}
+
+// ========================================
+// 📝 ANOTAÇÕES
+// ========================================
+model Note {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  title       String
+  content     String?  @db.Text
+  category    String?  @default("general") // general, important, todo, idea, contact
+  isPinned    Boolean  @default(false)
+  
+  // Relacionamentos
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade, name: "ContactNotes")
+  
+  chatId    String?  // ID do chat do WhatsApp (opcional)
+  
+  createdById String
+  createdBy   User @relation("CreatedNotes", fields: [createdById], references: [id])
+
+  @@map("notes")
 }
 
 // ========================================

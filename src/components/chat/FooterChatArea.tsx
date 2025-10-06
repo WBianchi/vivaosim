@@ -33,7 +33,8 @@ import {
   ShoppingCart,
   ArrowRightLeft,
   List as ListIcon,
-  CalendarDays
+  CalendarDays,
+  ClipboardList
 } from 'lucide-react'
 import { CreateClientSheet } from './bottom-sheets/CreateClientSheet'
 import { EditClientSheet } from './bottom-sheets/EditClientSheet'
@@ -62,12 +63,14 @@ import { EmojiPicker } from './modals/EmojiPicker'
 import { Chat } from '@/types/chat'
 import { cn } from '@/lib/utils'
 import { getAuthToken } from '@/lib/auth-token'
+import type { SidebarType } from '@/app/chat/page'
 
 interface FooterChatAreaProps {
   chat: Chat
+  onSidebarToggle?: (sidebar: SidebarType) => void
 }
 
-export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
+export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarToggle }) => {
   const [message, setMessage] = useState('')
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [showActionsMenu, setShowActionsMenu] = useState(false)
@@ -306,12 +309,39 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
         break
       case 'manage-tags':
         console.log('🏷️ Abrindo sidebar para gerenciar tags')
-        setShowTagSidebar(true)
+        onSidebarToggle?.('tag')
         break
       case 'create-ticket':
-        console.log('🎫 Abrindo bottom sheet para criar ticket')
-        setBottomSheetType('create-ticket')
-        setShowBottomSheet(true)
+        console.log('🎫 Abrindo sidebar de tickets')
+        onSidebarToggle?.('ticket')
+        break
+      case 'schedule-meeting':
+        console.log('📅 Abrindo sidebar de agendamentos')
+        onSidebarToggle?.('schedule')
+        break
+      case 'manage-costs':
+        console.log('💰 Abrindo sidebar de custos e despesas')
+        onSidebarToggle?.('expenses')
+        break
+      case 'client-site':
+        console.log('🌐 Abrindo sidebar de site do cliente')
+        onSidebarToggle?.('site')
+        break
+      case 'guest-list':
+        console.log('👥 Abrindo sidebar de lista de convidados')
+        onSidebarToggle?.('guests')
+        break
+      case 'gifts':
+        console.log('🎁 Abrindo sidebar de presentes')
+        onSidebarToggle?.('gifts')
+        break
+      case 'gift-sales':
+        console.log('🛒 Abrindo sidebar de vendas de presentes')
+        onSidebarToggle?.('gift-sales')
+        break
+      case 'notes':
+        console.log('📝 Abrindo sidebar de anotações')
+        onSidebarToggle?.('notes')
         break
       default:
         console.log('❌ Ação não implementada:', actionId)
@@ -868,19 +898,19 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat }) => {
               </span>
             </motion.button>
 
-            {/* Alterar Fila */}
+            {/* Anotações */}
             <motion.button
-              onClick={() => handleBusinessAction('change-queue')}
+              onClick={() => handleBusinessAction('notes')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
-              title="Alterar Fila"
+              title="Anotações"
             >
-              <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-1 group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
-                <ArrowRightLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <div className="w-8 h-8 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-1 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-800/50 transition-colors">
+                <ClipboardList className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
               </div>
               <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
-                Fila
+                Anotações
               </span>
             </motion.button>
           </div>

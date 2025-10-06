@@ -13,17 +13,20 @@ import { SideChat } from '@/components/chat/SideChat'
 import { AllQuotesSidebar } from '@/components/chat/sidebars/AllQuotesSidebar'
 import { AllTagsSidebar } from '@/components/chat/sidebars/AllTagsSidebar'
 import { AllContractsSidebar } from '@/components/chat/sidebars/AllContractsSidebar'
-
-// Sidebars Expansíveis (temporariamente comentadas)
-// import { ScheduleSidebar } from '@/components/chat/sidebars/ScheduleSidebar'
-// import { QuoteSidebar } from '@/components/chat/sidebars/QuoteSidebar'
-// import { ContactInfoSidebar } from '@/components/chat/sidebars/ContactInfoSidebar'
-// import { TicketSidebar } from '@/components/chat/sidebars/TicketSidebar'
+import { AllTicketsSidebar } from '@/components/chat/sidebars/AllTicketsSidebar'
+import { AllSchedulesSidebar } from '@/components/chat/sidebars/AllSchedulesSidebar'
+import { AllGuestsSidebar } from '@/components/chat/sidebars/AllGuestsSidebar'
+import { AllExpensesSidebar } from '@/components/chat/sidebars/AllExpensesSidebar'
+import { AllSitesSidebar } from '@/components/chat/sidebars/AllSitesSidebar'
+import { AllNotesSidebar } from '@/components/chat/sidebars/AllNotesSidebar'
+import { SearchSidebar } from '@/components/chat/sidebars/SearchSidebar'
+import { AllGiftsSidebar } from '@/components/chat/sidebars/AllGiftsSidebar'
+import { AllGiftSalesSidebar } from '@/components/chat/sidebars/AllGiftSalesSidebar'
 
 // Tipos
 import { Chat, Message, Contact, ChatAssignmentMeta } from '@/types/chat'
 
-export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | null
+export type SidebarType = 'schedule' | 'quote' | 'tag' | 'contract' | 'contact' | 'ticket' | 'guests' | 'site' | 'expenses' | 'notes' | 'search' | 'gifts' | 'gift-sales' | null
 
 interface ChatPageState {
   activeChat: Chat | null
@@ -174,6 +177,7 @@ export default function ChatPage() {
                 <div className="flex-shrink-0">
                   <FooterChatArea 
                     chat={state.activeChat}
+                    onSidebarToggle={handleSidebarToggle}
                   />
                 </div>
               </>
@@ -225,6 +229,60 @@ export default function ChatPage() {
 
       <AllContractsSidebar
         isOpen={state.activeSidebar === 'contract'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllTicketsSidebar
+        isOpen={state.activeSidebar === 'ticket'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllSchedulesSidebar
+        isOpen={state.activeSidebar === 'schedule'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllGuestsSidebar
+        isOpen={state.activeSidebar === 'guests'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllExpensesSidebar
+        isOpen={state.activeSidebar === 'expenses'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllSitesSidebar
+        isOpen={state.activeSidebar === 'site'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllNotesSidebar
+        isOpen={state.activeSidebar === 'notes'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <SearchSidebar
+        isOpen={state.activeSidebar === 'search'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllGiftsSidebar
+        isOpen={state.activeSidebar === 'gifts'}
+        onClose={() => handleSidebarToggle(null)}
+        chatId={state.activeChat?.id}
+      />
+
+      <AllGiftSalesSidebar
+        isOpen={state.activeSidebar === 'gift-sales'}
         onClose={() => handleSidebarToggle(null)}
         chatId={state.activeChat?.id}
       />

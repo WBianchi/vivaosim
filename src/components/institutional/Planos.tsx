@@ -20,96 +20,54 @@ import {
   Timer
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
+import PaymentModal from './PaymentModal'
 
 const Planos = () => {
   const { isDarkMode } = useTheme()
   const [selectedPlan, setSelectedPlan] = useState('pro')
   const [billingCycle, setBillingCycle] = useState('annual')
   const [hoveredFeature, setHoveredFeature] = useState<string | null>(null)
+  const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<any>(null)
 
-  const plans = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      subtitle: 'Para começar',
-      icon: Zap,
-      monthlyPrice: 97,
-      annualPrice: 67,
-      originalPrice: 147,
-      discount: 31,
-      color: 'from-blue-500 to-cyan-500',
-      bgGradient: 'from-blue-50 to-cyan-50',
-      darkBgGradient: 'from-blue-900/20 to-cyan-900/20',
-      popular: false,
-      badge: null,
-      maxEvents: 50,
-      maxClients: 500,
-      features: [
-        { name: 'CRM Completo', included: true, tooltip: 'Gestão completa de leads e clientes' },
-        { name: 'WhatsApp Integrado', included: true, tooltip: 'Envio automático via WhatsApp' },
-        { name: 'Contratos Digitais', included: true, tooltip: 'Assinatura eletrônica válida' },
-        { name: 'Relatórios Básicos', included: true, tooltip: 'Dashboards essenciais' },
-        { name: 'Suporte por Email', included: true, tooltip: 'Atendimento em até 24h' },
-        { name: 'IA Assistente', included: false, tooltip: 'Chatbot inteligente 24/7' },
-        { name: 'Automações Avançadas', included: false, tooltip: 'Workflows personalizados' },
-        { name: 'API Personalizada', included: false, tooltip: 'Integrações sob medida' }
-      ]
-    },
-    {
-      id: 'pro',
-      name: 'Professional',
-      subtitle: 'Mais popular',
-      icon: Crown,
-      monthlyPrice: 197,
-      annualPrice: 137,
-      originalPrice: 297,
-      discount: 30,
-      color: 'from-orange-500 to-red-500',
-      bgGradient: 'from-orange-50 to-red-50',
-      darkBgGradient: 'from-orange-900/20 to-red-900/20',
-      popular: true,
-      badge: 'MAIS POPULAR',
-      maxEvents: 200,
-      maxClients: 2000,
-      features: [
-        { name: 'CRM Completo', included: true, tooltip: 'Gestão completa de leads e clientes' },
-        { name: 'WhatsApp Integrado', included: true, tooltip: 'Envio automático via WhatsApp' },
-        { name: 'Contratos Digitais', included: true, tooltip: 'Assinatura eletrônica válida' },
-        { name: 'Relatórios Avançados', included: true, tooltip: 'Analytics completos' },
-        { name: 'IA Assistente', included: true, tooltip: 'Chatbot inteligente 24/7' },
-        { name: 'Automações Avançadas', included: true, tooltip: 'Workflows personalizados' },
-        { name: 'Suporte Prioritário', included: true, tooltip: 'Atendimento em até 2h' },
-        { name: 'API Personalizada', included: false, tooltip: 'Integrações sob medida' }
-      ]
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      subtitle: 'Sem limites',
-      icon: Crown,
-      monthlyPrice: 397,
-      annualPrice: 297,
-      originalPrice: 597,
-      discount: 25,
-      color: 'from-purple-500 to-pink-500',
-      bgGradient: 'from-purple-50 to-pink-50',
-      darkBgGradient: 'from-purple-900/20 to-pink-900/20',
-      popular: false,
-      badge: 'PREMIUM',
-      maxEvents: '∞',
-      maxClients: '∞',
-      features: [
-        { name: 'CRM Completo', included: true, tooltip: 'Gestão completa de leads e clientes' },
-        { name: 'WhatsApp Integrado', included: true, tooltip: 'Envio automático via WhatsApp' },
-        { name: 'Contratos Digitais', included: true, tooltip: 'Assinatura eletrônica válida' },
-        { name: 'Relatórios Avançados', included: true, tooltip: 'Analytics completos' },
-        { name: 'IA Assistente', included: true, tooltip: 'Chatbot inteligente 24/7' },
-        { name: 'Automações Avançadas', included: true, tooltip: 'Workflows personalizados' },
-        { name: 'API Personalizada', included: true, tooltip: 'Integrações sob medida' },
-        { name: 'Suporte Dedicado', included: true, tooltip: 'Gerente de conta exclusivo' }
-      ]
+  useEffect(() => {
+    fetchPlans()
+  }, [])
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch('/api/plans?status=active')
+      const data = await response.json()
+      if (data.plans) {
+        setPlans(data.plans)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar planos:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  const handleSelectPlan = (plan: any) => {
+    setSelectedPlanForPayment(plan)
+    setShowPaymentModal(true)
+  }
+
+  const getPlanIcon = (index: number) => {
+    const icons = [Zap, Crown, Star]
+    return icons[index % icons.length]
+  }
+
+  const getPlanColor = (index: number) => {
+    const colors = [
+      { gradient: 'from-blue-500 to-cyan-500', bg: 'from-blue-50 to-cyan-50', darkBg: 'from-blue-900/20 to-cyan-900/20' },
+      { gradient: 'from-orange-500 to-red-500', bg: 'from-orange-50 to-red-50', darkBg: 'from-orange-900/20 to-red-900/20' },
+      { gradient: 'from-purple-500 to-pink-500', bg: 'from-purple-50 to-pink-50', darkBg: 'from-purple-900/20 to-pink-900/20' }
+    ]
+    return colors[index % colors.length]
+  }
 
   const additionalFeatures = [
     { icon: Calendar, text: 'Agenda sincronizada', color: 'text-blue-500' },
@@ -119,14 +77,29 @@ const Planos = () => {
   ]
 
   const getPrice = (plan: any) => {
-    return billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice
+    return Number(plan.price || 0)
   }
 
-  const getSavings = (plan: any) => {
-    if (billingCycle === 'annual') {
-      return ((plan.monthlyPrice * 12) - (plan.annualPrice * 12)).toFixed(0)
+  const formatFeatures = (features: any) => {
+    if (!features) return []
+    if (typeof features === 'string') {
+      try {
+        return JSON.parse(features)
+      } catch {
+        return []
+      }
     }
-    return 0
+    return features
+  }
+
+  if (loading) {
+    return (
+      <section className={`relative py-20 lg:py-32 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+        <div className="container mx-auto px-6 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -271,10 +244,12 @@ const Planos = () => {
         {/* Plans Grid */}
         <div className="grid lg:grid-cols-3 gap-8 mb-16">
           {plans.map((plan, index) => {
-            const IconComponent = plan.icon
+            const IconComponent = getPlanIcon(index)
+            const colorScheme = getPlanColor(index)
             const isSelected = selectedPlan === plan.id
             const price = getPrice(plan)
-            const savings = getSavings(plan)
+            const features = formatFeatures(plan.features)
+            const isPopular = index === 1
             
             return (
               <motion.div
@@ -293,25 +268,25 @@ const Planos = () => {
                 }}
                 onClick={() => setSelectedPlan(plan.id)}
                 className={`relative group cursor-pointer p-8 rounded-3xl border-2 transition-all duration-500 overflow-hidden ${
-                  isSelected || plan.popular
+                  isSelected || isPopular
                     ? `border-orange-500 ${isDarkMode ? 'bg-slate-800/80' : 'bg-white'} shadow-2xl shadow-orange-500/20`
                     : `${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-gray-200 bg-white/80'} hover:border-orange-300`
                 } backdrop-blur-xl`}
               >
                 {/* Popular Badge */}
-                {plan.popular && (
+                {isPopular && (
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-bold rounded-full shadow-lg"
                   >
-                    {plan.badge}
+                    MAIS POPULAR
                   </motion.div>
                 )}
 
                 {/* Background gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${
-                  isDarkMode ? plan.darkBgGradient : plan.bgGradient
+                  isDarkMode ? colorScheme.darkBg : colorScheme.bg
                 } opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
                 
                 <div className="relative z-10">
@@ -319,7 +294,7 @@ const Planos = () => {
                   <div className="text-center mb-8">
                     <motion.div 
                       whileHover={{ scale: 1.1, rotate: 5 }}
-                      className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${plan.color} flex items-center justify-center mb-4 mx-auto shadow-lg`}
+                      className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${colorScheme.gradient} flex items-center justify-center mb-4 mx-auto shadow-lg`}
                     >
                       <IconComponent className="w-8 h-8 text-white" />
                     </motion.div>
@@ -333,7 +308,7 @@ const Planos = () => {
                     <p className={`text-sm ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      {plan.subtitle}
+                      {plan.description || 'Plano completo'}
                     </p>
                   </div>
 
@@ -351,56 +326,11 @@ const Planos = () => {
                         /mês
                       </span>
                     </div>
-                    
-                    {billingCycle === 'annual' && (
-                      <div className="space-y-1">
-                        <p className={`text-sm line-through ${
-                          isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                        }`}>
-                          De R$ {plan.monthlyPrice}/mês
-                        </p>
-                        <p className="text-sm text-green-500 font-semibold">
-                          Economize R$ {savings} por ano
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Limits */}
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className={`text-center p-3 rounded-xl ${
-                      isDarkMode ? 'bg-slate-700/50' : 'bg-gray-100/50'
-                    }`}>
-                      <div className={`text-lg font-bold ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {typeof plan.maxEvents === 'number' ? plan.maxEvents.toLocaleString() : plan.maxEvents}
-                      </div>
-                      <div className={`text-xs ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Eventos/mês
-                      </div>
-                    </div>
-                    <div className={`text-center p-3 rounded-xl ${
-                      isDarkMode ? 'bg-slate-700/50' : 'bg-gray-100/50'
-                    }`}>
-                      <div className={`text-lg font-bold ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {typeof plan.maxClients === 'number' ? plan.maxClients.toLocaleString() : plan.maxClients}
-                      </div>
-                      <div className={`text-xs ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Clientes
-                      </div>
-                    </div>
                   </div>
 
                   {/* Features */}
-                  <div className="space-y-3 mb-8">
-                    {plan.features.map((feature, featureIndex) => (
+                  <div className="space-y-3 mb-8 min-h-[200px]">
+                    {features.map((feature: any, featureIndex: number) => (
                       <motion.div
                         key={feature.name}
                         initial={{ opacity: 0, x: -20 }}
@@ -427,43 +357,29 @@ const Planos = () => {
                             ? isDarkMode ? 'text-gray-300' : 'text-gray-700'
                             : isDarkMode ? 'text-gray-500' : 'text-gray-400'
                         } group-hover/feature:text-orange-500 transition-colors`}>
-                          {feature.name}
+                          {typeof feature === 'string' ? feature : feature.name || feature.text}
                         </span>
-                        
-                        {/* Tooltip */}
-                        <AnimatePresence>
-                          {hoveredFeature === feature.name && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              className={`absolute z-50 px-3 py-2 text-xs rounded-lg shadow-lg ${
-                                isDarkMode ? 'bg-slate-700 text-white' : 'bg-white text-gray-900'
-                              } border ${
-                                isDarkMode ? 'border-slate-600' : 'border-gray-200'
-                              } -mt-12 ml-8`}
-                            >
-                              {feature.tooltip}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </motion.div>
                     ))}
                   </div>
 
                   {/* CTA Button */}
                   <motion.button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelectPlan(plan)
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center space-x-2 transition-all duration-300 ${
-                      plan.popular || isSelected
+                      isPopular || isSelected
                         ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg hover:shadow-xl'
                         : isDarkMode 
                           ? 'bg-slate-700 text-white hover:bg-slate-600' 
                           : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     }`}
                   >
-                    <span>Começar agora</span>
+                    <span>Assinar agora</span>
                     <ArrowRight className="w-4 h-4" />
                   </motion.button>
                   
@@ -546,6 +462,17 @@ const Planos = () => {
           </p>
         </motion.div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedPlanForPayment && (
+        <PaymentModal
+          plan={selectedPlanForPayment}
+          onClose={() => {
+            setShowPaymentModal(false)
+            setSelectedPlanForPayment(null)
+          }}
+        />
+      )}
     </section>
   )
 }

@@ -23,24 +23,55 @@ export const CreateClientSheet: React.FC<CreateClientSheetProps> = ({ chat, onCl
   const [existingClient, setExistingClient] = useState<any>(null)
   const [checkingExisting, setCheckingExisting] = useState(true)
 
-  // Verificar se já existe cliente ao montar
+  // Verificar se já existe cliente em background (não bloqueia abertura)
   useEffect(() => {
-    const checkExisting = async () => {
-      try {
-        const response = await fetch(`/api/contacts?whatsappChatId=${chat.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.data && data.data.length > 0) {
-            setExistingClient(data.data[0])
+    // Timeout pequeno para não bloquear a abertura do modal
+    const timer = setTimeout(() => {
+      const checkExisting = async () => {
+        try {
+          // Tentar múltiplas formas de buscar
+          console.log('🔍 Verificando cliente para chat:', chat.id)
+          
+          // Método 1: Por whatsappChatId (mais rápido)
+          let response = await fetch(`/api/contacts?whatsappChatId=${encodeURIComponent(chat.id)}`)
+          
+          if (response.ok) {
+            const data = await response.json()
+            console.log('📦 Resultado busca por whatsappChatId:', data)
+            if (data.data && data.data.length > 0) {
+              console.log('✅ Cliente encontrado (método 1):', data.data[0])
+              setExistingClient(data.data[0])
+              setCheckingExisting(false)
+              return
+            }
           }
+          
+          // Método 2: Usar API de check-chat
+          const phone = chat.contact?.phone || chat.id.replace('@c.us', '')
+          response = await fetch(`/api/contacts/check-chat?chatId=${encodeURIComponent(chat.id)}`)
+          
+          if (response.ok) {
+            const checkData = await response.json()
+            console.log('📦 Resultado check-chat:', checkData)
+            if (checkData.exists && checkData.contact) {
+              console.log('✅ Cliente encontrado (método 2):', checkData.contact)
+              setExistingClient(checkData.contact)
+              setCheckingExisting(false)
+              return
+            }
+          }
+          
+          console.log('❌ Nenhum cliente encontrado para este chat')
+        } catch (error) {
+          console.error('❌ Erro ao verificar cliente existente:', error)
+        } finally {
+          setCheckingExisting(false)
         }
-      } catch (error) {
-        console.error('Erro ao verificar cliente existente:', error)
-      } finally {
-        setCheckingExisting(false)
       }
-    }
-    checkExisting()
+      checkExisting()
+    }, 50) // Delay mínimo para garantir abertura suave
+    
+    return () => clearTimeout(timer)
   }, [chat.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,10 +106,63 @@ export const CreateClientSheet: React.FC<CreateClientSheetProps> = ({ chat, onCl
       if (response.ok) {
         const newClient = await response.json()
         console.log('✅ Cliente criado:', newClient)
-        alert(`✅ Cliente "${newClient.data.name}" criado com sucesso!\n\nAgora ele aparece em /dashboard/clientes`)
+        const clientName = newClient.name || newClient.data?.name || formData.name
+        alert(`✅ Cliente "${clientName}" criado com sucesso!\n\nAgora ele aparece em /dashboard/clientes`)
         onClose()
         // Recarregar página para atualizar dados
         window.location.reload()
+      } else if (response.status === 409) {
+        // Conflito - cliente já existe
+        const error = await response.json()
+        console.log('⚠️ Cliente já existe (409):', error)
+        
+        // Buscar dados do cliente existente de forma mais completa
+        try {
+          // Tentar método 1
+          let checkResponse = await fetch(`/api/contacts?whatsappChatId=${encodeURIComponent(chat.id)}`)
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json()
+            console.log('📦 Busca após 409 (método 1):', checkData)
+            if (checkData.data && checkData.data.length > 0) {
+              console.log('✅ Cliente encontrado após erro 409')
+              setExistingClient(checkData.data[0])
+              setIsLoading(false)
+              return
+            }
+          }
+          
+          // Tentar método 2 - check-chat
+          checkResponse = await fetch(`/api/contacts/check-chat?chatId=${encodeURIComponent(chat.id)}`)
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json()
+            console.log('📦 Busca após 409 (método 2):', checkData)
+            if (checkData.contact) {
+              console.log('✅ Cliente encontrado após erro 409 (método 2)')
+              setExistingClient(checkData.contact)
+              setIsLoading(false)
+              return
+            }
+          }
+          
+          // Tentar buscar por telefone
+          const phone = chat.contact?.phone || chat.id.replace('@c.us', '')
+          checkResponse = await fetch(`/api/contacts?phone=${encodeURIComponent(phone)}`)
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json()
+            console.log('📦 Busca após 409 (por telefone):', checkData)
+            if (checkData.data && checkData.data.length > 0) {
+              console.log('✅ Cliente encontrado após erro 409 (por telefone)')
+              setExistingClient(checkData.data[0])
+              setIsLoading(false)
+              return
+            }
+          }
+        } catch (err) {
+          console.error('❌ Erro ao buscar cliente após 409:', err)
+        }
+        
+        console.log('⚠️ Cliente existe mas não foi possível recuperar os dados')
+        alert(`⚠️ ${error.error}\n\nEste contato já está vinculado a um cliente no sistema, mas não foi possível recuperar os dados.\n\nTente recarregar a página.`)
       } else {
         const error = await response.json()
         alert(`❌ Erro: ${error.error}`)
