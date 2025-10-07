@@ -101,8 +101,37 @@ export const WhatsAppConnectionManager: React.FC<WhatsAppConnectionManagerProps>
     }
   }
 
+  const handleUnlinkSession = async (sessionId: string) => {
+    if (!confirm('Deseja desvincular esta conexão da plataforma?\n\nA sessão continuará ativa no WAHA, mas não aparecerá mais aqui.')) return
+
+    try {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1]
+
+      const response = await fetch(`/api/whatsapp/sessions/unlink?sessionId=${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        toast.success('Conexão desvinculada da plataforma')
+        fetchSessions()
+      } else {
+        toast.error('Erro ao desvincular conexão')
+      }
+    } catch (error) {
+      console.error('Erro ao desvincular sessão:', error)
+      toast.error('Erro ao desvincular conexão')
+    }
+  }
+
   const handleDeleteSession = async (sessionId: string) => {
-    if (!confirm('Deseja realmente desconectar este WhatsApp?')) return
+    if (!confirm('⚠️ ATENÇÃO: Isso irá deletar COMPLETAMENTE a sessão do WAHA!\n\nVocê perderá todo o histórico e terá que escanear o QR Code novamente.\n\nDeseja continuar?')) return
 
     try {
       const token = document.cookie
@@ -118,15 +147,15 @@ export const WhatsAppConnectionManager: React.FC<WhatsAppConnectionManagerProps>
       })
 
       if (response.ok) {
-        toast.success('WhatsApp desconectado com sucesso')
+        toast.success('WhatsApp deletado completamente')
         fetchSessions()
         window.dispatchEvent(new CustomEvent('whatsapp-disconnected'))
       } else {
-        toast.error('Erro ao desconectar WhatsApp')
+        toast.error('Erro ao deletar WhatsApp')
       }
     } catch (error) {
       console.error('Erro ao deletar sessão:', error)
-      toast.error('Erro ao desconectar WhatsApp')
+      toast.error('Erro ao deletar WhatsApp')
     }
   }
 
@@ -325,34 +354,72 @@ export const WhatsAppConnectionManager: React.FC<WhatsAppConnectionManagerProps>
                               </button>
                             )}
                             
-                            {/* Botão Vincular se não estiver no banco */}
-                            {!session.isInDatabase && session.status === 'WORKING' && (
-                              <button
-                                onClick={() => handleLinkSession(session)}
-                                className={cn(
-                                  'px-3 py-2 rounded-lg transition-colors text-sm font-medium',
-                                  isDarkMode
-                                    ? 'bg-green-900/30 text-green-400 hover:bg-green-900/50'
-                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            {/* Botões se não estiver no banco */}
+                            {!session.isInDatabase && (
+                              <>
+                                {/* Botão Vincular se estiver conectado */}
+                                {session.status === 'WORKING' && (
+                                  <button
+                                    onClick={() => handleLinkSession(session)}
+                                    className={cn(
+                                      'px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                                      isDarkMode
+                                        ? 'bg-green-900/30 text-green-400 hover:bg-green-900/50'
+                                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    )}
+                                  >
+                                    Vincular
+                                  </button>
                                 )}
-                              >
-                                Vincular
-                              </button>
+                                
+                                {/* Botão Deletar (sempre disponível) */}
+                                <button
+                                  onClick={() => handleDeleteSession(session.sessionId)}
+                                  className={cn(
+                                    'p-2 rounded-lg transition-colors',
+                                    isDarkMode
+                                      ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
+                                      : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                  )}
+                                  title="Deletar completamente do WAHA"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
                             )}
                             
-                            {/* Botão Deletar só se estiver no banco */}
+                            {/* Botões se estiver no banco */}
                             {session.isInDatabase && (
-                              <button
-                                onClick={() => handleDeleteSession(session.sessionId)}
-                                className={cn(
-                                  'p-2 rounded-lg transition-colors',
-                                  isDarkMode
-                                    ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
-                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
-                                )}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <>
+                                {/* Botão Desvincular (só da plataforma) */}
+                                <button
+                                  onClick={() => handleUnlinkSession(session.sessionId)}
+                                  className={cn(
+                                    'px-3 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1',
+                                    isDarkMode
+                                      ? 'bg-yellow-900/30 text-yellow-400 hover:bg-yellow-900/50'
+                                      : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                  )}
+                                  title="Desvincular da plataforma (sessão continua no WAHA)"
+                                >
+                                  <X className="w-3 h-3" />
+                                  Desvincular
+                                </button>
+                                
+                                {/* Botão Deletar (completamente do WAHA) */}
+                                <button
+                                  onClick={() => handleDeleteSession(session.sessionId)}
+                                  className={cn(
+                                    'p-2 rounded-lg transition-colors',
+                                    isDarkMode
+                                      ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
+                                      : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                  )}
+                                  title="Deletar completamente do WAHA"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>

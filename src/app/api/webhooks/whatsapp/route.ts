@@ -182,28 +182,33 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
     const { session, payload } = webhook
     const messageData = payload as WAHAMessagePayload
     
-    console.log(`📨 Nova mensagem na sessão ${session}:`, {
-      id: messageData.id,
-      from: messageData.from,
-      fromMe: messageData.fromMe,
-      type: messageData.type,
-      body: messageData.body?.substring(0, 50)
-    })
+    console.log('\n' + '='.repeat(80))
+    console.log(`📨 [WEBHOOK] Nova mensagem na sessão ${session}:`)
+    console.log(`  - ID: ${messageData.id}`)
+    console.log(`  - From: ${messageData.from}`)
+    console.log(`  - FromMe: ${messageData.fromMe}`)
+    console.log(`  - Type: ${messageData.type}`)
+    console.log(`  - Body: ${messageData.body?.substring(0, 100)}`)
+    console.log('='.repeat(80) + '\n')
 
     // Verificar se é uma mensagem de entrada (não nossa)
     if (!messageData.fromMe && messageData.body) {
       const chatId = messageData.from
       
+      console.log(`🔍 [WEBHOOK] Verificando agente para chat: ${chatId}`)
+      
       // Verificar se o chat tem um agente IA ativo
       const agent = await prisma.agent.findFirst({
         where: { 
-          chatId: chatId,
-          status: 'ACTIVE'
+          chatId: chatId
         }
       })
 
-      if (agent) {
-        console.log(`🤖 Agente ativo encontrado: ${agent.name} (${agent.model})`)
+      console.log(`🔍 [WEBHOOK] Agente encontrado:`, agent ? `${agent.name} (status: ${agent.status})` : 'NENHUM')
+
+      if (agent && agent.status === 'ACTIVE') {
+        console.log(`🤖 [WEBHOOK] Agente ATIVO: ${agent.name} (${agent.model})`)
+        console.log(`📝 [WEBHOOK] Prompt: ${agent.prompt?.substring(0, 100)}...`)
         
         // Gerar resposta com IA
         const aiResponse = await generateAIResponse(
@@ -214,6 +219,8 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
         )
 
         if (aiResponse) {
+          console.log(`✅ [WEBHOOK] Resposta gerada: ${aiResponse.substring(0, 100)}...`)
+          
           // Enviar resposta automática
           await sendAutoReply(session, chatId, aiResponse)
           
@@ -225,9 +232,11 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
               lastUsed: new Date()
             }
           })
+        } else {
+          console.log(`❌ [WEBHOOK] Falha ao gerar resposta com IA`)
         }
       } else {
-        console.log(`👤 Nenhum agente ativo para o chat ${chatId}`)
+        console.log(`👤 [WEBHOOK] Nenhum agente ATIVO para o chat ${chatId}`)
       }
       
       // Processar contato se não existe

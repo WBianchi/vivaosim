@@ -300,31 +300,53 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
     }
 
-    console.log('🗑️ Deletando sessão do site:', sessionId)
+    console.log('🗑️ Deletando sessão COMPLETAMENTE:', sessionId)
 
-    // IMPORTANTE: NÃO deletar do WAHA, apenas do banco de dados do site
-    // O WAHA deve manter a sessão ativa
-    
-    // Deletar apenas do banco de dados
+    // 1. Deletar do banco de dados (se existir)
     try {
       console.log('🗄️ Deletando sessão do banco de dados...')
       const deletedSession = await prisma.whatsAppSession.delete({ 
         where: { sessionId } 
       })
       console.log('✅ Sessão deletada do banco:', deletedSession.id)
-      console.log('ℹ️ A sessão continua ativa no WAHA')
     } catch (dbError: any) {
-      console.error('❌ Erro ao deletar do banco:', dbError)
       // Se não encontrar no banco, não é erro crítico
-      if (dbError.code !== 'P2025') { // P2025 = Record not found
+      if (dbError.code === 'P2025') { // P2025 = Record not found
+        console.log('⚠️ Sessão não encontrada no banco de dados')
+      } else {
+        console.error('❌ Erro ao deletar do banco:', dbError)
         throw dbError
       }
-      console.log('⚠️ Sessão não encontrada no banco de dados')
+    }
+
+    // 2. Deletar do WAHA
+    try {
+      console.log('🌐 Deletando sessão do WAHA...')
+      const wahaUrl = process.env.WAHA_API_URL || 'http://159.65.34.199:3001'
+      const wahaApiKey = process.env.WAHA_API_KEY || ''
+      
+      const response = await fetch(`${wahaUrl}/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Api-Key': wahaApiKey
+        }
+      })
+
+      if (response.ok) {
+        console.log('✅ Sessão deletada do WAHA com sucesso')
+      } else {
+        const errorText = await response.text()
+        console.error('❌ Erro ao deletar do WAHA:', response.status, errorText)
+        // Não lançar erro aqui para não bloquear a resposta
+      }
+    } catch (wahaError) {
+      console.error('❌ Erro ao chamar WAHA:', wahaError)
+      // Não lançar erro aqui para não bloquear a resposta
     }
 
     return NextResponse.json({ 
       success: true,
-      message: 'Session deleted successfully from database (WAHA session remains active)'
+      message: 'Session deleted completely from platform and WAHA'
     })
 
   } catch (error) {

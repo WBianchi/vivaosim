@@ -58,10 +58,10 @@ const updatePlanSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional(),
   isFeatured: z.boolean().optional(),
   isPopular: z.boolean().optional(),
-  maxUsers: z.number().optional(),
-  maxProjects: z.number().optional(),
-  maxStorage: z.number().optional(),
-  maxApiCalls: z.number().optional(),
+  maxUsers: z.number().nullable().optional(),
+  maxProjects: z.number().nullable().optional(),
+  maxStorage: z.number().nullable().optional(),
+  maxApiCalls: z.number().nullable().optional(),
   features: z.array(z.string()).optional(),
   displayOrder: z.number().optional()
 })
