@@ -12,6 +12,8 @@ interface TagsListProps {
   searchTerm: string
   viewMode: 'grid' | 'table'
   onTagSelect: (tag: any) => void
+  onTagEdit?: (tag: any) => void
+  onTagDelete?: (tag: any) => void
   onRefresh?: () => void
 }
 
@@ -244,6 +246,8 @@ export const TagsList: React.FC<TagsListProps> = ({
   searchTerm,
   viewMode,
   onTagSelect,
+  onTagEdit,
+  onTagDelete,
   onRefresh
 }) => {
   const [tags, setTags] = useState<any[]>([])
@@ -333,6 +337,8 @@ export const TagsList: React.FC<TagsListProps> = ({
                 tag={tag}
                 index={index}
                 onClick={() => onTagSelect(tag)}
+                onEdit={onTagEdit}
+                onDelete={onTagDelete}
               />
             ))}
           </AnimatePresence>

@@ -17,6 +17,7 @@ export default function ContratosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureContract, setSignatureContract] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
     status: 'all',
@@ -53,16 +54,19 @@ export default function ContratosPage() {
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          onToggleFilters={() => setShowFilters(!showFilters)}
         />
 
         {/* Estatísticas */}
         <ContractsStats refreshTrigger={refreshKey} />
 
         {/* Filtros */}
-        <ContractsFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        {showFilters && (
+          <ContractsFilters 
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
 
         {/* Lista de Contratos */}
         <ContractsList 

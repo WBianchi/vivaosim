@@ -41,6 +41,17 @@ const createQuoteSchema = z.object({
   items: z.array(quoteItemSchema).min(1, 'Adicione pelo menos um item')
 })
 
+const updateQuoteSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, 'Título é obrigatório').optional(),
+  description: z.string().nullish(),
+  discount: z.number().nullish(),
+  validUntil: z.string().datetime().nullish(),
+  status: z.string().optional(),
+  chatId: z.string().nullish(),
+  items: z.array(quoteItemSchema).optional()
+})
+
 // GET - Listar orçamentos
 export async function GET(request: NextRequest) {
   try {
@@ -120,7 +131,7 @@ export async function POST(request: NextRequest) {
         contactId: validatedData.contactId,
         createdById: user.userId,
         items: {
-          create: validatedData.items
+          create: validatedData.items as any
         }
       },
       include: {
@@ -187,18 +198,41 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, status, ...updateData } = body
-    
-    if (!id) {
-      return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 })
+    const validatedData = updateQuoteSchema.parse(body)
+    const { id, items, ...updateData } = validatedData
+
+    // Calcular totais se itens foram fornecidos
+    let amount, discount, total
+    if (items && items.length > 0) {
+      amount = items.reduce((sum, item) => sum + item.total, 0)
+      discount = updateData.discount || 0
+      total = amount - discount
     }
 
+    // Preparar dados de atualização
+    const updateDataPrisma: any = {
+      title: updateData.title,
+      description: updateData.description,
+      validUntil: updateData.validUntil ? new Date(updateData.validUntil) : undefined,
+      chatId: updateData.chatId,
+      status: updateData.status
+    }
+
+    if (amount !== undefined) updateDataPrisma.amount = amount
+    if (discount !== undefined) updateDataPrisma.discount = discount
+    if (total !== undefined) updateDataPrisma.total = total
+    
+    if (items && items.length > 0) {
+      updateDataPrisma.items = {
+        deleteMany: {},
+        create: items
+      }
+    }
+
+    // Deletar itens existentes e criar novos
     const quote = await prisma.quote.update({
       where: { id },
-      data: {
-        ...updateData,
-        status
-      },
+      data: updateDataPrisma,
       include: {
         contact: { 
           select: { 
@@ -220,8 +254,32 @@ export async function PATCH(request: NextRequest) {
       }
     })
 
+    // Log de atividade
+    await prisma.contactActivity.create({
+      data: {
+        type: 'quote',
+        title: `Orçamento atualizado: ${quote.title}`,
+        description: `Orçamento de R$ ${quote.total.toFixed(2)} atualizado`,
+        contactId: quote.contactId,
+        userId: user.userId,
+        metadata: {
+          quoteId: quote.id,
+          amount: quote.amount,
+          total: quote.total,
+          changes: updateData
+        }
+      }
+    })
+
     return NextResponse.json({ quote })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Dados inválidos', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     console.error('Erro ao atualizar orçamento:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },

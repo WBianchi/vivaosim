@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -16,10 +15,12 @@ import {
 interface SchedulesCalendarProps {
   schedules: any[]
   onScheduleSelect: (schedule: any) => void
+  onScheduleMove?: (scheduleId: string, newDate: Date) => void
 }
 
-export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules, onScheduleSelect }) => {
+export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules, onScheduleSelect, onScheduleMove }) => {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [draggedSchedule, setDraggedSchedule] = useState<any>(null)
 
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -128,34 +129,28 @@ export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules,
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h2>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={goToToday}
             className="px-3 py-1 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors"
           >
             Hoje
-          </motion.button>
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             onClick={() => navigateMonth('prev')}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          </motion.button>
+          </button>
           
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             onClick={() => navigateMonth('next')}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          </motion.button>
+          </button>
         </div>
       </div>
 
@@ -174,18 +169,40 @@ export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules,
       {/* Grade do calendário */}
       <div className="grid grid-cols-7">
         {days.map((day, index) => (
-          <motion.div
+          <div
             key={index}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: index * 0.01 }}
-            className={`min-h-32 p-2 border-r border-b border-gray-100 dark:border-gray-700 ${
+            onDragOver={(e) => {
+              if (draggedSchedule) {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              if (draggedSchedule && onScheduleMove) {
+                // Cria nova data mantendo a hora original
+                const originalDate = new Date(draggedSchedule.dateTime || draggedSchedule.startDateTime)
+                const newDate = new Date(day.date)
+                newDate.setHours(originalDate.getHours())
+                newDate.setMinutes(originalDate.getMinutes())
+                newDate.setSeconds(0)
+                newDate.setMilliseconds(0)
+                
+                onScheduleMove(draggedSchedule.id, newDate)
+                setDraggedSchedule(null)
+              }
+            }}
+            className={`min-h-32 p-2 border-r border-b border-gray-100 dark:border-gray-700 transition-colors ${
               !day.isCurrentMonth 
                 ? 'bg-gray-50 dark:bg-gray-800' 
                 : 'bg-white dark:bg-gray-800'
             } ${
               isToday(day.date) 
                 ? 'bg-orange-50 dark:bg-orange-900/20' 
+                : ''
+            } ${
+              draggedSchedule && day.isCurrentMonth
+                ? 'bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-400 dark:ring-orange-600'
                 : ''
             }`}
           >
@@ -201,17 +218,28 @@ export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules,
             </div>
 
             {/* Agendamentos do dia */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {day.schedules.slice(0, 3).map((schedule) => {
                 const FormatIcon = getFormatIcon(schedule.format)
+                const isDragging = draggedSchedule?.id === schedule.id
                 
                 return (
-                  <motion.button
+                  <div
                     key={schedule.id}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
+                    draggable
+                    onDragStart={(e: React.DragEvent) => {
+                      e.stopPropagation()
+                      setDraggedSchedule(schedule)
+                      e.dataTransfer.effectAllowed = 'move'
+                    }}
+                    onDragEnd={() => {
+                      setDraggedSchedule(null)
+                    }}
                     onClick={() => onScheduleSelect(schedule)}
-                    className="w-full text-left p-2 rounded-lg bg-white dark:bg-gray-700 border-l-3 border-orange-500 shadow-sm hover:shadow-md transition-all duration-200"
+                    className={`w-full text-left p-2 rounded-lg bg-white dark:bg-gray-700 border-l-2 border-orange-500 shadow-sm hover:shadow transition-shadow cursor-move ${
+                      isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
+                    }`}
+                    style={{ transition: 'opacity 0.15s, transform 0.15s' }}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <Clock className="w-3 h-3 text-orange-500" />
@@ -231,18 +259,18 @@ export const SchedulesCalendar: React.FC<SchedulesCalendarProps> = ({ schedules,
                         {schedule.client.name}
                       </span>
                     </div>
-                  </motion.button>
+                  </div>
                 )
               })}
 
               {/* Indicador de mais agendamentos */}
               {day.schedules.length > 3 && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-0.5">
                   +{day.schedules.length - 3} mais
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 

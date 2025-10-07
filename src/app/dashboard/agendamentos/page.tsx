@@ -10,6 +10,7 @@ import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal'
 
 export default function AgendamentosPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null)
+  const [editingSchedule, setEditingSchedule] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -29,7 +30,10 @@ export default function AgendamentosPage() {
       <div className="w-full p-8">
         {/* Header */}
         <SchedulesHeader 
-          onCreateSchedule={() => setShowCreateModal(true)}
+          onCreateSchedule={() => {
+            setEditingSchedule(null)
+            setShowCreateModal(true)
+          }}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
@@ -60,6 +64,7 @@ export default function AgendamentosPage() {
           searchTerm={searchTerm}
           viewMode={viewMode}
           onScheduleSelect={setSelectedSchedule}
+          onScheduleUpdate={() => setRefreshKey(prev => prev + 1)}
         />
 
         {/* Modal de Detalhes */}
@@ -68,18 +73,24 @@ export default function AgendamentosPage() {
             schedule={selectedSchedule}
             onClose={() => setSelectedSchedule(null)}
             onEdit={() => {
-              console.log('🔄 Editar agendamento:', selectedSchedule.id)
+              setEditingSchedule(selectedSchedule)
+              setShowCreateModal(true)
               setSelectedSchedule(null)
             }}
           />
         )}
 
-        {/* Modal de Criação */}
+        {/* Modal de Criação/Edição */}
         {showCreateModal && (
           <CreateScheduleModal
-            onClose={() => setShowCreateModal(false)}
+            schedule={editingSchedule}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingSchedule(null)
+            }}
             onSave={() => {
               setShowCreateModal(false)
+              setEditingSchedule(null)
               setRefreshKey(prev => prev + 1)
             }}
           />

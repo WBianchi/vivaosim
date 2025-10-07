@@ -22,34 +22,48 @@ import {
 interface CreateScheduleModalProps {
   onClose: () => void
   onSave: () => void
+  schedule?: any // Se fornecido, o modal estará em modo de edição
 }
 
 export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
   onClose,
-  onSave
+  onSave,
+  schedule
 }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isEditMode = !!schedule
+  const getFormattedDateTime = (dateString?: string) => {
+    if (!dateString) return ''
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return ''
+      return date.toISOString().slice(0, 16)
+    } catch {
+      return ''
+    }
+  }
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    clientId: '',
-    assignedToId: '',
-    startDateTime: '',
-    endDateTime: '',
-    duration: 60,
-    type: 'MEETING',
-    status: 'SCHEDULED',
-    location: '',
-    meetingUrl: '',
-    isOnline: false,
-    allDay: false,
-    notes: '',
-    color: '#3b82f6',
-    sendReminder: true,
-    reminderMinutes: 30,
-    tags: [],
+    title: schedule?.title || '',
+    description: schedule?.description || '',
+    clientId: schedule?.clientId || '',
+    assignedToId: schedule?.assignedToId || '',
+    startDateTime: getFormattedDateTime(schedule?.startDateTime),
+    endDateTime: getFormattedDateTime(schedule?.endDateTime),
+    duration: schedule?.duration || 60,
+    type: schedule?.type || 'MEETING',
+    status: schedule?.status || 'SCHEDULED',
+    location: schedule?.location || '',
+    meetingUrl: schedule?.meetingUrl || '',
+    isOnline: schedule?.isOnline || false,
+    allDay: schedule?.allDay || false,
+    notes: schedule?.notes || '',
+    color: schedule?.color || '#3b82f6',
+    sendReminder: schedule?.sendReminder !== undefined ? schedule.sendReminder : true,
+    reminderMinutes: schedule?.reminderMinutes || 30,
+    tags: schedule?.tags || [],
     clientName: '',
     clientEmail: '',
     clientPhone: '',
@@ -59,17 +73,43 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
     dateTime: ''
   })
   const [newTag, setNewTag] = useState('')
+  const [contacts, setContacts] = useState<any[]>([])
 
   useEffect(() => {
     setIsVisible(true)
-    // Definir data/hora padrão para amanhã 10h
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(10, 0, 0, 0)
-    setFormData(prev => ({
-      ...prev,
-      startDateTime: tomorrow.toISOString().slice(0, 16)
-    }))
+    // Definir data/hora padrão para amanhã 10h (somente se não estiver editando)
+    if (!isEditMode) {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(10, 0, 0, 0)
+      setFormData(prev => ({
+        ...prev,
+        startDateTime: tomorrow.toISOString().slice(0, 16)
+      }))
+    }
+
+    // Buscar contatos
+    const fetchContacts = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const response = await fetch('/api/contacts', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setContacts(data.contacts || [])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar contatos:', error)
+      }
+    }
+
+    fetchContacts()
   }, [])
 
   const handleClose = () => {
@@ -90,8 +130,20 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
         return
       }
 
-      // Calcula endDateTime baseado no startDateTime + duration
+      // Validar e calcular endDateTime baseado no startDateTime + duration
+      if (!formData.startDateTime) {
+        setError('Data e hora são obrigatórias')
+        setLoading(false)
+        return
+      }
+
       const start = new Date(formData.startDateTime)
+      if (isNaN(start.getTime())) {
+        setError('Data e hora inválidas')
+        setLoading(false)
+        return
+      }
+
       const end = new Date(start.getTime() + formData.duration * 60000)
 
       const payload = {
@@ -114,8 +166,11 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
         color: formData.color
       }
 
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
+      const url = isEditMode ? `/api/appointments/${schedule.id}` : '/api/appointments'
+      const method = isEditMode ? 'PATCH' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
@@ -128,11 +183,11 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
         handleClose()
       } else {
         const data = await response.json()
-        setError(data.error || 'Erro ao criar agendamento')
+        setError(data.error || `Erro ao ${isEditMode ? 'atualizar' : 'criar'} agendamento`)
       }
     } catch (error) {
-      console.error('Erro ao criar agendamento:', error)
-      setError('Erro ao criar agendamento')
+      console.error(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} agendamento:`, error)
+      setError(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} agendamento`)
     } finally {
       setLoading(false)
     }
@@ -219,10 +274,10 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Novo Agendamento
+                    {isEditMode ? 'Editar Agendamento' : 'Novo Agendamento'}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Preencha os detalhes do agendamento
+                    {isEditMode ? 'Atualize as informações do agendamento' : 'Preencha os detalhes do agendamento'}
                   </p>
                 </div>
               </div>
@@ -321,42 +376,21 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Nome do Cliente *
+                        Selecionar Cliente *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         required
-                        value={formData.clientName}
-                        onChange={(e) => updateFormData('clientName', e.target.value)}
+                        value={formData.clientId}
+                        onChange={(e) => updateFormData('clientId', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="Nome completo do cliente"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.clientEmail}
-                        onChange={(e) => updateFormData('clientEmail', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="email@exemplo.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Telefone
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.clientPhone}
-                        onChange={(e) => updateFormData('clientPhone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        placeholder="(11) 99999-9999"
-                      />
+                      >
+                        <option value="">Selecione um cliente</option>
+                        {contacts.map((contact) => (
+                          <option key={contact.id} value={contact.id}>
+                            {contact.name} {contact.email ? `(${contact.email})` : ''}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -560,7 +594,7 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
                   className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  Criar Agendamento
+                  {isEditMode ? 'Salvar Alterações' : 'Criar Agendamento'}
                 </motion.button>
               </div>
             </form>

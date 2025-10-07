@@ -40,6 +40,12 @@ export const WhatsAppSimpleModal: React.FC<WhatsAppSimpleModalProps> = ({
   const createWhatsAppSession = async () => {
     if (!user || !accessToken) return
 
+    // Prevenir múltiplas chamadas simultâneas
+    if (status === 'creating') {
+      console.log('⚠️ Criação já em andamento, ignorando...')
+      return
+    }
+
     setStatus('creating')
     setError(null)
 

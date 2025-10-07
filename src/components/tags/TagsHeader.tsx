@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Hash,
   Palette,
-  BarChart3
+  BarChart3,
+  Filter
 } from 'lucide-react'
 import { getAuthHeaders } from '@/lib/auth-token'
 
@@ -21,6 +22,8 @@ interface TagsHeaderProps {
   onViewModeChange: (mode: 'grid' | 'table') => void
   searchTerm: string
   onSearchChange: (term: string) => void
+  showFilters: boolean
+  onToggleFilters: () => void
 }
 
 export const TagsHeader: React.FC<TagsHeaderProps> = ({
@@ -28,7 +31,9 @@ export const TagsHeader: React.FC<TagsHeaderProps> = ({
   viewMode,
   onViewModeChange,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  showFilters,
+  onToggleFilters
 }) => {
   const [stats, setStats] = useState([
     {
@@ -153,6 +158,21 @@ export const TagsHeader: React.FC<TagsHeaderProps> = ({
               className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent w-64"
             />
           </div>
+
+          {/* Botão de Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onToggleFilters}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+              showFilters
+                ? 'bg-orange-500 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
 
           {/* Toggle View Mode */}
           <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">

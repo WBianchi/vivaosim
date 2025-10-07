@@ -8,6 +8,7 @@ import {
   User, 
   Calendar, 
   Edit3,
+  Trash2,
   TrendingUp,
   Hash,
   Activity,
@@ -18,19 +19,23 @@ import {
   BarChart3,
   Palette
 } from 'lucide-react'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface TagDetailsModalProps {
   tag: any
   onClose: () => void
   onEdit?: () => void
+  onDelete?: () => void
 }
 
 export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
   tag,
   onClose,
-  onEdit
+  onEdit,
+  onDelete
 }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
@@ -39,6 +44,39 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
   const handleClose = () => {
     setIsVisible(false)
     setTimeout(onClose, 300)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Tem certeza que deseja excluir esta tag?')) return
+    
+    setDeleting(true)
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Token de autenticação não encontrado')
+        return
+      }
+
+      const response = await fetch(`/api/tags?id=${tag.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        if (onDelete) onDelete()
+        handleClose()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao excluir tag')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir tag:', error)
+      alert('Erro ao excluir tag')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const formatDate = (date: string) => {
@@ -140,9 +178,17 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
   }
 
   const colorConfig = getColorConfig(tag.color)
-  const CategoryIcon = getCategoryIcon(tag.category)
-  const usageLevel = getUsageLevel(tag.usageCount)
-  const totalItems = Object.values(tag.relatedItems).reduce((sum: number, count: any) => sum + count, 0)
+  const CategoryIcon = getCategoryIcon(tag.category || 'general')
+  const usageLevel = getUsageLevel(tag.usageCount || 0)
+  
+  // Valores padrão para relatedItems caso não existam
+  const relatedItems = tag.relatedItems || {
+    contracts: 0,
+    quotes: 0,
+    schedules: 0,
+    tickets: 0
+  }
+  const totalItems = Object.values(relatedItems).reduce((sum: number, count: any) => sum + (count as number), 0)
 
   return (
     <AnimatePresence>
@@ -197,8 +243,22 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
                       handleClose()
                     }}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                    title="Editar"
                   >
                     <Edit3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  </motion.button>
+                )}
+                
+                {onDelete && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50"
+                    title="Excluir"
+                  >
+                    <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
                   </motion.button>
                 )}
                 
@@ -291,10 +351,10 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
                       <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Contratos</span>
                     </div>
                     <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                      {tag.relatedItems.contracts}
+                      {relatedItems.contracts}
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                      {totalItems > 0 ? Math.round((tag.relatedItems.contracts / totalItems) * 100) : 0}% do total
+                      {totalItems > 0 ? Math.round((relatedItems.contracts / totalItems) * 100) : 0}% do total
                     </p>
                   </div>
 
@@ -304,10 +364,10 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
                       <span className="text-sm font-medium text-green-700 dark:text-green-300">Orçamentos</span>
                     </div>
                     <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                      {tag.relatedItems.quotes}
+                      {relatedItems.quotes}
                     </p>
                     <p className="text-xs text-green-600 dark:text-green-400">
-                      {totalItems > 0 ? Math.round((tag.relatedItems.quotes / totalItems) * 100) : 0}% do total
+                      {totalItems > 0 ? Math.round((relatedItems.quotes / totalItems) * 100) : 0}% do total
                     </p>
                   </div>
 
@@ -317,10 +377,10 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
                       <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Agendamentos</span>
                     </div>
                     <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                      {tag.relatedItems.schedules}
+                      {relatedItems.schedules}
                     </p>
                     <p className="text-xs text-purple-600 dark:text-purple-400">
-                      {totalItems > 0 ? Math.round((tag.relatedItems.schedules / totalItems) * 100) : 0}% do total
+                      {totalItems > 0 ? Math.round((relatedItems.schedules / totalItems) * 100) : 0}% do total
                     </p>
                   </div>
 
@@ -330,10 +390,10 @@ export const TagDetailsModal: React.FC<TagDetailsModalProps> = ({
                       <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Tickets</span>
                     </div>
                     <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                      {tag.relatedItems.tickets}
+                      {relatedItems.tickets}
                     </p>
                     <p className="text-xs text-orange-600 dark:text-orange-400">
-                      {totalItems > 0 ? Math.round((tag.relatedItems.tickets / totalItems) * 100) : 0}% do total
+                      {totalItems > 0 ? Math.round((relatedItems.tickets / totalItems) * 100) : 0}% do total
                     </p>
                   </div>
                 </div>

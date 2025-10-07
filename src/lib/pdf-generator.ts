@@ -1,3 +1,149 @@
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+// Função para gerar PDF do orçamento
+export function generateQuotePDF(quote: any) {
+  const doc = new jsPDF()
+  
+  // Cores
+  const primaryColor: [number, number, number] = [249, 115, 22] // orange-500
+  const textColor: [number, number, number] = [31, 41, 55] // gray-800
+  const lightGray: [number, number, number] = [243, 244, 246] // gray-100
+  
+  // Logo/Header
+  doc.setFillColor(...primaryColor)
+  doc.rect(0, 0, 210, 40, 'F')
+  
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(24)
+  doc.setFont('helvetica', 'bold')
+  doc.text('ORÇAMENTO', 105, 20, { align: 'center' })
+  
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Nº ${quote.id.substring(0, 8).toUpperCase()}`, 105, 30, { align: 'center' })
+  
+  // Informações do Cliente
+  let yPos = 50
+  doc.setTextColor(...textColor)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Dados do Cliente', 15, yPos)
+  
+  yPos += 8
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Cliente: ${quote.client?.name || 'N/A'}`, 15, yPos)
+  yPos += 6
+  if (quote.client?.email) {
+    doc.text(`Email: ${quote.client.email}`, 15, yPos)
+    yPos += 6
+  }
+  if (quote.client?.phone) {
+    doc.text(`Telefone: ${quote.client.phone}`, 15, yPos)
+    yPos += 6
+  }
+  
+  // Informações do Orçamento
+  yPos += 5
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Informações do Orçamento', 15, yPos)
+  
+  yPos += 8
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Título: ${quote.title}`, 15, yPos)
+  yPos += 6
+  
+  if (quote.description) {
+    const descLines = doc.splitTextToSize(`Descrição: ${quote.description}`, 180)
+    doc.text(descLines, 15, yPos)
+    yPos += (descLines.length * 6)
+  }
+  
+  doc.text(`Data de Criação: ${new Date(quote.createdAt).toLocaleDateString('pt-BR')}`, 15, yPos)
+  yPos += 6
+  
+  if (quote.expiresAt) {
+    doc.text(`Válido até: ${new Date(quote.expiresAt).toLocaleDateString('pt-BR')}`, 15, yPos)
+    yPos += 6
+  }
+  
+  // Tabela de Itens
+  yPos += 5
+  const tableData = quote.items.map((item: any) => [
+    item.name || item.description,
+    item.quantity?.toString() || '1',
+    `R$ ${Number(item.unitPrice || item.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `R$ ${Number(item.total || (item.quantity * item.unitPrice)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  ])
+  
+  autoTable(doc, {
+    startY: yPos,
+    head: [['Item', 'Qtd', 'Valor Unit.', 'Total']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 10
+    },
+    bodyStyles: {
+      fontSize: 9
+    },
+    columnStyles: {
+      0: { cellWidth: 80 },
+      1: { cellWidth: 30, halign: 'center' },
+      2: { cellWidth: 40, halign: 'right' },
+      3: { cellWidth: 40, halign: 'right' }
+    },
+    margin: { left: 15, right: 15 }
+  })
+  
+  // Totais
+  const finalY = (doc as any).lastAutoTable.finalY || yPos + 50
+  yPos = finalY + 10
+  
+  const subtotal = Number(quote.value || quote.amount || 0)
+  const discount = Number(quote.discount || 0)
+  const total = subtotal - discount
+  
+  // Fundo para totais
+  doc.setFillColor(...lightGray)
+  doc.rect(120, yPos - 5, 75, 30, 'F')
+  
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Subtotal:', 125, yPos)
+  doc.text(`R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, yPos, { align: 'right' })
+  
+  yPos += 7
+  if (discount > 0) {
+    doc.text('Desconto:', 125, yPos)
+    doc.text(`- R$ ${discount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, yPos, { align: 'right' })
+    yPos += 7
+  }
+  
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(12)
+  doc.text('TOTAL:', 125, yPos)
+  doc.setTextColor(...primaryColor)
+  doc.text(`R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, yPos, { align: 'right' })
+  
+  // Footer
+  doc.setTextColor(...textColor)
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  const pageHeight = doc.internal.pageSize.height
+  doc.text(`Documento gerado em ${new Date().toLocaleString('pt-BR')}`, 105, pageHeight - 15, { align: 'center' })
+  doc.text('Este é um orçamento válido e pode ser aceito pelo cliente', 105, pageHeight - 10, { align: 'center' })
+  
+  // Salvar PDF
+  doc.save(`orcamento-${quote.id.substring(0, 8)}.pdf`)
+}
+
 // Função para gerar PDF do contrato
 export async function generateContractPDF(contract: any) {
   // Criar conteúdo HTML do PDF

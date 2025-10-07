@@ -13,6 +13,7 @@ interface SchedulesListProps {
   searchTerm: string
   viewMode: 'grid' | 'table' | 'calendar'
   onScheduleSelect: (schedule: any) => void
+  onScheduleUpdate?: () => void
 }
 
 // Mock data - fallback se API falhar
@@ -168,7 +169,8 @@ export const SchedulesList: React.FC<SchedulesListProps> = ({
   filters,
   searchTerm,
   viewMode,
-  onScheduleSelect
+  onScheduleSelect,
+  onScheduleUpdate
 }) => {
   const [schedules, setSchedules] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -366,6 +368,39 @@ export const SchedulesList: React.FC<SchedulesListProps> = ({
         <SchedulesCalendar
           schedules={filteredSchedules}
           onScheduleSelect={onScheduleSelect}
+          onScheduleMove={async (scheduleId, newDate) => {
+            try {
+              const token = getAuthToken()
+              if (!token) {
+                alert('Token de autenticação não encontrado')
+                return
+              }
+
+              const response = await fetch(`/api/appointments/${scheduleId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  startDateTime: newDate.toISOString()
+                })
+              })
+
+              if (response.ok) {
+                // Atualizar a lista
+                if (onScheduleUpdate) {
+                  onScheduleUpdate()
+                }
+              } else {
+                const data = await response.json()
+                alert(data.error || 'Erro ao mover agendamento')
+              }
+            } catch (error) {
+              console.error('Erro ao mover agendamento:', error)
+              alert('Erro ao mover agendamento')
+            }
+          }}
         />
       )}
     </div>

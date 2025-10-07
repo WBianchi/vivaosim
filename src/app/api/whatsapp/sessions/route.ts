@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import jwt from 'jsonwebtoken'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 // Tipos para WAHA API
 interface WAHASession {
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('📋 Buscando todas as sessões WAHA...')
+    console.log('📋 Buscando todas as sessões do WAHA...')
 
     // Buscar TODAS as sessões do WAHA
     const wahaResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/`, {
@@ -70,6 +73,16 @@ export async function GET(request: NextRequest) {
 
     const wahaSessions = await wahaResponse.json()
     console.log('📊 Sessões WAHA encontradas:', wahaSessions.length)
+
+    // Buscar todas as sessões do banco para fazer merge
+    const dbSessions = await prisma.whatsAppSession.findMany({
+      where: {
+        userId: user.userId
+      }
+    })
+    
+    const dbSessionsMap = new Map(dbSessions.map(s => [s.sessionId, s]))
+    console.log('💾 Sessões no banco:', dbSessions.length)
 
     // Mapear sessões WAHA para nosso formato
     const sessions = await Promise.all(
@@ -94,21 +107,26 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Verificar se existe no banco
+        const dbSession = dbSessionsMap.get(wahaSession.name) as any
+        const isInDatabase = !!dbSession
+
         return {
-          id: wahaSession.name,
+          id: dbSession?.id || wahaSession.name,
           sessionId: wahaSession.name,
-          name: wahaSession.name,
+          name: dbSession?.name || wahaSession.name,
           status: wahaSession.status,
-          phoneNumber: profileData?.id || null,
-          profileName: profileData?.pushname || profileData?.name || null,
-          profilePicture: profileData?.profilePictureUrl || null,
+          phoneNumber: profileData?.id || dbSession?.phoneNumber || null,
+          profileName: profileData?.pushname || profileData?.name || dbSession?.profileName || null,
+          profilePicture: profileData?.profilePictureUrl || dbSession?.profilePicture || null,
           connectedAt: wahaSession.status === 'WORKING' ? new Date() : null,
-          lastSeen: new Date()
+          lastSeen: new Date(),
+          isInDatabase // Flag para saber se está no banco
         }
       })
     )
 
-    console.log('✅ Sessões mapeadas:', sessions)
+    console.log('✅ Sessões mapeadas:', sessions.length)
     return NextResponse.json(sessions)
   } catch (error) {
     console.error('Error fetching sessions:', error)
@@ -128,6 +146,33 @@ export async function POST(request: NextRequest) {
     
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+    }
+
+    // Verificar se já existe uma sessão recente (criada há menos de 10 segundos)
+    const recentSession = await prisma.whatsAppSession.findFirst({
+      where: {
+        userId: user.userId,
+        createdAt: {
+          gte: new Date(Date.now() - 10000) // 10 segundos atrás
+        }
+      }
+    })
+
+    if (recentSession) {
+      console.log('⚠️ Sessão recente já existe, retornando a existente:', recentSession.sessionId)
+      return NextResponse.json({ 
+        success: true,
+        session: {
+          id: recentSession.id,
+          sessionId: recentSession.sessionId,
+          name: recentSession.name,
+          status: recentSession.status,
+          webhookUrl: recentSession.webhookUrl,
+          userId: recentSession.userId,
+          createdAt: recentSession.createdAt
+        },
+        message: 'Using existing recent session'
+      })
     }
 
     // Gerar ID único para a sessão
@@ -179,17 +224,21 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Salvar no banco de dados (mock por agora)
-    const session = {
-      id: `session-${Date.now()}`,
-      sessionId,
-      name,
-      status: 'STARTING',
-      webhookUrl,
-      wahaConfig,
-      userId: user.id,
-      createdAt: new Date()
-    }
+    // Salvar no banco de dados
+    console.log('💾 Salvando sessão no banco de dados...')
+    const session = await prisma.whatsAppSession.create({
+      data: {
+        sessionId,
+        name,
+        status: 'STARTING',
+        webhookUrl,
+        userId: user.userId,
+        phoneNumber: null,
+        profileName: null,
+        profilePicture: null
+      }
+    })
+    console.log('✅ Sessão salva no banco:', session.id)
 
     // Iniciar sessão para gerar QR Code
     try {
@@ -204,7 +253,11 @@ export async function POST(request: NextRequest) {
       
       if (startResponse.ok) {
         console.log('✅ Sessão WAHA iniciada com sucesso')
-        session.status = 'STARTING'
+        // Atualizar status no banco
+        await prisma.whatsAppSession.update({
+          where: { id: session.id },
+          data: { status: 'SCAN_QR_CODE' }
+        })
       } else {
         console.error('❌ Erro ao iniciar sessão WAHA:', await startResponse.text())
       }
@@ -214,7 +267,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      session,
+      session: {
+        id: session.id,
+        sessionId: session.sessionId,
+        name: session.name,
+        status: session.status,
+        webhookUrl: session.webhookUrl,
+        userId: session.userId,
+        createdAt: session.createdAt
+      },
       message: 'Session created successfully'
     })
 
@@ -239,26 +300,31 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
     }
 
-    // Parar sessão no WAHA
+    console.log('🗑️ Deletando sessão do site:', sessionId)
+
+    // IMPORTANTE: NÃO deletar do WAHA, apenas do banco de dados do site
+    // O WAHA deve manter a sessão ativa
+    
+    // Deletar apenas do banco de dados
     try {
-      await fetch(`${WAHA_BASE_URL}/api/sessions/${sessionId}/stop`, {
-        method: 'POST'
+      console.log('🗄️ Deletando sessão do banco de dados...')
+      const deletedSession = await prisma.whatsAppSession.delete({ 
+        where: { sessionId } 
       })
-
-      await fetch(`${WAHA_BASE_URL}/api/sessions/${sessionId}`, {
-        method: 'DELETE'
-      })
-    } catch (wahaError) {
-      console.error('WAHA delete error:', wahaError)
-      // Continuar com a exclusão local mesmo se WAHA falhar
+      console.log('✅ Sessão deletada do banco:', deletedSession.id)
+      console.log('ℹ️ A sessão continua ativa no WAHA')
+    } catch (dbError: any) {
+      console.error('❌ Erro ao deletar do banco:', dbError)
+      // Se não encontrar no banco, não é erro crítico
+      if (dbError.code !== 'P2025') { // P2025 = Record not found
+        throw dbError
+      }
+      console.log('⚠️ Sessão não encontrada no banco de dados')
     }
-
-    // Deletar do banco de dados (mock por agora)
-    // await prisma.whatsAppSession.delete({ where: { sessionId } })
 
     return NextResponse.json({ 
       success: true,
-      message: 'Session deleted successfully'
+      message: 'Session deleted successfully from database (WAHA session remains active)'
     })
 
   } catch (error) {

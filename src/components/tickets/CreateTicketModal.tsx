@@ -19,23 +19,26 @@ import { getAuthToken, getAuthHeaders } from '@/lib/auth-token'
 interface CreateTicketModalProps {
   onClose: () => void
   onSave: () => void
+  ticket?: any // Se fornecido, o modal estará em modo de edição
 }
 
 export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   onClose,
-  onSave
+  onSave,
+  ticket
 }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const isEditMode = !!ticket
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    priority: 'normal',
-    category: 'general',
-    contactId: '',
+    title: ticket?.title || '',
+    description: ticket?.description || '',
+    priority: ticket?.priority || 'normal',
+    category: ticket?.category || 'general',
+    contactId: ticket?.contactId || '',
     contactName: '',
     contactEmail: '',
-    assignedToId: '',
-    tags: [] as string[]
+    assignedToId: ticket?.assignedToId || '',
+    tags: ticket?.tags || [] as string[]
   })
   const [newTag, setNewTag] = useState('')
   const [attachments, setAttachments] = useState<any[]>([])
@@ -97,20 +100,33 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         return
       }
 
-      const response = await fetch('/api/tickets', {
-        method: 'POST',
+      const url = isEditMode ? '/api/tickets' : '/api/tickets'
+      const method = isEditMode ? 'PATCH' : 'POST'
+      const body = isEditMode
+        ? {
+            id: ticket.id,
+            title: formData.title,
+            description: formData.description,
+            priority: formData.priority,
+            category: formData.category,
+            assignedToId: formData.assignedToId || undefined
+          }
+        : {
+            title: formData.title,
+            description: formData.description,
+            priority: formData.priority,
+            category: formData.category,
+            contactId: formData.contactId,
+            assignedToId: formData.assignedToId || undefined
+          }
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          priority: formData.priority,
-          category: formData.category,
-          contactId: formData.contactId,
-          assignedToId: formData.assignedToId || undefined
-        })
+        body: JSON.stringify(body)
       })
 
       if (response.ok) {
@@ -118,11 +134,11 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         handleClose()
       } else {
         const data = await response.json()
-        setError(data.error || 'Erro ao criar ticket')
+        setError(data.error || `Erro ao ${isEditMode ? 'atualizar' : 'criar'} ticket`)
       }
     } catch (error) {
-      console.error('❌ Erro ao criar ticket:', error)
-      setError('Erro ao criar ticket')
+      console.error(`❌ Erro ao ${isEditMode ? 'atualizar' : 'criar'} ticket:`, error)
+      setError(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} ticket`)
     } finally {
       setLoading(false)
     }
@@ -168,7 +184,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
   const priorityOptions = [
     { value: 'low', label: 'Baixa', color: 'text-green-600', icon: Clock },
-    { value: 'medium', label: 'Média', color: 'text-yellow-600', icon: Clock },
+    { value: 'normal', label: 'Normal', color: 'text-blue-600', icon: Clock },
     { value: 'high', label: 'Alta', color: 'text-orange-600', icon: AlertTriangle },
     { value: 'urgent', label: 'Urgente', color: 'text-red-600', icon: AlertTriangle }
   ]
@@ -217,10 +233,10 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Novo Ticket de Suporte
+                    {isEditMode ? 'Editar Ticket' : 'Novo Ticket de Suporte'}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Crie um ticket para gerenciar solicitações e problemas
+                    {isEditMode ? 'Atualize as informações do ticket' : 'Crie um ticket para gerenciar solicitações e problemas'}
                   </p>
                 </div>
               </div>
@@ -340,7 +356,8 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                         required
                         value={formData.contactId}
                         onChange={(e) => updateFormData('contactId', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        disabled={isEditMode}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="">Selecione um contato</option>
                         {contacts.map((contact) => (
@@ -350,7 +367,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                         ))}
                       </select>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Selecione o contato relacionado ao ticket
+                        {isEditMode ? 'O contato não pode ser alterado após a criação' : 'Selecione o contato relacionado ao ticket'}
                       </p>
                     </div>
                   </div>
@@ -517,7 +534,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Criar Ticket
+                      {isEditMode ? 'Salvar Alterações' : 'Criar Ticket'}
                     </>
                   )}
                 </motion.button>

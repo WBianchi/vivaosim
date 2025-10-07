@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
-  Users
+  Users,
+  Filter
 } from 'lucide-react'
 import { getAuthHeaders } from '@/lib/auth-token'
 
@@ -21,6 +22,7 @@ interface TicketsHeaderProps {
   onViewModeChange: (mode: 'grid' | 'table') => void
   searchTerm: string
   onSearchChange: (term: string) => void
+  onToggleFilters: () => void
 }
 
 export const TicketsHeader: React.FC<TicketsHeaderProps> = ({
@@ -28,7 +30,8 @@ export const TicketsHeader: React.FC<TicketsHeaderProps> = ({
   viewMode,
   onViewModeChange,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  onToggleFilters
 }) => {
   const [stats, setStats] = useState([
     {
@@ -183,6 +186,18 @@ export const TicketsHeader: React.FC<TicketsHeaderProps> = ({
               <List className="w-4 h-4" />
             </motion.button>
           </div>
+
+          {/* Botão Toggle Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onToggleFilters}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors shadow-sm"
+            title="Mostrar/Ocultar Filtros"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
 
           {/* Botão Criar Ticket */}
           <motion.button

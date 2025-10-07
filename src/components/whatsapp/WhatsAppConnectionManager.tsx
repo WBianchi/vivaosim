@@ -19,6 +19,7 @@ interface WhatsAppSession {
   profilePicture?: string
   connectedAt?: string
   lastSeen?: string
+  isInDatabase?: boolean // Flag para saber se está vinculada ao banco
 }
 
 interface WhatsAppConnectionManagerProps {
@@ -62,6 +63,41 @@ export const WhatsAppConnectionManager: React.FC<WhatsAppConnectionManagerProps>
       toast.error('Erro ao carregar conexões')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleLinkSession = async (session: any) => {
+    try {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1]
+
+      const response = await fetch('/api/whatsapp/sessions/link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sessionId: session.sessionId,
+          name: session.profileName || session.name,
+          phoneNumber: session.phoneNumber,
+          profileName: session.profileName,
+          profilePicture: session.profilePicture
+        })
+      })
+
+      if (response.ok) {
+        toast.success('Sessão vinculada com sucesso!')
+        fetchSessions()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Erro ao vincular sessão')
+      }
+    } catch (error) {
+      console.error('Erro ao vincular sessão:', error)
+      toast.error('Erro ao vincular sessão')
     }
   }
 
@@ -263,6 +299,18 @@ export const WhatsAppConnectionManager: React.FC<WhatsAppConnectionManagerProps>
 
                           {/* Actions */}
                           <div className="flex items-center gap-2">
+                            {/* Badge se não estiver vinculada */}
+                            {!session.isInDatabase && (
+                              <span className={cn(
+                                'text-xs px-2 py-1 rounded-full',
+                                isDarkMode
+                                  ? 'bg-yellow-900/30 text-yellow-400'
+                                  : 'bg-yellow-100 text-yellow-700'
+                              )}>
+                                Não vinculada
+                              </span>
+                            )}
+                            
                             {session.status === 'SCAN_QR_CODE' && (
                               <button
                                 onClick={() => setSelectedSession(session)}
@@ -276,17 +324,36 @@ export const WhatsAppConnectionManager: React.FC<WhatsAppConnectionManagerProps>
                                 <QrCode className="w-4 h-4" />
                               </button>
                             )}
-                            <button
-                              onClick={() => handleDeleteSession(session.sessionId)}
-                              className={cn(
-                                'p-2 rounded-lg transition-colors',
-                                isDarkMode
-                                  ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
-                                  : 'bg-red-100 text-red-600 hover:bg-red-200'
-                              )}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            
+                            {/* Botão Vincular se não estiver no banco */}
+                            {!session.isInDatabase && session.status === 'WORKING' && (
+                              <button
+                                onClick={() => handleLinkSession(session)}
+                                className={cn(
+                                  'px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                                  isDarkMode
+                                    ? 'bg-green-900/30 text-green-400 hover:bg-green-900/50'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                )}
+                              >
+                                Vincular
+                              </button>
+                            )}
+                            
+                            {/* Botão Deletar só se estiver no banco */}
+                            {session.isInDatabase && (
+                              <button
+                                onClick={() => handleDeleteSession(session.sessionId)}
+                                className={cn(
+                                  'p-2 rounded-lg transition-colors',
+                                  isDarkMode
+                                    ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50'
+                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                )}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>

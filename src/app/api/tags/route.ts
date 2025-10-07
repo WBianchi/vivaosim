@@ -28,7 +28,8 @@ const createTagSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   description: z.string().optional(),
   color: z.string().default('#3b82f6'),
-  chatId: z.string().optional()
+  chatId: z.string().optional(),
+  contactIds: z.array(z.string()).optional()
 })
 
 const updateTagSchema = z.object({
@@ -47,7 +48,60 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
     const search = searchParams.get('search')
+
+    // Se foi fornecido um ID, buscar apenas essa tag
+    if (id) {
+      const tag = await prisma.whatsAppTag.findUnique({
+        where: { id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true
+            }
+          },
+          chatTags: {
+            select: {
+              id: true,
+              chatId: true
+            }
+          }
+        }
+      })
+
+      if (!tag) {
+        return NextResponse.json(
+          { error: 'Tag não encontrada' },
+          { status: 404 }
+        )
+      }
+
+      // Verificar se a tag pertence ao usuário
+      if (tag.userId !== user.userId) {
+        return NextResponse.json(
+          { error: 'Sem permissão para acessar esta tag' },
+          { status: 403 }
+        )
+      }
+
+      const formattedTag = {
+        id: tag.id,
+        name: tag.name,
+        description: tag.description,
+        color: tag.color,
+        chatId: tag.chatId,
+        usageCount: tag.chatTags.length,
+        createdAt: tag.createdAt.toISOString(),
+        updatedAt: tag.updatedAt.toISOString(),
+        createdBy: tag.user,
+        chatIds: tag.chatTags.map(ct => ct.chatId)
+      }
+
+      return NextResponse.json({ tag: formattedTag })
+    }
 
     const where: any = {
       userId: user.userId
@@ -72,14 +126,9 @@ export async function GET(request: NextRequest) {
           }
         },
         chatTags: {
-          include: {
-            chat: {
-              select: {
-                id: true,
-                name: true,
-                chatId: true
-              }
-            }
+          select: {
+            id: true,
+            chatId: true
           }
         }
       }
@@ -96,7 +145,7 @@ export async function GET(request: NextRequest) {
       createdAt: tag.createdAt.toISOString(),
       updatedAt: tag.updatedAt.toISOString(),
       createdBy: tag.user,
-      chats: tag.chatTags.map(ct => ct.chat)
+      chatIds: tag.chatTags.map(ct => ct.chatId)
     }))
 
     return NextResponse.json({ tags: formattedTags })
@@ -118,11 +167,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const { contactIds, ...tagData } = body
     const validatedData = createTagSchema.parse(body)
     
     const tag = await prisma.whatsAppTag.create({
       data: {
-        ...validatedData,
+        name: validatedData.name,
+        description: validatedData.description,
+        color: validatedData.color,
+        chatId: validatedData.chatId,
         userId: user.userId
       },
       include: {
@@ -136,17 +189,45 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Se foram fornecidos contactIds, vincular a tag aos chats desses contatos
+    if (contactIds && Array.isArray(contactIds) && contactIds.length > 0) {
+      // Buscar os chats dos contatos
+      const contacts = await prisma.contact.findMany({
+        where: {
+          id: { in: contactIds }
+        },
+        select: {
+          whatsappChatId: true
+        }
+      })
+
+      // Criar as relações entre tag e chats
+      const chatTagsData = contacts
+        .filter(c => c.whatsappChatId)
+        .map(contact => ({
+          tagId: tag.id,
+          chatId: contact.whatsappChatId!
+        }))
+
+      if (chatTagsData.length > 0) {
+        await prisma.whatsAppChatTag.createMany({
+          data: chatTagsData,
+          skipDuplicates: true
+        })
+      }
+    }
+
     const formattedTag = {
       id: tag.id,
       name: tag.name,
       description: tag.description,
       color: tag.color,
       chatId: tag.chatId,
-      usageCount: 0,
+      usageCount: contactIds?.length || 0,
       createdAt: tag.createdAt.toISOString(),
       updatedAt: tag.updatedAt.toISOString(),
       createdBy: tag.user,
-      chats: []
+      chatIds: []
     }
 
     return NextResponse.json({ tag: formattedTag }, { status: 201 })
@@ -175,7 +256,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, ...updateData } = body
+    const { id, contactIds, ...updateData } = body
     
     if (!id) {
       return NextResponse.json(
@@ -205,6 +286,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
     
+    // Atualizar a tag
     const tag = await prisma.whatsAppTag.update({
       where: { id },
       data: validatedData,
@@ -217,18 +299,89 @@ export async function PATCH(request: NextRequest) {
           }
         },
         chatTags: {
-          include: {
-            chat: {
-              select: {
-                id: true,
-                name: true,
-                chatId: true
-              }
-            }
+          select: {
+            id: true,
+            chatId: true
           }
         }
       }
     })
+
+    // Se foram fornecidos contactIds, atualizar os vínculos
+    if (contactIds && Array.isArray(contactIds)) {
+      // Remover vínculos antigos
+      await prisma.whatsAppChatTag.deleteMany({
+        where: { tagId: id }
+      })
+
+      // Criar novos vínculos
+      if (contactIds.length > 0) {
+        const contacts = await prisma.contact.findMany({
+          where: {
+            id: { in: contactIds }
+          },
+          select: {
+            whatsappChatId: true
+          }
+        })
+
+        const chatTagsData = contacts
+          .filter(c => c.whatsappChatId)
+          .map(contact => ({
+            tagId: id,
+            chatId: contact.whatsappChatId!
+          }))
+
+        if (chatTagsData.length > 0) {
+          await prisma.whatsAppChatTag.createMany({
+            data: chatTagsData,
+            skipDuplicates: true
+          })
+        }
+      }
+
+      // Buscar tag atualizada com os novos vínculos
+      const updatedTag = await prisma.whatsAppTag.findUnique({
+        where: { id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true
+            }
+          },
+          chatTags: {
+            select: {
+              id: true,
+              chatId: true
+            }
+          }
+        }
+      })
+
+      if (!updatedTag) {
+        return NextResponse.json(
+          { error: 'Tag não encontrada após atualização' },
+          { status: 404 }
+        )
+      }
+
+      const formattedTag = {
+        id: updatedTag.id,
+        name: updatedTag.name,
+        description: updatedTag.description,
+        color: updatedTag.color,
+        chatId: updatedTag.chatId,
+        usageCount: updatedTag.chatTags.length,
+        createdAt: updatedTag.createdAt.toISOString(),
+        updatedAt: updatedTag.updatedAt.toISOString(),
+        createdBy: updatedTag.user,
+        chatIds: updatedTag.chatTags.map(ct => ct.chatId)
+      }
+
+      return NextResponse.json({ tag: formattedTag })
+    }
 
     const formattedTag = {
       id: tag.id,
@@ -240,7 +393,7 @@ export async function PATCH(request: NextRequest) {
       createdAt: tag.createdAt.toISOString(),
       updatedAt: tag.updatedAt.toISOString(),
       createdBy: tag.user,
-      chats: tag.chatTags.map(ct => ct.chat)
+      chatIds: tag.chatTags.map(ct => ct.chatId)
     }
 
     return NextResponse.json({ tag: formattedTag })

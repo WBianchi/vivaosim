@@ -14,6 +14,7 @@ import {
   Trash2,
   Download
 } from 'lucide-react'
+import { generateQuotePDF } from '@/lib/pdf-generator'
 
 interface QuoteCardProps {
   quote: any
@@ -38,13 +39,22 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case 'draft':
+        return {
+          label: 'Rascunho',
+          icon: AlertCircle,
+          color: 'text-gray-600',
+          bg: 'bg-gray-100',
+          border: 'border-gray-200'
+        }
+      case 'sent':
       case 'pending':
         return {
-          label: 'Pendente',
+          label: 'Enviado',
           icon: Clock,
-          color: 'text-yellow-600',
-          bg: 'bg-yellow-100',
-          border: 'border-yellow-200'
+          color: 'text-blue-600',
+          bg: 'bg-blue-100',
+          border: 'border-blue-200'
         }
       case 'approved':
         return {
@@ -66,13 +76,13 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
         return {
           label: 'Expirado',
           icon: AlertCircle,
-          color: 'text-gray-600',
-          bg: 'bg-gray-100',
-          border: 'border-gray-200'
+          color: 'text-orange-600',
+          bg: 'bg-orange-100',
+          border: 'border-orange-200'
         }
       default:
         return {
-          label: 'Desconhecido',
+          label: 'Rascunho',
           icon: AlertCircle,
           color: 'text-gray-600',
           bg: 'bg-gray-100',
@@ -142,7 +152,6 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
       {/* Valor */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-green-600" />
           <span className="text-lg font-bold text-green-600">
             {formatCurrency(quote.value)}
           </span>
@@ -201,10 +210,10 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('👁️ Visualizar orçamento:', quote.id)
+              onClick()
             }}
             className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded transition-colors"
-            title="Visualizar"
+            title="Visualizar Detalhes"
           >
             <Eye className="w-3 h-3" />
           </motion.button>
@@ -217,7 +226,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
               onEdit?.(quote)
             }}
             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 rounded transition-colors"
-            title="Editar"
+            title="Editar Orçamento"
           >
             <Edit3 className="w-3 h-3" />
           </motion.button>
@@ -227,10 +236,15 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('📥 Download orçamento:', quote.id)
+              try {
+                generateQuotePDF(quote)
+              } catch (error) {
+                console.error('Erro ao gerar PDF:', error)
+                alert('Erro ao gerar PDF do orçamento')
+              }
             }}
             className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 rounded transition-colors"
-            title="Download PDF"
+            title="Baixar PDF"
           >
             <Download className="w-3 h-3" />
           </motion.button>
@@ -240,12 +254,12 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({ quote, index, onClick, onE
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation()
-              if (confirm(`Deseja excluir o orçamento "${quote.title}"?`)) {
+              if (confirm(`Deseja realmente excluir o orçamento "${quote.title}"?`)) {
                 onDelete?.(quote.id)
               }
             }}
             className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded transition-colors"
-            title="Excluir"
+            title="Excluir Orçamento"
           >
             <Trash2 className="w-3 h-3" />
           </motion.button>

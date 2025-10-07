@@ -21,12 +21,14 @@ interface TicketCardProps {
   ticket: any
   index: number
   onClick: () => void
+  onEdit?: (ticket: any) => void
 }
 
 export const TicketCard: React.FC<TicketCardProps> = ({
   ticket,
   index,
-  onClick
+  onClick,
+  onEdit
 }) => {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR')
@@ -105,11 +107,11 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           bg: 'bg-orange-100',
           icon: AlertTriangle
         }
-      case 'medium':
+      case 'normal':
         return {
-          label: 'Média',
-          color: 'text-yellow-600',
-          bg: 'bg-yellow-100',
+          label: 'Normal',
+          color: 'text-blue-600',
+          bg: 'bg-blue-100',
           icon: Clock
         }
       case 'low':
@@ -334,9 +336,11 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation()
-              console.log('✏️ Editar ticket:', ticket.id)
+              if (onEdit) {
+                onEdit(ticket)
+              }
             }}
-            className="px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <Edit3 className="w-3 h-3" />
             Editar

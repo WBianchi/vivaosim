@@ -9,7 +9,8 @@ import {
   DollarSign,
   TrendingUp,
   Users,
-  Clock
+  Clock,
+  Filter
 } from 'lucide-react'
 
 interface QuotesHeaderProps {
@@ -18,6 +19,7 @@ interface QuotesHeaderProps {
   onViewModeChange: (mode: 'grid' | 'table') => void
   searchTerm: string
   onSearchChange: (term: string) => void
+  onToggleFilters: () => void
 }
 
 export const QuotesHeader: React.FC<QuotesHeaderProps> = ({
@@ -25,7 +27,8 @@ export const QuotesHeader: React.FC<QuotesHeaderProps> = ({
   viewMode,
   onViewModeChange,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  onToggleFilters
 }) => {
   return (
     <div className="mb-8">
@@ -82,6 +85,18 @@ export const QuotesHeader: React.FC<QuotesHeaderProps> = ({
               <List className="w-4 h-4" />
             </motion.button>
           </div>
+
+          {/* Botão Toggle Filtros */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onToggleFilters}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors shadow-sm"
+            title="Mostrar/Ocultar Filtros"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </motion.button>
 
           {/* Botão Criar Orçamento */}
           <motion.button

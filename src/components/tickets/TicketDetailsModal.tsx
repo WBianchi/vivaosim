@@ -107,11 +107,11 @@ export const TicketDetailsModal: React.FC<TicketDetailsModalProps> = ({
           bg: 'bg-orange-100',
           icon: AlertTriangle
         }
-      case 'medium':
+      case 'normal':
         return {
-          label: 'Média',
-          color: 'text-yellow-600',
-          bg: 'bg-yellow-100',
+          label: 'Normal',
+          color: 'text-blue-600',
+          bg: 'bg-blue-100',
           icon: Clock
         }
       case 'low':

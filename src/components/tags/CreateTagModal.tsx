@@ -8,31 +8,110 @@ import {
   Save,
   Palette,
   Hash,
-  Eye
+  Eye,
+  Users,
+  Search
 } from 'lucide-react'
 import { getAuthToken, getAuthHeaders } from '@/lib/auth-token'
 
 interface CreateTagModalProps {
   onClose: () => void
   onSave: () => void
+  tag?: any // Se fornecido, o modal estará em modo de edição
 }
 
 export const CreateTagModal: React.FC<CreateTagModalProps> = ({
   onClose,
-  onSave
+  onSave,
+  tag
 }) => {
+  const isEditMode = !!tag
   const [isVisible, setIsVisible] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    color: '#f97316' // orange-500
+    name: tag?.name || '',
+    description: tag?.description || '',
+    color: tag?.color || '#f97316', // orange-500
+    contactIds: [] as string[]
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [contacts, setContacts] = useState<any[]>([])
+  const [contactSearch, setContactSearch] = useState('')
 
   useEffect(() => {
     setIsVisible(true)
+    fetchContacts()
+    if (isEditMode && tag) {
+      fetchTagContacts()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const fetchContacts = async () => {
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const response = await fetch('/api/contacts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setContacts(data.contacts || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contatos:', error)
+    }
+  }
+
+  const fetchTagContacts = async () => {
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      // Buscar os chatIds vinculados à tag
+      const response = await fetch(`/api/tags?id=${tag.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const tagData = data.tag
+        
+        // Pegar os chatIds vinculados
+        const chatIds = tagData.chatIds || []
+        
+        // Buscar contatos para encontrar quais estão vinculados
+        const contactsResponse = await fetch('/api/contacts', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (contactsResponse.ok) {
+          const contactsData = await contactsResponse.json()
+          const allContacts = contactsData.contacts || []
+          
+          // Encontrar IDs dos contatos que têm chatId vinculado
+          const linkedContactIds = allContacts
+            .filter((c: any) => c.whatsappChatId && chatIds.includes(c.whatsappChatId))
+            .map((c: any) => c.id)
+          
+          setFormData(prev => ({
+            ...prev,
+            contactIds: linkedContactIds
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contatos da tag:', error)
+    }
+  }
 
   const handleClose = () => {
     setIsVisible(false)
@@ -53,17 +132,19 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
         return
       }
 
-      const response = await fetch('/api/tags', {
-        method: 'POST',
+      const url = isEditMode ? '/api/tags' : '/api/tags'
+      const method = isEditMode ? 'PATCH' : 'POST'
+      const payload = isEditMode
+        ? { id: tag.id, name: formData.name, description: formData.description, color: formData.color, contactIds: formData.contactIds }
+        : { name: formData.name, description: formData.description, color: formData.color, contactIds: formData.contactIds }
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          color: formData.color
-        })
+        body: JSON.stringify(payload)
       })
 
       if (response.ok) {
@@ -71,11 +152,11 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
         handleClose()
       } else {
         const data = await response.json()
-        setError(data.error || 'Erro ao criar tag')
+        setError(data.error || `Erro ao ${isEditMode ? 'atualizar' : 'criar'} tag`)
       }
     } catch (error) {
-      console.error('Erro ao criar tag:', error)
-      setError('Erro ao criar tag')
+      console.error(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} tag:`, error)
+      setError(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} tag`)
     } finally {
       setLoading(false)
     }
@@ -87,6 +168,20 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
       [key]: value
     }))
   }
+
+  const toggleContact = (contactId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      contactIds: prev.contactIds.includes(contactId)
+        ? prev.contactIds.filter(id => id !== contactId)
+        : [...prev.contactIds, contactId]
+    }))
+  }
+
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+    contact.phone?.includes(contactSearch)
+  )
 
   const colorOptions = [
     { value: '#ef4444', label: 'Vermelho', bg: 'bg-red-500', preview: 'bg-red-100 text-red-700', hex: '#ef4444' },
@@ -130,10 +225,10 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Nova Tag
+                    {isEditMode ? 'Editar Tag' : 'Nova Tag'}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Crie uma tag para organizar seus conteúdos
+                    {isEditMode ? 'Atualize as informações da tag' : 'Crie uma tag para organizar seus conteúdos'}
                   </p>
                 </div>
               </div>
@@ -209,6 +304,72 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                   </div>
                 </div>
 
+                {/* Vincular Contatos */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Vincular Contatos (Opcional)
+                  </label>
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                    {/* Busca de Contatos */}
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          type="text"
+                          placeholder="Buscar contatos..."
+                          value={contactSearch}
+                          onChange={(e) => setContactSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lista de Contatos */}
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredContacts.length > 0 ? (
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {filteredContacts.map((contact) => (
+                            <label
+                              key={contact.id}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.contactIds.includes(contact.id)}
+                                onChange={() => toggleContact(contact.id)}
+                                className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                  {contact.name}
+                                </p>
+                                {contact.phone && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {contact.phone}
+                                  </p>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          {contactSearch ? 'Nenhum contato encontrado' : 'Carregando contatos...'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contador de Selecionados */}
+                    {formData.contactIds.length > 0 && (
+                      <div className="p-2 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-200 dark:border-orange-800">
+                        <p className="text-xs text-orange-700 dark:text-orange-400 text-center">
+                          {formData.contactIds.length} contato{formData.contactIds.length !== 1 ? 's' : ''} selecionado{formData.contactIds.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Preview da Tag */}
                 {formData.name && (
@@ -269,7 +430,7 @@ export const CreateTagModal: React.FC<CreateTagModalProps> = ({
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Criar Tag
+                      {isEditMode ? 'Salvar Alterações' : 'Criar Tag'}
                     </>
                   )}
                 </motion.button>

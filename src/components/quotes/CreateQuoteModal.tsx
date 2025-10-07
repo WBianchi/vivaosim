@@ -18,6 +18,7 @@ import {
 interface CreateQuoteModalProps {
   onClose: () => void
   onSave: () => void
+  quote?: any // Se fornecido, o modal estará em modo de edição
 }
 
 interface QuoteItem {
@@ -28,34 +29,44 @@ interface QuoteItem {
 
 export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
   onClose,
-  onSave
+  onSave,
+  quote
 }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isEditMode = !!quote
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    contactId: '',
-    validUntil: '',
-    discount: 0,
-    chatId: ''
+    title: quote?.title || '',
+    description: quote?.description || '',
+    contactId: quote?.contactId || '',
+    validUntil: quote?.validUntil ? new Date(quote.validUntil).toISOString().slice(0, 10) : '',
+    discount: quote?.discount || 0,
+    chatId: quote?.chatId || ''
   })
-  const [items, setItems] = useState<QuoteItem[]>([
-    { name: '', quantity: 1, price: 0 }
-  ])
+  const [items, setItems] = useState<QuoteItem[]>(
+    quote?.items?.length > 0
+      ? quote.items.map((item: any) => ({
+          name: item.name || item.description || '',
+          quantity: item.quantity || 1,
+          price: item.unitPrice || item.price || 0
+        }))
+      : [{ name: '', quantity: 1, price: 0 }]
+  )
   const [contacts, setContacts] = useState<any[]>([])
 
   useEffect(() => {
     setIsVisible(true)
     
-    // Definir data de validade padrão para 30 dias
-    const expireDate = new Date()
-    expireDate.setDate(expireDate.getDate() + 30)
-    setFormData(prev => ({
-      ...prev,
-      validUntil: expireDate.toISOString().slice(0, 10)
-    }))
+    // Definir data de validade padrão para 30 dias (somente se não estiver editando)
+    if (!isEditMode) {
+      const expireDate = new Date()
+      expireDate.setDate(expireDate.getDate() + 30)
+      setFormData(prev => ({
+        ...prev,
+        validUntil: expireDate.toISOString().slice(0, 10)
+      }))
+    }
 
     // Buscar contatos
     const fetchContacts = async () => {
@@ -104,23 +115,35 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
         .map(item => ({
           name: item.name,
           description: '',
-          quantity: item.quantity,
-          unitPrice: item.price,
-          total: item.quantity * item.price
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.price),
+          total: Number(item.quantity) * Number(item.price)
         }))
 
-      const payload = {
-        title: formData.title,
-        description: formData.description || null,
-        contactId: formData.contactId,
-        validUntil: formData.validUntil ? new Date(formData.validUntil).toISOString() : null,
-        discount: formData.discount || null,
-        chatId: formData.chatId || null,
-        items: quoteItems
-      }
+      const payload = isEditMode
+        ? {
+            id: quote.id,
+            title: formData.title,
+            description: formData.description || null,
+            validUntil: formData.validUntil ? new Date(formData.validUntil).toISOString() : null,
+            discount: formData.discount ? Number(formData.discount) : null,
+            chatId: formData.chatId || null,
+            items: quoteItems
+          }
+        : {
+            title: formData.title,
+            description: formData.description || null,
+            contactId: formData.contactId,
+            validUntil: formData.validUntil ? new Date(formData.validUntil).toISOString() : null,
+            discount: formData.discount ? Number(formData.discount) : null,
+            chatId: formData.chatId || null,
+            items: quoteItems
+          }
+
+      const method = isEditMode ? 'PATCH' : 'POST'
 
       const response = await fetch('/api/quotes', {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
@@ -133,11 +156,11 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
         handleClose()
       } else {
         const data = await response.json()
-        setError(data.error || 'Erro ao criar orçamento')
+        setError(data.error || `Erro ao ${isEditMode ? 'atualizar' : 'criar'} orçamento`)
       }
     } catch (error) {
-      console.error('Erro ao criar orçamento:', error)
-      setError('Erro ao criar orçamento')
+      console.error(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} orçamento:`, error)
+      setError(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} orçamento`)
     } finally {
       setLoading(false)
     }
@@ -205,7 +228,7 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Novo Orçamento
+                    {isEditMode ? 'Editar Orçamento' : 'Novo Orçamento'}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Crie um orçamento detalhado para o cliente
@@ -289,32 +312,34 @@ export const CreateQuoteModal: React.FC<CreateQuoteModalProps> = ({
                   </div>
                 </div>
 
-                {/* Cliente */}
-                <div className="md:col-span-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Cliente
-                  </h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Selecionar Cliente *
-                    </label>
-                    <select
-                      required
-                      value={formData.contactId}
-                      onChange={(e) => updateFormData('contactId', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      <option value="">Selecione um cliente</option>
-                      {contacts.map((contact) => (
-                        <option key={contact.id} value={contact.id}>
-                          {contact.name}
-                        </option>
-                      ))}
-                    </select>
+                {/* Cliente - Somente no modo criação */}
+                {!isEditMode && (
+                  <div className="md:col-span-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      Cliente
+                    </h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Selecionar Cliente *
+                      </label>
+                      <select
+                        required
+                        value={formData.contactId}
+                        onChange={(e) => updateFormData('contactId', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="">Selecione um cliente</option>
+                        {contacts.map((contact) => (
+                          <option key={contact.id} value={contact.id}>
+                            {contact.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Itens do Orçamento */}
                 <div className="md:col-span-2">

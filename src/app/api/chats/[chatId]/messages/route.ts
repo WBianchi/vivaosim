@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import jwt from 'jsonwebtoken'
+import { PrismaClient } from '@prisma/client'
 
+const prisma = new PrismaClient()
 const WAHA_BASE_URL = process.env.WAHA_API_URL || 'http://159.65.34.199:3001'
 const WAHA_API_KEY = process.env.WAHA_API_KEY || 'tappyone-waha-2024-secretkey'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
@@ -24,28 +26,34 @@ async function verifyAuth(request: NextRequest) {
   }
 }
 
-// Buscar sessão ativa (mesma lógica da overview)
-async function findActiveSession() {
+// Buscar sessão ativa VINCULADA ao banco de dados
+async function findActiveSession(userId: string) {
   try {
-    console.log('🔍 Buscando sessões ativas na WAHA...')
+    console.log('🔍 Buscando sessões vinculadas do usuário...')
     
-    const response = await fetch(`${WAHA_BASE_URL}/api/sessions`, {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': WAHA_API_KEY,
+    // Buscar apenas sessões vinculadas ao banco de dados do usuário
+    const dbSessions = await prisma.whatsAppSession.findMany({
+      where: {
+        userId: userId,
+        status: 'WORKING'
+      },
+      orderBy: {
+        updatedAt: 'desc'
       }
     })
     
-    if (!response.ok) {
-      console.error('❌ Erro ao listar sessões WAHA:', response.status)
+    console.log('📋 Sessões vinculadas encontradas:', dbSessions.length)
+    
+    if (dbSessions.length === 0) {
+      console.log('⚠️ Nenhuma sessão vinculada e ativa encontrada')
       return null
     }
     
-    const sessions = await response.json()
-    console.log('📋 Sessões encontradas:', sessions.length)
+    // Usar a primeira sessão WORKING vinculada
+    const session = dbSessions[0]
     
-    // Procurar por sessão WORKING
-    const activeSession = sessions.find((session: any) => session.status === 'WORKING')
+    // Verificar se ainda está WORKING no WAHA
+    const activeSession = { name: session.sessionId, status: 'WORKING' as const }
     
     if (activeSession) {
       console.log('✅ Sessão ativa encontrada:', activeSession.name)
@@ -80,8 +88,8 @@ export async function GET(
 
     console.log('💬 Buscando mensagens - ChatId:', chatId, 'SessionId:', sessionId)
 
-    // Encontrar sessão ativa
-    const session = await findActiveSession()
+    // Encontrar sessão ativa vinculada ao usuário
+    const session = await findActiveSession(user.userId)
     if (!session || session.status !== 'WORKING') {
       return NextResponse.json({
         error: 'WhatsApp session not connected',

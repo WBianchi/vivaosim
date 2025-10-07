@@ -11,6 +11,8 @@ import { CreateTicketModal } from '@/components/tickets/CreateTicketModal'
 export default function TicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingTicket, setEditingTicket] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     status: 'all',
     priority: 'all',
@@ -29,7 +31,14 @@ export default function TicketsPage() {
 
   const handleSaveTicket = () => {
     setShowCreateModal(false)
+    setEditingTicket(null)
     handleRefresh()
+  }
+
+  const handleEditTicket = (ticket: any) => {
+    setEditingTicket(ticket)
+    setShowCreateModal(true)
+    setSelectedTicket(null)
   }
 
   return (
@@ -42,13 +51,16 @@ export default function TicketsPage() {
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          onToggleFilters={() => setShowFilters(!showFilters)}
         />
 
         {/* Filtros */}
-        <TicketsFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        {showFilters && (
+          <TicketsFilters 
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
 
         {/* Lista de Tickets */}
         <TicketsList 
@@ -58,6 +70,7 @@ export default function TicketsPage() {
           viewMode={viewMode}
           onTicketSelect={setSelectedTicket}
           onRefresh={handleRefresh}
+          onEdit={handleEditTicket}
         />
 
         {/* Modal de Detalhes */}
@@ -65,18 +78,19 @@ export default function TicketsPage() {
           <TicketDetailsModal
             ticket={selectedTicket}
             onClose={() => setSelectedTicket(null)}
-            onEdit={() => {
-              console.log('🔄 Editar ticket:', selectedTicket.id)
-              setSelectedTicket(null)
-            }}
+            onEdit={() => handleEditTicket(selectedTicket)}
           />
         )}
 
-        {/* Modal de Criação */}
+        {/* Modal de Criação/Edição */}
         {showCreateModal && (
           <CreateTicketModal
-            onClose={() => setShowCreateModal(false)}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingTicket(null)
+            }}
             onSave={handleSaveTicket}
+            ticket={editingTicket}
           />
         )}
       </div>

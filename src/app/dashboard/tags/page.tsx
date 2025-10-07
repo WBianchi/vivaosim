@@ -7,10 +7,13 @@ import { TagsFilters } from '@/components/tags/TagsFilters'
 import { TagsList } from '@/components/tags/TagsList'
 import { TagDetailsModal } from '@/components/tags/TagDetailsModal'
 import { CreateTagModal } from '@/components/tags/CreateTagModal'
+import { getAuthToken } from '@/lib/auth-token'
 
 export default function TagsPage() {
   const [selectedTag, setSelectedTag] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingTag, setEditingTag] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     category: 'all',
     color: 'all',
@@ -41,13 +44,23 @@ export default function TagsPage() {
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
         />
 
         {/* Filtros */}
-        <TagsFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <TagsFilters 
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+          </motion.div>
+        )}
 
         {/* Lista de Tags */}
         <TagsList 
@@ -56,6 +69,35 @@ export default function TagsPage() {
           searchTerm={searchTerm}
           viewMode={viewMode}
           onTagSelect={setSelectedTag}
+          onTagEdit={(tag) => {
+            setEditingTag(tag)
+            setShowCreateModal(true)
+          }}
+          onTagDelete={async (tag) => {
+            if (!confirm('Tem certeza que deseja excluir esta tag?')) return
+            
+            try {
+              const token = getAuthToken()
+              if (!token) return
+              
+              const response = await fetch(`/api/tags?id=${tag.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              })
+              
+              if (response.ok) {
+                handleRefresh()
+              } else {
+                const data = await response.json()
+                alert(data.error || 'Erro ao excluir tag')
+              }
+            } catch (error) {
+              console.error('Erro ao excluir tag:', error)
+              alert('Erro ao excluir tag')
+            }
+          }}
           onRefresh={handleRefresh}
         />
 
@@ -65,17 +107,30 @@ export default function TagsPage() {
             tag={selectedTag}
             onClose={() => setSelectedTag(null)}
             onEdit={() => {
-              console.log('🔄 Editar tag:', selectedTag.id)
+              setEditingTag(selectedTag)
               setSelectedTag(null)
+              setShowCreateModal(true)
+            }}
+            onDelete={() => {
+              setSelectedTag(null)
+              handleRefresh()
             }}
           />
         )}
 
-        {/* Modal de Criação */}
+        {/* Modal de Criação/Edição */}
         {showCreateModal && (
           <CreateTagModal
-            onClose={() => setShowCreateModal(false)}
-            onSave={handleSaveTag}
+            tag={editingTag}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingTag(null)
+            }}
+            onSave={() => {
+              setShowCreateModal(false)
+              setEditingTag(null)
+              handleRefresh()
+            }}
           />
         )}
       </div>

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import jwt from 'jsonwebtoken'
+import { PrismaClient } from '@prisma/client'
 
+const prisma = new PrismaClient()
 const WAHA_BASE_URL = process.env.WAHA_API_URL || 'http://159.65.34.199:3001'
 const WAHA_API_KEY = process.env.WAHA_API_KEY || 'tappyone-waha-2024-secretkey'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
@@ -58,35 +60,53 @@ interface WAHAChat {
   }
 }
 
-// Buscar sessão ativa (WORKING) na WAHA
-async function findActiveSession() {
+// Buscar sessão ativa (WORKING) VINCULADA ao banco de dados
+async function findActiveSession(userId: string) {
   try {
-    console.log('🔍 Buscando sessões ativas na WAHA...')
+    console.log('🔍 Buscando sessões vinculadas do usuário...')
     
-    const response = await fetch(`${WAHA_BASE_URL}/api/sessions`, {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': WAHA_API_KEY,
+    // Buscar apenas sessões vinculadas ao banco de dados do usuário
+    const dbSessions = await prisma.whatsAppSession.findMany({
+      where: {
+        userId: userId,
+        status: 'WORKING'
+      },
+      orderBy: {
+        updatedAt: 'desc'
       }
     })
     
-    if (!response.ok) {
-      console.error('❌ Erro ao listar sessões WAHA:', response.status)
+    console.log('📋 Sessões vinculadas encontradas:', dbSessions.length)
+    
+    if (dbSessions.length === 0) {
+      console.log('⚠️ Nenhuma sessão vinculada e ativa encontrada')
       return null
     }
     
-    const sessions = await response.json()
-    console.log('📋 Sessões encontradas:', sessions.length)
+    // Usar a primeira sessão WORKING vinculada
+    const session = dbSessions[0]
     
-    // Procurar por sessão WORKING
-    const activeSession = sessions.find((session: any) => session.status === 'WORKING')
-    
-    if (activeSession) {
-      console.log('✅ Sessão ativa encontrada:', activeSession.name, 'Status:', activeSession.status)
-      return activeSession
+    // Verificar se ainda está WORKING no WAHA
+    try {
+      const wahaResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/${session.sessionId}`, {
+        method: 'GET',
+        headers: {
+          'X-Api-Key': WAHA_API_KEY,
+        }
+      })
+      
+      if (wahaResponse.ok) {
+        const wahaSession = await wahaResponse.json()
+        if (wahaSession.status === 'WORKING') {
+          console.log('✅ Sessão ativa encontrada:', session.sessionId, 'Status: WORKING')
+          return { name: session.sessionId, status: 'WORKING' }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Erro ao verificar status no WAHA:', err)
     }
     
-    console.log('⚠️ Nenhuma sessão WORKING encontrada')
+    console.log('⚠️ Nenhuma sessão WORKING vinculada encontrada')
     return null
     
   } catch (error) {
@@ -168,8 +188,8 @@ export async function GET(request: NextRequest) {
 
     console.log('📱 Buscando chats overview - SessionId solicitado:', sessionId)
 
-    // Primeiro tentar encontrar qualquer sessão ativa
-    let session = await findActiveSession()
+    // Primeiro tentar encontrar sessão ativa vinculada ao usuário
+    let session = await findActiveSession(user.userId)
     let finalSessionId = sessionId
     
     if (session) {

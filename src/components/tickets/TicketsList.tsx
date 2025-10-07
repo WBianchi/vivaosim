@@ -13,6 +13,7 @@ interface TicketsListProps {
   viewMode: 'grid' | 'table'
   onTicketSelect: (ticket: any) => void
   onRefresh?: () => void
+  onEdit?: (ticket: any) => void
 }
 
 // Removido mock data - agora busca da API
@@ -214,7 +215,8 @@ export const TicketsList: React.FC<TicketsListProps> = ({
   searchTerm,
   viewMode,
   onTicketSelect,
-  onRefresh
+  onRefresh,
+  onEdit
 }) => {
   const [tickets, setTickets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -310,6 +312,7 @@ export const TicketsList: React.FC<TicketsListProps> = ({
                 ticket={ticket}
                 index={index}
                 onClick={() => onTicketSelect(ticket)}
+                onEdit={onEdit}
               />
             ))}
           </AnimatePresence>

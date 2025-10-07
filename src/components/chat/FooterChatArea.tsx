@@ -46,6 +46,7 @@ import { CreateContractSheet } from './bottom-sheets/CreateContractSheet'
 import { QuoteSidebar } from './sidebars/QuoteSidebar'
 import { TagSidebar } from './sidebars/TagSidebar'
 import { ContractSidebar } from './sidebars/ContractSidebar'
+import { ClientProfileSidebar } from './ClientProfileSidebar'
 import { ChangeQueueSheet } from './bottom-sheets/ChangeQueueSheet'
 import { AssignAgentSheet } from './bottom-sheets/AssignAgentSheet'
 import { ChangeStatusSheet } from './bottom-sheets/ChangeStatusSheet'
@@ -82,6 +83,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
   const [showQuoteSidebar, setShowQuoteSidebar] = useState(false)
   const [showTagSidebar, setShowTagSidebar] = useState(false)
   const [showContractSidebar, setShowContractSidebar] = useState(false)
+  const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const [isAgentActive, setIsAgentActive] = useState<boolean>(true) // Status do agente
   const [aiMode, setAiMode] = useState<'manual' | 'assistant' | 'auto'>('manual') // Modo da IA
   const [showAgentModal, setShowAgentModal] = useState(false)
@@ -259,9 +261,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         handleCreateClient('') // Força abertura do formulário
         break
       case 'edit-profile':
-        console.log('✏️ Abrindo edição de perfil do cliente')
-        setBottomSheetType('edit-client')
-        setShowBottomSheet(true)
+        console.log('✏️ Abrindo sidebar de perfil do cliente')
+        setShowProfileSidebar(true)
         break
       case 'tag':
         console.log('🏷️ Abrindo sidebar para gerenciar tags')
@@ -1953,6 +1954,15 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         chatId={chat.id}
         contactId={clientData?.id}
         contactName={clientData?.name || chat.name}
+      />
+
+      {/* Client Profile Sidebar */}
+      <ClientProfileSidebar
+        isOpen={showProfileSidebar}
+        onClose={() => setShowProfileSidebar(false)}
+        chatId={chat.id}
+        contactName={chat.name}
+        contactPhone={chat.id}
       />
 
       {/* Agent Selection Modal */}

@@ -12,8 +12,8 @@ import { CreateQuoteModal } from '@/components/quotes/CreateQuoteModal'
 export default function OrcamentosPage() {
   const [selectedQuote, setSelectedQuote] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
   const [editingQuote, setEditingQuote] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [filters, setFilters] = useState({
     status: 'all',
@@ -28,7 +28,7 @@ export default function OrcamentosPage() {
 
   const handleEdit = (quote: any) => {
     setEditingQuote(quote)
-    setShowEditModal(true)
+    setShowCreateModal(true)
   }
 
   const handleDelete = () => {
@@ -40,21 +40,27 @@ export default function OrcamentosPage() {
       <div className="w-full p-8">
         {/* Header */}
         <QuotesHeader 
-          onCreateQuote={() => setShowCreateModal(true)}
+          onCreateQuote={() => {
+            setEditingQuote(null)
+            setShowCreateModal(true)
+          }}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          onToggleFilters={() => setShowFilters(!showFilters)}
         />
 
         {/* Estatísticas */}
         <QuotesStats refreshTrigger={refreshKey} />
 
         {/* Filtros */}
-        <QuotesFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        {showFilters && (
+          <QuotesFilters 
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        )}
 
         {/* Lista de Orçamentos */}
         <QuotesList 
@@ -72,19 +78,21 @@ export default function OrcamentosPage() {
           <QuoteDetailsModal
             quote={selectedQuote}
             onClose={() => setSelectedQuote(null)}
-            onEdit={() => {
-              console.log('🔄 Editar orçamento:', selectedQuote.id)
-              setSelectedQuote(null)
-            }}
+            onEdit={() => handleEdit(selectedQuote)}
           />
         )}
 
-        {/* Modal de Criação */}
+        {/* Modal de Criação/Edição */}
         {showCreateModal && (
           <CreateQuoteModal
-            onClose={() => setShowCreateModal(false)}
+            quote={editingQuote}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingQuote(null)
+            }}
             onSave={() => {
               setShowCreateModal(false)
+              setEditingQuote(null)
               setRefreshKey(prev => prev + 1)
             }}
           />
