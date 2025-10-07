@@ -26,31 +26,39 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
   const fetchSites = async () => {
     setLoading(true)
     try {
-      const token = getAuthToken()
-      if (!token) {
-        console.log('⚠️ AllSitesSidebar: Token não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const url = chatId 
-        ? `/api/sites?chatId=${chatId}`
-        : '/api/sites'
-
       console.log(`🔍 AllSitesSidebar: Buscando sites... (chatId: ${chatId || 'todos'})`)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await fetch('/api/sites/clientes')
       const data = await response.json()
       
       console.log('🌐 AllSitesSidebar: Resposta da API:', data)
       
-      if (data.sites) {
-        setSites(data.sites)
-        console.log(`✅ AllSitesSidebar: ${data.sites.length} sites carregados`)
+      if (data.success && data.sites) {
+        // Se tiver chatId, buscar o contato primeiro
+        let filteredSites = data.sites
+        
+        if (chatId) {
+          console.log('🔍 Buscando contato pelo chatId:', chatId)
+          
+          // Buscar o contato pelo whatsappChatId
+          const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+          const contactData = await contactResponse.json()
+          
+          console.log('📱 Contato encontrado:', contactData)
+          
+          if (contactData.exists && contactData.contact) {
+            const contactId = contactData.contact.id
+            console.log('🎯 Filtrando sites pelo contactId:', contactId)
+            
+            filteredSites = data.sites.filter((site: any) => site.contactId === contactId)
+            console.log(`✅ ${filteredSites.length} sites encontrados para este contato`)
+          } else {
+            console.log('⚠️ Contato não encontrado, mostrando todos os sites')
+          }
+        }
+        
+        setSites(filteredSites)
+        console.log(`✅ AllSitesSidebar: ${filteredSites.length} sites carregados`)
       }
     } catch (error) {
       console.error('❌ AllSitesSidebar: Erro ao buscar sites:', error)
@@ -60,7 +68,9 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
   }
 
   const filteredSites = sites.filter(site => 
+    site.nomeEvento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     site.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    site.subdominio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     site.domain?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -159,28 +169,28 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">
-                          {site.name || 'Site do Evento'}
+                          {site.nomeEvento || site.name || 'Site do Evento'}
                         </h3>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(site.status)}`}>
-                            {getStatusLabel(site.status)}
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(site.statusPublicacao || site.status)}`}>
+                            {getStatusLabel(site.statusPublicacao || site.status)}
                           </span>
                         </div>
                       </div>
                     </div>
                     
                     {/* Domain */}
-                    {site.domain && (
+                    {(site.subdominio || site.domain) && (
                       <div className="mb-3 p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2">
                           <Globe className="w-4 h-4 text-blue-500" />
                           <a 
-                            href={`https://${site.domain}`}
+                            href={`https://${site.subdominio || site.domain}.vivaosim.com.br`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1"
                           >
-                            {site.domain}
+                            {site.subdominio || site.domain}
                           </a>
                           <ExternalLink className="w-3 h-3 text-gray-400" />
                         </div>
@@ -188,43 +198,43 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
                     )}
 
                     {/* Custom Domain */}
-                    {site.customDomain && (
+                    {site.dominioCustom && (
                       <div className="mb-3 p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2">
                           <Globe className="w-4 h-4 text-purple-500" />
                           <span className="text-xs text-gray-500 dark:text-gray-400">Domínio próprio:</span>
                           <a 
-                            href={`https://${site.customDomain}`}
+                            href={`https://${site.dominioCustom}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-purple-600 dark:text-purple-400 hover:underline truncate flex-1"
                           >
-                            {site.customDomain}
+                            {site.dominioCustom}
                           </a>
                         </div>
                       </div>
                     )}
 
                     {/* Theme Colors */}
-                    {(site.primaryColor || site.secondaryColor) && (
+                    {(site.corPrimaria || site.corSecundaria) && (
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-xs text-gray-500 dark:text-gray-400">Cores:</span>
-                        {site.primaryColor && (
+                        {site.corPrimaria && (
                           <div className="flex items-center gap-1">
                             <div 
                               className="w-6 h-6 rounded border-2 border-white dark:border-gray-700 shadow"
-                              style={{ backgroundColor: site.primaryColor }}
+                              style={{ backgroundColor: site.corPrimaria }}
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">{site.primaryColor}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{site.corPrimaria}</span>
                           </div>
                         )}
-                        {site.secondaryColor && (
+                        {site.corSecundaria && (
                           <div className="flex items-center gap-1">
                             <div 
                               className="w-6 h-6 rounded border-2 border-white dark:border-gray-700 shadow"
-                              style={{ backgroundColor: site.secondaryColor }}
+                              style={{ backgroundColor: site.corSecundaria }}
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">{site.secondaryColor}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{site.corSecundaria}</span>
                           </div>
                         )}
                       </div>
@@ -236,7 +246,7 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors"
-                        onClick={() => window.open(`https://${site.domain || site.customDomain}`, '_blank')}
+                        onClick={() => window.open(`https://${site.subdominio || site.domain}.vivaosim.com.br`, '_blank')}
                       >
                         <Eye className="w-3.5 h-3.5" />
                         Visualizar

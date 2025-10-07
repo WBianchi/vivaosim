@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, User, Tag, Ticket, Calendar, FileText, FileSignature, 
   DollarSign, Globe, Users, Gift, ShoppingCart, StickyNote,
-  Save, Mail, Phone, Building, MapPin, Edit2, Key, RefreshCw, Send
+  Save, Mail, Phone, Building, MapPin, Edit2, Key, RefreshCw, Send, CheckCircle, Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +29,8 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('perfil')
   const [clientData, setClientData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [formData, setFormData] = useState({
     name: contactName || '',
     email: '',
@@ -72,7 +74,13 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Carregar dados em background sem bloquear a UI
+      setLoading(true)
       fetchOrCreateClient()
+    } else {
+      // Reset ao fechar
+      setLoading(true)
+      setSaved(false)
     }
   }, [isOpen, chatId])
 
@@ -237,6 +245,8 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
         return
       }
 
+      setSaving(true)
+      setSaved(false)
       console.log('💾 Salvando dados do cliente...')
 
       const response = await fetch(`/api/clients/${clientData.id}`, {
@@ -259,9 +269,16 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
         await sendCredentialsByWhatsApp()
       }
 
+      // Mostrar feedback de sucesso
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+
       await fetchOrCreateClient()
     } catch (error) {
       console.error('❌ Erro ao salvar cliente:', error)
+      alert('Erro ao salvar dados do cliente')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -369,10 +386,32 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  disabled={saving || saved}
+                  className={cn(
+                    "flex-1 px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2",
+                    saved 
+                      ? "bg-green-500 text-white cursor-default"
+                      : saving
+                      ? "bg-blue-400 text-white cursor-wait"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                  )}
                 >
-                  <Save className="w-4 h-4" />
-                  Salvar Alterações
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : saved ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Salvo com sucesso!
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Salvar Alterações
+                    </>
+                  )}
                 </button>
               </div>
             </div>

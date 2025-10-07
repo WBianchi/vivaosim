@@ -16,6 +16,8 @@ export function AllExpensesSidebar({ isOpen, onClose, chatId }: AllExpensesSideb
   const [loading, setLoading] = useState(false)
   const [expenses, setExpenses] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<any>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -26,36 +28,69 @@ export function AllExpensesSidebar({ isOpen, onClose, chatId }: AllExpensesSideb
   const fetchExpenses = async () => {
     setLoading(true)
     try {
-      const token = getAuthToken()
-      if (!token) {
-        console.log('⚠️ AllExpensesSidebar: Token não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const url = chatId 
-        ? `/api/custos?chatId=${chatId}`
-        : '/api/custos'
-
-      console.log(`🔍 AllExpensesSidebar: Buscando custos... (chatId: ${chatId || 'todos'})`)
+      console.log(`🔍 AllExpensesSidebar: Buscando despesas... (chatId: ${chatId || 'todos'})`)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // Se tiver chatId, buscar o site do contato primeiro
+      if (chatId) {
+        // Buscar sites do contato
+        const sitesResponse = await fetch('/api/sites/clientes')
+        const sitesData = await sitesResponse.json()
+        
+        if (sitesData.success && sitesData.sites) {
+          // Buscar o contato
+          const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+          const contactData = await contactResponse.json()
+          
+          if (contactData.exists && contactData.contact) {
+            const contactId = contactData.contact.id
+            const site = sitesData.sites.find((s: any) => s.contactId === contactId)
+            
+            if (site) {
+              console.log('🎯 Site encontrado:', site.id)
+              // Buscar despesas do site
+              const response = await fetch(`/api/sites/clientes/${site.id}/custos`)
+              const data = await response.json()
+              
+              console.log('💰 AllExpensesSidebar: Resposta da API:', data)
+              
+              if (data.success && data.custos) {
+                setExpenses(data.custos)
+                console.log(`✅ AllExpensesSidebar: ${data.custos.length} despesas carregadas`)
+              }
+            } else {
+              console.log('⚠️ Site não encontrado para este contato')
+            }
+          }
         }
-      })
-      const data = await response.json()
-      
-      console.log('💰 AllExpensesSidebar: Resposta da API:', data)
-      
-      if (data.custos) {
-        setExpenses(data.custos)
-        console.log(`✅ AllExpensesSidebar: ${data.custos.length} custos carregados`)
+      } else {
+        // Buscar todas as despesas
+        const response = await fetch('/api/expenses')
+        const data = await response.json()
+        
+        if (data.expenses) {
+          setExpenses(data.expenses)
+        }
       }
     } catch (error) {
-      console.error('❌ AllExpensesSidebar: Erro ao buscar custos:', error)
+      console.error('❌ AllExpensesSidebar: Erro ao buscar despesas:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir esta despesa?')) return
+    
+    try {
+      const response = await fetch(`/api/expenses/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        fetchExpenses()
+      }
+    } catch (error) {
+      console.error('Erro ao deletar despesa:', error)
     }
   }
 

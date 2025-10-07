@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -11,9 +12,51 @@ export async function PATCH(
   try {
     const { id } = params
     const body = await request.json()
-    const { name, email, phone, company, type, status, priority, source, address, documents, tags, notes } = body
+    const { name, email, phone, company, type, status, priority, source, address, documents, tags, notes, password } = body
 
-    console.log('📝 Atualizando cliente no modelo Contact:', id, { name, email })
+    console.log('📝 Atualizando cliente no modelo Contact:', id, { name, email, hasPassword: !!password })
+
+    // Se tem senha E email, criar/atualizar User
+    let user = null
+    if (password && email) {
+      console.log('🔐 Processando senha para usuário...')
+      
+      // Verificar se já existe um User com esse email
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      })
+
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      if (existingUser) {
+        // Atualizar senha do usuário existente
+        user = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            password: hashedPassword,
+            name: name || existingUser.name,
+            phone: phone || existingUser.phone,
+            status: 'ATIVO',
+            role: 'CLIENTE'
+          }
+        })
+        console.log('✅ User atualizado com nova senha:', user.email)
+      } else {
+        // Criar novo User
+        user = await prisma.user.create({
+          data: {
+            name: name || 'Cliente',
+            email: email,
+            password: hashedPassword,
+            phone: phone || undefined,
+            role: 'CLIENTE',
+            status: 'ATIVO',
+            emailVerified: new Date() // Auto-verificar email
+          }
+        })
+        console.log('✅ Novo User criado:', user.email)
+      }
+    }
 
     // Atualizar contato no modelo Contact
     const contact = await prisma.contact.update({
@@ -29,11 +72,12 @@ export async function PATCH(
         zipCode: address?.zipCode || undefined,
         document: documents?.cpf || undefined,
         notes: notes || undefined,
-        // status e priority podem ser atualizados se necessário
+        // Vincular ao User se foi criado
+        userId: user?.id || undefined
       }
     })
 
-    console.log('✅ Cliente atualizado:', contact.name, 'Email:', contact.email)
+    console.log('✅ Cliente atualizado:', contact.name, 'Email:', contact.email, 'UserId:', contact.userId)
 
     return NextResponse.json({
       id: contact.id,

@@ -26,31 +26,57 @@ export function AllGiftSalesSidebar({ isOpen, onClose, chatId }: AllGiftSalesSid
   const fetchSales = async () => {
     setLoading(true)
     try {
-      const token = getAuthToken()
-      if (!token) {
-        console.log('⚠️ AllGiftSalesSidebar: Token não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const url = chatId 
-        ? `/api/recebimentos?chatId=${chatId}`
-        : '/api/recebimentos'
-
       console.log(`🔍 AllGiftSalesSidebar: Buscando vendas... (chatId: ${chatId || 'todos'})`)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // Se tiver chatId, buscar o site do contato primeiro
+      if (chatId) {
+        // Buscar sites do contato
+        const sitesResponse = await fetch('/api/sites/clientes')
+        const sitesData = await sitesResponse.json()
+        
+        if (sitesData.success && sitesData.sites) {
+          // Buscar o contato
+          const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+          const contactData = await contactResponse.json()
+          
+          if (contactData.exists && contactData.contact) {
+            const contactId = contactData.contact.id
+            const site = sitesData.sites.find((s: any) => s.contactId === contactId)
+            
+            if (site) {
+              console.log('🎯 Site encontrado:', site.id)
+              // Buscar recebimentos do site
+              const response = await fetch(`/api/sites/clientes/${site.id}/recebimentos`)
+              const data = await response.json()
+              
+              console.log('🛒 AllGiftSalesSidebar: Resposta da API:', data)
+              
+              if (data.success && data.recebimentos) {
+                setSales(data.recebimentos.map((r: any) => ({
+                  id: r.id,
+                  giftName: r.produto?.nome || 'Presente',
+                  description: r.produto?.descricao,
+                  amount: r.valor,
+                  status: r.statusPagamento === 'PAGO' ? 'paid' : 'pending',
+                  paymentMethod: r.metodoPagamento,
+                  buyerName: r.nomeComprador,
+                  createdAt: r.createdAt
+                })))
+                console.log(`✅ AllGiftSalesSidebar: ${data.recebimentos.length} vendas carregadas`)
+              }
+            } else {
+              console.log('⚠️ Site não encontrado para este contato')
+            }
+          }
         }
-      })
-      const data = await response.json()
-      
-      console.log('🛒 AllGiftSalesSidebar: Resposta da API:', data)
-      
-      if (data.recebimentos) {
-        setSales(data.recebimentos)
-        console.log(`✅ AllGiftSalesSidebar: ${data.recebimentos.length} vendas carregadas`)
+      } else {
+        // Buscar todas as vendas
+        const response = await fetch('/api/recebimentos')
+        const data = await response.json()
+        
+        if (data.recebimentos) {
+          setSales(data.recebimentos)
+        }
       }
     } catch (error) {
       console.error('❌ AllGiftSalesSidebar: Erro ao buscar vendas:', error)
@@ -176,11 +202,87 @@ export function AllGiftSalesSidebar({ isOpen, onClose, chatId }: AllGiftSalesSid
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
               </div>
+            ) : filteredSales.length === 0 && !searchTerm ? (
+              // Fallback com exemplo quando não tem vendas
+              <div className="space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300"
+                >
+                  {/* Foto do Produto */}
+                  <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20 flex items-center justify-center">
+                    <ShoppingCart className="w-16 h-16 text-emerald-300 dark:text-emerald-700" />
+                    <div className="absolute top-3 right-3">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold shadow-lg bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        Pendente
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    {/* Título */}
+                    <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2">
+                      Kit Churrasco Premium
+                    </h3>
+                    
+                    {/* Descrição */}
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                      Kit completo com espetos, pinças e tábua de madeira nobre. Perfeito para churrascos em família.
+                    </p>
+                    
+                    {/* Preço Total */}
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Preço Total</span>
+                      <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                        R$ 250,00
+                      </span>
+                    </div>
+                    
+                    {/* Forma de Pagamento */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Forma de Pagamento</span>
+                      <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium">
+                        PIX
+                      </span>
+                    </div>
+                    
+                    {/* Status do Pagamento */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Status do Pagamento</span>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          Aguardando Pagamento
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Comprador e Data */}
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5" />
+                        <span>João Silva</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{new Date().toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                <div className="text-center py-6">
+                  <p className="text-gray-400 dark:text-gray-500 text-xs italic">
+                    ⬆️ Exemplo de como as vendas aparecerão
+                  </p>
+                </div>
+              </div>
             ) : filteredSales.length === 0 ? (
               <div className="text-center py-12">
                 <ShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  {searchTerm ? 'Nenhuma venda encontrada' : 'Nenhuma venda registrada'}
+                  Nenhuma venda encontrada
                 </p>
               </div>
             ) : (
@@ -190,58 +292,79 @@ export function AllGiftSalesSidebar({ isOpen, onClose, chatId }: AllGiftSalesSid
                     key={sale.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
-                          {sale.giftName || 'Presente'}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(sale.status)}`}>
+                    {/* Foto do Produto */}
+                    {sale.giftImage && (
+                      <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20">
+                        <img 
+                          src={sale.giftImage} 
+                          alt={sale.giftName}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-3 right-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg ${getStatusColor(sale.status)}`}>
                             {getStatusLabel(sale.status)}
                           </span>
-                          {sale.paymentMethod && (
-                            <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
-                              {getPaymentMethodLabel(sale.paymentMethod)}
-                            </span>
-                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                          R$ {parseFloat(sale.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </div>
-                      </div>
-                    </div>
+                    )}
                     
-                    <div className="space-y-2">
-                      {sale.buyerName && (
-                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                          <User className="w-3.5 h-3.5" />
-                          <span>{sale.buyerName}</span>
+                    <div className="p-4">
+                      {/* Título */}
+                      <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2">
+                        {sale.giftName || 'Presente'}
+                      </h3>
+                      
+                      {/* Descrição */}
+                      {sale.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                          {sale.description}
+                        </p>
+                      )}
+                      
+                      {/* Preço Total */}
+                      <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Preço Total</span>
+                        <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                          R$ {parseFloat(sale.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      
+                      {/* Forma de Pagamento */}
+                      {sale.paymentMethod && (
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">Forma de Pagamento</span>
+                          <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium">
+                            {getPaymentMethodLabel(sale.paymentMethod)}
+                          </span>
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <div className="flex items-center gap-1">
+                      {/* Status do Pagamento */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Status do Pagamento</span>
+                        <div className="flex items-center gap-2">
+                          {sale.status === 'paid' && <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />}
+                          {sale.status === 'pending' && <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />}
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {getStatusLabel(sale.status)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Comprador e Data */}
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        {sale.buyerName && (
+                          <div className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5" />
+                            <span>{sale.buyerName}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" />
                           <span>{new Date(sale.createdAt).toLocaleDateString('pt-BR')}</span>
                         </div>
-                        
-                        {sale.status === 'paid' && (
-                          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span>Confirmado</span>
-                          </div>
-                        )}
-                        
-                        {sale.status === 'pending' && (
-                          <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>Aguardando</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </motion.div>

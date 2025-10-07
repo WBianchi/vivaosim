@@ -4,14 +4,14 @@ import { useState } from 'react'
 import { KanbanBoardList } from '@/components/kanban/KanbanBoardList'
 import { CreateBoardModal } from '@/components/kanban/boards/CreateBoardModal'
 import { KanbanHeader } from '@/components/kanban/KanbanHeader'
-import { KanbanBottomSheets } from '@/components/kanban/KanbanBottomSheets'
+import { KanbanSidebars } from '@/components/kanban/KanbanSidebars'
 import { useKanbanActions } from '@/hooks/useKanbanActions'
 
 export default function KanbanPage() {
   const [showCreateBoard, setShowCreateBoard] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   
-  // Hook para gerenciar ações do Kanban e bottom-sheets
+  // Hook para gerenciar ações do Kanban e sidebars
   const kanbanActions = useKanbanActions()
 
   const handleBoardCreated = () => {
@@ -35,13 +35,13 @@ export default function KanbanPage() {
           />
         )}
 
-        {/* Bottom Sheets Integrados */}
-        <KanbanBottomSheets
-          bottomSheetType={kanbanActions.bottomSheetType}
+        {/* Sidebars Integradas */}
+        <KanbanSidebars
+          sidebarType={kanbanActions.sidebarType}
           selectedClient={kanbanActions.selectedClient}
           selectedItem={kanbanActions.selectedItem}
           selectedItemType={kanbanActions.selectedItemType}
-          onClose={kanbanActions.closeBottomSheet}
+          onClose={kanbanActions.closeSidebar}
         />
       </div>
     </div>

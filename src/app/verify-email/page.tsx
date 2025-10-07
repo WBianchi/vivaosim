@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Mail, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
@@ -8,7 +8,7 @@ import { useTheme } from '@/contexts/ThemeProvider'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSearchParams } from 'next/navigation'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const { isDarkMode } = useTheme()
   const { user } = useAuth()
   const searchParams = useSearchParams()
@@ -267,5 +267,13 @@ export default function VerifyEmailPage() {
         </motion.p>
       </motion.div>
     </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }

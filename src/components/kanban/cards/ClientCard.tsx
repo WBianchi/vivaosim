@@ -292,96 +292,124 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 pt-3">
         {/* Linha de ações inline */}
         <div className="flex items-center justify-between gap-1 mb-3">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onManageTags?.(client)
-            }}
-            className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/10 text-orange-500 dark:text-orange-400 rounded-lg transition-all"
-            title="Tags"
-          >
-            <Tag className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onManageTags?.(client)
+              }}
+              className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/10 text-orange-500 dark:text-orange-400 rounded-lg transition-all"
+            >
+              <Tag className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Tags
+            </div>
+          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateTicket?.(client)
-            }}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
-            title="Tickets"
-          >
-            <Ticket className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCreateTicket?.(client)
+              }}
+              className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
+            >
+              <Ticket className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Tickets
+            </div>
+          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateSchedule?.(client)
-            }}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
-            title="Agendamentos"
-          >
-            <Calendar className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCreateSchedule?.(client)
+              }}
+              className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
+            >
+              <Calendar className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Agendamentos
+            </div>
+          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateQuote?.(client)
-            }}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
-            title="Orçamentos"
-          >
-            <DollarSign className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCreateQuote?.(client)
+              }}
+              className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
+            >
+              <DollarSign className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Orçamentos
+            </div>
+          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateContract?.(client)
-            }}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
-            title="Contratos"
-          >
-            <FileSignature className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCreateContract?.(client)
+              }}
+              className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
+            >
+              <FileSignature className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Contratos
+            </div>
+          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onEditClient?.(client)
-            }}
-            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
-            title="Editar"
-          >
-            <Edit3 className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditClient?.(client)
+              }}
+              className="p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg transition-all"
+            >
+              <Edit3 className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Editar
+            </div>
+          </div>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onDeleteClient?.(client)
-            }}
-            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-500 dark:text-red-400 rounded-lg transition-all"
-            title="Excluir"
-          >
-            <Trash2 className="w-4 h-4" />
-          </motion.button>
+          <div className="relative group">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeleteClient?.(client)
+              }}
+              className="p-2 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-500 dark:text-red-400 rounded-lg transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+            </motion.button>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              Excluir
+            </div>
+          </div>
         </div>
 
         {/* Indicador de tempo */}
@@ -396,8 +424,8 @@ export const ClientCard: React.FC<ClientCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       </motion.div>
 
-      {/* Tooltip com listagem detalhada */}
-      <AnimatePresence>
+      {/* Tooltip com listagem detalhada - DESABILITADO */}
+      {/* <AnimatePresence>
         {showTooltip && (
           <ClientCardTooltip
             client={client}
@@ -406,7 +434,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             onViewItem={handleViewItem}
           />
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
     </div>
   )
 }

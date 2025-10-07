@@ -16,6 +16,10 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
   client
 }) => {
   const [isVisible, setIsVisible] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [contacts, setContacts] = useState<any[]>([])
+  const [showContactList, setShowContactList] = useState(false)
+  const [loadingContacts, setLoadingContacts] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -119,6 +123,58 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
     handleClose()
   }
 
+  const searchContacts = async (term: string) => {
+    if (term.length < 2) {
+      setContacts([])
+      setShowContactList(false)
+      return
+    }
+
+    setLoadingContacts(true)
+    try {
+      const response = await fetch(`/api/contacts?search=${encodeURIComponent(term)}&limit=10`)
+      const data = await response.json()
+      
+      if (data.contacts) {
+        setContacts(data.contacts)
+        setShowContactList(true)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contatos:', error)
+    } finally {
+      setLoadingContacts(false)
+    }
+  }
+
+  const handleContactSelect = (contact: any) => {
+    setFormData({
+      name: contact.name || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      company: contact.company || '',
+      type: 'individual',
+      status: contact.status || 'active',
+      priority: 'medium',
+      source: contact.source || 'website',
+      attendant: '',
+      avatar: contact.avatar || '',
+      address: {
+        street: contact.address || '',
+        city: contact.city || '',
+        state: contact.state || '',
+        zipCode: contact.zipCode || ''
+      },
+      documents: {
+        cpf: contact.document || '',
+        cnpj: ''
+      },
+      tags: '',
+      notes: contact.notes || ''
+    })
+    setSearchTerm(contact.name)
+    setShowContactList(false)
+  }
+
   const getAttendantName = (attendantId: string) => {
     const attendants: { [key: string]: string } = {
       'ana-silva': 'Ana Silva',
@@ -173,6 +229,57 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </motion.button>
             </div>
+
+            {/* Campo de Busca de Contatos */}
+            {!client && (
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  🔍 Buscar Contato Existente
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value)
+                      searchContacts(e.target.value)
+                    }}
+                    placeholder="Digite o nome, email ou telefone..."
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  
+                  {loadingContacts && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                    </div>
+                  )}
+
+                  {/* Lista de Contatos */}
+                  {showContactList && contacts.length > 0 && (
+                    <div className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                      {contacts.map((contact) => (
+                        <button
+                          key={contact.id}
+                          type="button"
+                          onClick={() => handleContactSelect(contact)}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">{contact.name}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {contact.email && <span>{contact.email}</span>}
+                            {contact.email && contact.phone && <span className="mx-2">•</span>}
+                            {contact.phone && <span>{contact.phone}</span>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  💡 Digite para buscar um contato existente ou preencha manualmente abaixo
+                </p>
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-6">

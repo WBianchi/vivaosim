@@ -84,6 +84,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
   const [showTagSidebar, setShowTagSidebar] = useState(false)
   const [showContractSidebar, setShowContractSidebar] = useState(false)
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
+  const [showSalesModal, setShowSalesModal] = useState(false)
   const [isAgentActive, setIsAgentActive] = useState<boolean>(true) // Status do agente
   const [aiMode, setAiMode] = useState<'manual' | 'assistant' | 'auto'>('manual') // Modo da IA
   const [showAgentModal, setShowAgentModal] = useState(false)
@@ -299,10 +300,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         setShowQuoteSidebar(true)
         break
       case 'schedule':
-      case 'schedule-meeting':
-        console.log('📅 Abrindo bottom sheet para agendar')
-        setBottomSheetType('create-schedule')
-        setShowBottomSheet(true)
+        console.log('📅 Abrindo sidebar de agendamentos')
+        onSidebarToggle?.('schedule')
         break
       case 'create-contract':
         console.log('📋 Abrindo sidebar para criar contrato')

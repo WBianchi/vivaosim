@@ -74,6 +74,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  // Auto-refresh do token a cada 6 dias
+  useEffect(() => {
+    if (!accessToken) return
+
+    const refreshInterval = setInterval(async () => {
+      console.log('🔄 Auto-refresh do token...')
+      const success = await refreshToken()
+      if (!success) {
+        console.log('❌ Falha no auto-refresh, deslogando...')
+        await logout()
+      }
+    }, 6 * 24 * 60 * 60 * 1000) // 6 dias
+
+    return () => clearInterval(refreshInterval)
+  }, [accessToken])
+
   useEffect(() => {
     // Função para ler token do cookie
     const getTokenFromCookie = () => {
@@ -173,23 +189,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('👤 UserData:', userData)
       console.log('🔑 Token:', token ? 'exists' : 'missing')
       
+      // Atualizar estado ANTES de redirecionar
       setUser(userData)
       setAccessToken(token)
       localStorage.setItem('accessToken', token)
       
-      // Setar cookie para o middleware conseguir ler
-      document.cookie = `accessToken=${token}; path=/; max-age=${15 * 60}; secure; samesite=strict`
+      // Setar cookie com tempo maior (7 dias)
+      const maxAge = 7 * 24 * 60 * 60 // 7 dias em segundos
+      document.cookie = `accessToken=${token}; path=/; max-age=${maxAge}; secure; samesite=strict`
       
-      // Redirecionar baseado no role
+      console.log('✅ Estado atualizado:', { user: userData.name, role: userData.role })
+      
+      // Redirecionar baseado no role usando router.push
       const redirectUrl = getRoleBasedRedirect(userData.role)
       console.log('🔄 Redirecionando para:', redirectUrl)
-      console.log('🔄 Tentando router.push...')
       
-      // Teste com window.location para ver se o problema é o router
-      setTimeout(() => {
-        console.log('🔄 Usando window.location.href...')
-        window.location.href = redirectUrl
-      }, 100)
+      // Usar router.push ao invés de window.location para manter o estado
+      router.push(redirectUrl)
+      router.refresh() // Forçar refresh do layout
 
     } catch (error: any) {
       console.error('❌ Erro no AuthContext:', error)
@@ -235,6 +252,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setAccessToken(null)
       localStorage.removeItem('accessToken')
+      // Limpar cookie
+      document.cookie = 'accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
       router.push('/login')
     }
   }

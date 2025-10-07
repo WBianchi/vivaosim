@@ -26,31 +26,56 @@ export function AllGiftsSidebar({ isOpen, onClose, chatId }: AllGiftsSidebarProp
   const fetchGifts = async () => {
     setLoading(true)
     try {
-      const token = getAuthToken()
-      if (!token) {
-        console.log('⚠️ AllGiftsSidebar: Token não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const url = chatId 
-        ? `/api/compras?chatId=${chatId}`
-        : '/api/compras'
-
       console.log(`🔍 AllGiftsSidebar: Buscando presentes... (chatId: ${chatId || 'todos'})`)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // Se tiver chatId, buscar o site do contato primeiro
+      if (chatId) {
+        // Buscar sites do contato
+        const sitesResponse = await fetch('/api/sites/clientes')
+        const sitesData = await sitesResponse.json()
+        
+        if (sitesData.success && sitesData.sites) {
+          // Buscar o contato
+          const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+          const contactData = await contactResponse.json()
+          
+          if (contactData.exists && contactData.contact) {
+            const contactId = contactData.contact.id
+            const site = sitesData.sites.find((s: any) => s.contactId === contactId)
+            
+            if (site) {
+              console.log('🎯 Site encontrado:', site.id)
+              // Buscar produtos do site
+              const response = await fetch(`/api/sites/clientes/${site.id}/produtos`)
+              const data = await response.json()
+              
+              console.log('🎁 AllGiftsSidebar: Resposta da API:', data)
+              
+              if (data.success && data.produtos) {
+                setGifts(data.produtos.map((p: any) => ({
+                  id: p.id,
+                  name: p.nome,
+                  description: p.descricao,
+                  price: p.preco,
+                  image: p.imagem,
+                  status: p.disponivel ? 'available' : 'unavailable',
+                  quantity: p.quantidade || 1
+                })))
+                console.log(`✅ AllGiftsSidebar: ${data.produtos.length} presentes carregados`)
+              }
+            } else {
+              console.log('⚠️ Site não encontrado para este contato')
+            }
+          }
         }
-      })
-      const data = await response.json()
-      
-      console.log('🎁 AllGiftsSidebar: Resposta da API:', data)
-      
-      if (data.compras) {
-        setGifts(data.compras)
-        console.log(`✅ AllGiftsSidebar: ${data.compras.length} presentes carregados`)
+      } else {
+        // Buscar todos os produtos
+        const response = await fetch('/api/compras')
+        const data = await response.json()
+        
+        if (data.compras) {
+          setGifts(data.compras)
+        }
       }
     } catch (error) {
       console.error('❌ AllGiftsSidebar: Erro ao buscar presentes:', error)
@@ -161,11 +186,146 @@ export function AllGiftsSidebar({ isOpen, onClose, chatId }: AllGiftsSidebarProp
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
               </div>
+            ) : filteredGifts.length === 0 && !searchTerm ? (
+              // Fallback com exemplos quando não tem presentes
+              <div className="space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/10 dark:to-pink-900/10 rounded-lg border border-rose-200 dark:border-rose-800 hover:border-rose-400 dark:hover:border-rose-600 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center">
+                      <Package className="w-8 h-8 text-rose-400" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                          Jogo de Panelas Premium
+                        </h3>
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                          Disponível
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                        Conjunto completo com 12 peças em aço inoxidável com revestimento antiaderente
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                          <DollarSign className="w-4 h-4" />
+                          <span className="text-sm font-bold">
+                            R$ 450,00
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <ShoppingBag className="w-3 h-3" />
+                          <span>Qtd: 1</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10 rounded-lg border border-blue-200 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <Package className="w-8 h-8 text-blue-400" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                          Liquidificador Turbo
+                        </h3>
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                          Comprado
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                        Liquidificador de alta potência com 12 velocidades e copo de vidro
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                          <DollarSign className="w-4 h-4" />
+                          <span className="text-sm font-bold">
+                            R$ 280,00
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Comprado por: <span className="font-medium">Maria Santos</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/10 dark:to-yellow-900/10 rounded-lg border border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+                      <Package className="w-8 h-8 text-amber-400" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                          Jogo de Toalhas Luxo
+                        </h3>
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                          Reservado
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                        Kit com 6 toalhas de banho e 6 toalhas de rosto em algodão egípcio
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                          <DollarSign className="w-4 h-4" />
+                          <span className="text-sm font-bold">
+                            R$ 320,00
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <ShoppingBag className="w-3 h-3" />
+                          <span>Qtd: 1</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <div className="text-center py-6">
+                  <p className="text-gray-400 dark:text-gray-500 text-xs italic">
+                    ⬆️ Exemplo de como os presentes aparecerão
+                  </p>
+                </div>
+              </div>
             ) : filteredGifts.length === 0 ? (
               <div className="text-center py-12">
                 <Gift className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  {searchTerm ? 'Nenhum presente encontrado' : 'Nenhum presente cadastrado'}
+                  Nenhum presente encontrado
                 </p>
               </div>
             ) : (

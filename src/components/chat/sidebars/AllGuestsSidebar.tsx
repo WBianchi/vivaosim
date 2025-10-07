@@ -26,31 +26,56 @@ export function AllGuestsSidebar({ isOpen, onClose, chatId }: AllGuestsSidebarPr
   const fetchGuests = async () => {
     setLoading(true)
     try {
-      const token = getAuthToken()
-      if (!token) {
-        console.log('⚠️ AllGuestsSidebar: Token não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const url = chatId 
-        ? `/api/convidados?chatId=${chatId}`
-        : '/api/convidados'
-
       console.log(`🔍 AllGuestsSidebar: Buscando convidados... (chatId: ${chatId || 'todos'})`)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // Se tiver chatId, buscar o site do contato primeiro
+      if (chatId) {
+        // Buscar sites do contato
+        const sitesResponse = await fetch('/api/sites/clientes')
+        const sitesData = await sitesResponse.json()
+        
+        if (sitesData.success && sitesData.sites) {
+          // Buscar o contato
+          const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+          const contactData = await contactResponse.json()
+          
+          if (contactData.exists && contactData.contact) {
+            const contactId = contactData.contact.id
+            const site = sitesData.sites.find((s: any) => s.contactId === contactId)
+            
+            if (site) {
+              console.log('🎯 Site encontrado:', site.id)
+              // Buscar convidados do site
+              const response = await fetch(`/api/sites/clientes/${site.id}/convidados`)
+              const data = await response.json()
+              
+              console.log('👥 AllGuestsSidebar: Resposta da API:', data)
+              
+              if (data.success && data.convidados) {
+                setGuests(data.convidados.map((c: any) => ({
+                  id: c.id,
+                  name: c.nome,
+                  email: c.email,
+                  phone: c.telefone,
+                  status: c.confirmado ? 'confirmed' : 'pending',
+                  companion: c.acompanhante,
+                  table: c.mesa
+                })))
+                console.log(`✅ AllGuestsSidebar: ${data.convidados.length} convidados carregados`)
+              }
+            } else {
+              console.log('⚠️ Site não encontrado para este contato')
+            }
+          }
         }
-      })
-      const data = await response.json()
-      
-      console.log('👥 AllGuestsSidebar: Resposta da API:', data)
-      
-      if (data.convidados) {
-        setGuests(data.convidados)
-        console.log(`✅ AllGuestsSidebar: ${data.convidados.length} convidados carregados`)
+      } else {
+        // Buscar todos os convidados
+        const response = await fetch('/api/convidados')
+        const data = await response.json()
+        
+        if (data.convidados) {
+          setGuests(data.convidados)
+        }
       }
     } catch (error) {
       console.error('❌ AllGuestsSidebar: Erro ao buscar convidados:', error)
@@ -163,11 +188,114 @@ export function AllGuestsSidebar({ isOpen, onClose, chatId }: AllGuestsSidebarPr
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
               </div>
+            ) : filteredGuests.length === 0 && !searchTerm ? (
+              // Fallback com exemplos quando não tem convidados
+              <div className="space-y-2">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10 rounded-lg border border-purple-200 dark:border-purple-800"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        João Silva
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        + Maria Silva
+                      </p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      Confirmado
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <Mail className="w-3 h-3" />
+                      <span className="truncate">joao.silva@email.com</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <Phone className="w-3 h-3" />
+                      <span>(11) 98765-4321</span>
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      Mesa 5
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="p-3 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        Ana Costa
+                      </h3>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                      Pendente
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <Mail className="w-3 h-3" />
+                      <span className="truncate">ana.costa@email.com</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <Phone className="w-3 h-3" />
+                      <span>(11) 91234-5678</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="p-3 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10 rounded-lg border border-blue-200 dark:border-blue-800"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        Pedro Santos
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        + Carla Santos
+                      </p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                      Talvez
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <Mail className="w-3 h-3" />
+                      <span className="truncate">pedro.santos@email.com</span>
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      Mesa 8
+                    </div>
+                  </div>
+                </motion.div>
+
+                <div className="text-center py-6">
+                  <p className="text-gray-400 dark:text-gray-500 text-xs italic">
+                    ⬆️ Exemplo de como os convidados aparecerão
+                  </p>
+                </div>
+              </div>
             ) : filteredGuests.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  {searchTerm ? 'Nenhum convidado encontrado' : 'Nenhum convidado ainda'}
+                  Nenhum convidado encontrado
                 </p>
               </div>
             ) : (

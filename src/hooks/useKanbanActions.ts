@@ -2,75 +2,75 @@
 
 import { useState } from 'react'
 
-export type BottomSheetType = 
+export type SidebarType = 
   | 'view-client'
   | 'view-item'
   | 'edit-client'
-  | 'add-tag'
-  | 'create-ticket'
-  | 'create-schedule'
-  | 'create-quote'
-  | 'create-contract'
+  | 'tag'
+  | 'ticket'
+  | 'schedule'
+  | 'quote'
+  | 'contract'
   | 'change-queue'
   | 'assign-agent'
   | 'change-status'
   | null
 
 export const useKanbanActions = () => {
-  const [bottomSheetType, setBottomSheetType] = useState<BottomSheetType>(null)
+  const [sidebarType, setSidebarType] = useState<SidebarType>(null)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [selectedItemType, setSelectedItemType] = useState<string>('')
 
-  const openBottomSheet = (type: BottomSheetType, client: any, item?: any, itemType?: string) => {
-    console.log(`🔄 Abrindo ${type} para cliente:`, client.name)
+  const openSidebar = (type: SidebarType, client: any, item?: any, itemType?: string) => {
+    console.log(`🔄 Abrindo sidebar ${type} para cliente:`, client.name)
     setSelectedClient(client)
     setSelectedItem(item || null)
     setSelectedItemType(itemType || '')
-    setBottomSheetType(type)
+    setSidebarType(type)
   }
 
-  const closeBottomSheet = () => {
-    setBottomSheetType(null)
+  const closeSidebar = () => {
+    setSidebarType(null)
     setSelectedClient(null)
     setSelectedItem(null)
     setSelectedItemType('')
   }
 
   const handleViewItem = (client: any, itemType: string, item: any) => {
-    openBottomSheet('view-item', client, item, itemType)
+    openSidebar('view-item', client, item, itemType)
   }
 
   const handleViewClient = (client: any) => {
-    openBottomSheet('view-client', client)
+    openSidebar('view-client', client)
   }
 
   const handleEditClient = (client: any) => {
-    openBottomSheet('edit-client', client)
+    openSidebar('edit-client', client)
   }
 
   const handleManageTags = (client: any) => {
-    openBottomSheet('add-tag', client)
+    openSidebar('tag', client)
   }
 
   const handleCreateTicket = (client: any) => {
-    openBottomSheet('create-ticket', client)
+    openSidebar('ticket', client)
   }
 
   const handleCreateSchedule = (client: any) => {
-    openBottomSheet('create-schedule', client)
+    openSidebar('schedule', client)
   }
 
   const handleCreateQuote = (client: any) => {
-    openBottomSheet('create-quote', client)
+    openSidebar('quote', client)
   }
 
   const handleCreateContract = (client: any) => {
-    openBottomSheet('create-contract', client)
+    openSidebar('contract', client)
   }
 
   const handleChangeQueue = (client: any) => {
-    openBottomSheet('change-queue', client)
+    openSidebar('change-queue', client)
   }
 
   const handleDeleteClient = async (client: any) => {
@@ -87,11 +87,11 @@ export const useKanbanActions = () => {
   }
 
   return {
-    bottomSheetType,
+    sidebarType,
     selectedClient,
     selectedItem,
     selectedItemType,
-    closeBottomSheet,
+    closeSidebar,
     handleViewClient,
     handleViewItem,
     handleEditClient,

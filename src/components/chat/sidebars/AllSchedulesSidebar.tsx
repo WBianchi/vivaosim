@@ -16,46 +16,119 @@ export function AllSchedulesSidebar({ isOpen, onClose, chatId }: AllSchedulesSid
   const [loading, setLoading] = useState(false)
   const [schedules, setSchedules] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [clientData, setClientData] = useState<any>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
       fetchSchedules()
+      fetchCurrentUser()
+      if (chatId) {
+        fetchClientData()
+      }
     }
   }, [isOpen, chatId])
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const response = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentUserId(data.user?.id || null)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error)
+    }
+  }
+
+  const fetchClientData = async () => {
+    try {
+      const response = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+      const data = await response.json()
+      if (data.exists && data.contact) {
+        setClientData(data.contact)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar cliente:', error)
+    }
+  }
 
   const fetchSchedules = async () => {
     setLoading(true)
     try {
-      const token = getAuthToken()
-      if (!token) {
-        console.log('⚠️ AllSchedulesSidebar: Token não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const url = chatId 
-        ? `/api/agendamentos?chatId=${chatId}`
-        : '/api/agendamentos'
-
       console.log(`🔍 AllSchedulesSidebar: Buscando agendamentos... (chatId: ${chatId || 'todos'})`)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      // Buscar agendamentos
+      const url = chatId && clientData
+        ? `/api/schedules?contactId=${clientData.id}`
+        : '/api/schedules'
+      
+      const response = await fetch(url)
       const data = await response.json()
       
       console.log('📅 AllSchedulesSidebar: Resposta da API:', data)
       
-      if (data.agendamentos) {
-        setSchedules(data.agendamentos)
-        console.log(`✅ AllSchedulesSidebar: ${data.agendamentos.length} agendamentos carregados`)
+      if (data.schedules) {
+        setSchedules(data.schedules)
+        console.log(`✅ AllSchedulesSidebar: ${data.schedules.length} agendamentos carregados`)
       }
     } catch (error) {
       console.error('❌ AllSchedulesSidebar: Erro ao buscar agendamentos:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCreateSchedule = async (e: React.FormEvent) => {
+    e.preventDefault()
+    console.log('📅 Criando agendamento...')
+
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
+    
+    const date = formData.get('date') as string
+    const time = formData.get('time') as string
+    const datetime = new Date(`${date}T${time}`)
+
+    const scheduleData = {
+      title: formData.get('title') as string,
+      datetime: datetime.toISOString(),
+      duration: parseInt(formData.get('duration') as string),
+      location: formData.get('location') as string,
+      meetingLink: formData.get('meetingLink') as string || undefined,
+      description: formData.get('description') as string,
+      contactId: clientData?.id,
+      status: 'scheduled',
+      createdById: currentUserId
+    }
+
+    try {
+      const response = await fetch('/api/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scheduleData)
+      })
+
+      if (response.ok) {
+        const newSchedule = await response.json()
+        console.log('✅ Agendamento criado:', newSchedule.id)
+        setShowCreateForm(false)
+        fetchSchedules()
+        alert(`✅ Reunião "${scheduleData.title}" agendada!\n📅 Data: ${date} às ${time}`)
+      } else {
+        const error = await response.json()
+        console.error('❌ Erro:', error)
+        alert(`❌ Erro ao criar agendamento: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('❌ Erro na requisição:', error)
+      alert('❌ Erro de conexão.')
     }
   }
 

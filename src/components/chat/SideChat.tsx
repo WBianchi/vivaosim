@@ -86,6 +86,7 @@ export const SideChat: React.FC<SideChatProps> = ({
   const [chatTags, setChatTags] = useState<Record<string, any[]>>({})
   const [chatContracts, setChatContracts] = useState<Record<string, any[]>>({})
   const [chatAgents, setChatAgents] = useState<Record<string, any>>({})
+  const [chatKanban, setChatKanban] = useState<Record<string, { boardName: string, columnName: string, columnColor: string }>>({})
   
   const {
     chats,
@@ -298,6 +299,83 @@ export const SideChat: React.FC<SideChatProps> = ({
     }
     
     fetchAgents()
+  }, [chats])
+
+  // Buscar informações do Kanban dos chats
+  useEffect(() => {
+    if (chats.length === 0) return
+
+    // FALLBACK TEMPORÁRIO: Adicionar dados de exemplo nos primeiros 4 chats
+    const kanbanByChat: Record<string, { boardName: string, columnName: string, columnColor: string }> = {}
+    
+    const fallbacks = [
+      { boardName: 'Vendas 2024', columnName: 'Novos Leads', columnColor: '#3B82F6' },
+      { boardName: 'Vendas 2024', columnName: 'Qualificados', columnColor: '#10B981' },
+      { boardName: 'Vendas 2024', columnName: 'Proposta', columnColor: '#F59E0B' },
+      { boardName: 'Suporte', columnName: 'Em Atendimento', columnColor: '#8B5CF6' }
+    ]
+
+    chats.slice(0, 4).forEach((chat, index) => {
+      kanbanByChat[chat.id] = fallbacks[index]
+    })
+
+    setChatKanban(kanbanByChat)
+    console.log(`✅ SideChat: Fallback do Kanban aplicado`, kanbanByChat)
+
+    // TODO: Implementar busca real da API quando o backend estiver pronto
+    /*
+    const fetchKanban = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const kanbanPromises = chats.map(async (chat) => {
+          try {
+            const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chat.id}`)
+            const contactData = await contactResponse.json()
+            
+            if (!contactData.exists || !contactData.contact) {
+              return { chatId: chat.id, kanban: null }
+            }
+
+            const kanbanResponse = await fetch(`/api/contacts/${contactData.contact.id}/kanban`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            })
+            const kanbanData = await kanbanResponse.json()
+            
+            if (kanbanData.success && kanbanData.position) {
+              return { 
+                chatId: chat.id, 
+                kanban: {
+                  boardName: kanbanData.position.boardName,
+                  columnName: kanbanData.position.columnName,
+                  columnColor: kanbanData.position.columnColor
+                }
+              }
+            }
+            
+            return { chatId: chat.id, kanban: null }
+          } catch {
+            return { chatId: chat.id, kanban: null }
+          }
+        })
+
+        const results = await Promise.all(kanbanPromises)
+        const kanbanByChat: Record<string, { boardName: string, columnName: string, columnColor: string }> = {}
+        results.forEach(({ chatId, kanban }) => {
+          if (kanban) {
+            kanbanByChat[chatId] = kanban
+          }
+        })
+
+        setChatKanban(kanbanByChat)
+      } catch (error) {
+        console.error('❌ SideChat: Erro ao buscar informações do Kanban:', error)
+      }
+    }
+    
+    fetchKanban()
+    */
   }, [chats])
 
   // Notificar mudança de conexão baseada no estado dos chats
@@ -1163,8 +1241,8 @@ export const SideChat: React.FC<SideChatProps> = ({
                     </p>
                   </div>
 
-                  {/* Informações de Orçamento, Tags, Contratos, Agente e Agendamento */}
-                  {(chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id] || chatAgents[chat.id]) && (
+                  {/* Informações de Orçamento, Tags, Contratos, Agente, Agendamento e Kanban */}
+                  {(chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id] || chatAgents[chat.id] || chatKanban[chat.id]) && (
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       {/* Orçamento - Preço */}
                       {chatQuotes[chat.id] && (
@@ -1221,6 +1299,29 @@ export const SideChat: React.FC<SideChatProps> = ({
                           </div>
                           <span className="font-semibold text-purple-700 dark:text-purple-400">
                             {chatAgents[chat.id].name}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Kanban - Quadro e Coluna */}
+                      {chatKanban[chat.id] && (
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: chatKanban[chat.id].columnColor }}
+                          />
+                          <span className="font-medium text-gray-700 dark:text-gray-300">
+                            {chatKanban[chat.id].boardName}
+                          </span>
+                          <span className="text-gray-400">›</span>
+                          <span 
+                            className="font-semibold px-1.5 py-0.5 rounded text-[10px]"
+                            style={{ 
+                              backgroundColor: chatKanban[chat.id].columnColor + '20',
+                              color: chatKanban[chat.id].columnColor
+                            }}
+                          >
+                            {chatKanban[chat.id].columnName}
                           </span>
                         </div>
                       )}
