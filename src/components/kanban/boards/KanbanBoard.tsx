@@ -318,7 +318,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-6 overflow-x-auto pb-4">
           {columns.map((column) => (
-            <div key={column.id} className="min-w-80">
+            <div key={column.id} className="w-[420px]">
               <KanbanColumn 
                 column={column}
                 kanbanActions={kanbanActions}
@@ -330,7 +330,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
           ))}
           
           {/* Botão Adicionar Nova Coluna */}
-          <div className="min-w-80">
+          <div className="w-[420px]">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

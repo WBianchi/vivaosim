@@ -1259,6 +1259,7 @@ model Agent {
   
   // Campo para vincular com WhatsApp/Chat externo
   chatId      String?  // ID do chat externo (WhatsApp, etc)
+  contactId   String?  // ID do contato (para Kanban)
   
   // Prompt e configuração
   prompt      String  @db.Text

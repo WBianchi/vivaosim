@@ -42,6 +42,7 @@ export default function KanbanPage() {
           selectedItem={kanbanActions.selectedItem}
           selectedItemType={kanbanActions.selectedItemType}
           onClose={kanbanActions.closeSidebar}
+          onRefresh={() => setRefreshTrigger(prev => prev + 1)}
         />
       </div>
     </div>

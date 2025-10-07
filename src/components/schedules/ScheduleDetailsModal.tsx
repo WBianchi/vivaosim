@@ -122,12 +122,14 @@ export const ScheduleDetailsModal: React.FC<ScheduleDetailsModalProps> = ({
   }
 
   const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'meeting': return 'Reunião'
-      case 'call': return 'Ligação'
-      case 'visit': return 'Visita'
-      case 'presentation': return 'Apresentação'
-      case 'followup': return 'Follow-up'
+    switch (type.toUpperCase()) {
+      case 'MEETING': return 'Reunião'
+      case 'CALL': return 'Ligação'
+      case 'VISIT': return 'Visita'
+      case 'VIDEO_CALL': return 'Vídeo Chamada'
+      case 'EVENT': return 'Evento'
+      case 'TASK': return 'Tarefa'
+      case 'OTHER': return 'Outro'
       default: return type
     }
   }

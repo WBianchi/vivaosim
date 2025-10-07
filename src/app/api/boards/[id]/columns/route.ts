@@ -22,11 +22,19 @@ export async function GET(
           include: {
             tags: true,
             assignedTo: true,
+            quotes: {
+              select: {
+                total: true
+              }
+            },
             _count: {
               select: {
                 tickets: true,
                 contracts: true,
-                quotes: true
+                quotes: true,
+                schedules: true,
+                appointments: true,
+                contactNotes: true
               }
             }
           }
@@ -37,7 +45,61 @@ export async function GET(
       }
     })
 
-    return NextResponse.json({ columns })
+    // Calcular o valor total dos orçamentos para cada cliente
+    const columnsWithValues = await Promise.all(columns.map(async column => ({
+      ...column,
+      clients: await Promise.all(column.clients.map(async client => {
+        const totalValue = client.quotes.reduce((sum, quote) => {
+          const quoteTotal = typeof quote.total === 'string' 
+            ? parseFloat(quote.total) 
+            : typeof quote.total === 'object' && quote.total !== null
+            ? parseFloat(quote.total.toString())
+            : Number(quote.total)
+          return sum + (quoteTotal || 0)
+        }, 0)
+        
+        // Buscar agente atribuído a este contato
+        const agent = await prisma.agent.findFirst({
+          where: { contactId: client.id },
+          select: {
+            id: true,
+            name: true,
+            model: true,
+            status: true
+          }
+        })
+        
+        // Remover quotes do retorno e adicionar apenas o value calculado
+        const { quotes, _count, ...clientData } = client
+        
+        const result = {
+          ...clientData,
+          value: totalValue,
+          tickets: _count.tickets,
+          contracts: _count.contracts,
+          quotesCount: _count.quotes,
+          schedules: (_count.schedules || 0) + (_count.appointments || 0), // Soma schedules + appointments
+          notes: _count.contactNotes || 0,
+          agent: agent || null // Agente IA atribuído
+        }
+        
+        // Debug: Log para ver as contagens
+        if (result.notes > 0 || result.tickets > 0) {
+          console.log(`📊 Cliente ${clientData.name}:`, {
+            notes: result.notes,
+            tickets: result.tickets,
+            contracts: result.contracts,
+            quotes: result.quotesCount,
+            schedules: result.schedules,
+            agent: agent?.name || 'Nenhum'
+          })
+        }
+        
+        return result
+      }))
+    })))
+
+    return NextResponse.json({ columns: columnsWithValues })
   } catch (error) {
     console.error('❌ Erro ao listar colunas:', error)
     return NextResponse.json(

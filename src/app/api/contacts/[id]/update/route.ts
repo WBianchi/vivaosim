@@ -31,7 +31,8 @@ export async function PUT(
       password,
       status,
       notes,
-      avatar
+      avatar,
+      assignedToId
     } = body
 
     // Verificar se contato existe
@@ -93,7 +94,8 @@ export async function PUT(
         ...(status && { status }),
         ...(notes !== undefined && { notes }),
         ...(avatar !== undefined && { avatar }),
-        ...(userId && { userId })
+        ...(userId && { userId }),
+        ...(assignedToId !== undefined && { assignedToId })
       }
     })
 

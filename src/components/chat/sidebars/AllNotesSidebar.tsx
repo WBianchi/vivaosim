@@ -41,11 +41,12 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
         return
       }
 
+      // Tentar buscar por contactId primeiro, depois chatId
       const url = chatId 
-        ? `/api/anotacoes?chatId=${chatId}`
-        : '/api/anotacoes'
+        ? `/api/notes?contactId=${chatId}`
+        : '/api/notes'
 
-      console.log(`🔍 AllNotesSidebar: Buscando anotações... (chatId: ${chatId || 'todos'})`)
+      console.log(`🔍 AllNotesSidebar: Buscando anotações... (id: ${chatId || 'todos'})`)
       
       const response = await fetch(url, {
         headers: {
@@ -84,8 +85,8 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
         content: formData.content || null,
         category: formData.category,
         isPinned: formData.isPinned,
-        chatId: chatId || null,
-        contactId: null // TODO: vincular com contact se existir
+        contactId: chatId || null, // Usar chatId como contactId quando vier do Kanban
+        chatId: null
       }
 
       console.log('📝 Criando anotação:', noteData)

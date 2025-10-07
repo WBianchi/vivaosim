@@ -89,18 +89,20 @@ export async function PUT(
     const agent = await prisma.agent.update({
       where: { id: params.id },
       data: {
-        name: data.name,
-        description: data.description,
-        model: data.model,
-        niche: data.niche,
-        role: data.role,
-        status: data.status?.toUpperCase(),
-        prompt: data.prompt,
-        temperature: data.temperature,
-        maxTokens: data.maxTokens,
-        userTypes: data.userTypes,
-        activationModes: data.activationModes,
-        integrations: data.integrations
+        ...(data.name && { name: data.name }),
+        ...(data.description && { description: data.description }),
+        ...(data.model && { model: data.model }),
+        ...(data.niche && { niche: data.niche }),
+        ...(data.role && { role: data.role }),
+        ...(data.status && { status: data.status.toUpperCase() }),
+        ...(data.prompt && { prompt: data.prompt }),
+        ...(data.temperature !== undefined && { temperature: data.temperature }),
+        ...(data.maxTokens !== undefined && { maxTokens: data.maxTokens }),
+        ...(data.userTypes && { userTypes: data.userTypes }),
+        ...(data.activationModes && { activationModes: data.activationModes }),
+        ...(data.integrations && { integrations: data.integrations }),
+        ...(data.contactId !== undefined && { contactId: data.contactId }),
+        ...(data.chatId !== undefined && { chatId: data.chatId })
       },
       include: {
         createdBy: {

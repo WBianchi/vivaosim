@@ -33,7 +33,9 @@ import {
   Users,
   Receipt,
   Globe,
-  ClipboardList
+  ClipboardList,
+  LayoutDashboard,
+  Columns3
 } from 'lucide-react'
 import { Chat, Message, MessageType, MessageAck, ChatAssignmentMeta } from '@/types/chat'
 import { SidebarType } from '@/app/chat/page'
@@ -68,6 +70,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const [chatQuoteCount, setChatQuoteCount] = useState(propQuoteCount || 0)
   const [chatContractCount, setChatContractCount] = useState(propContractCount || 0)
+  const [kanbanInfo, setKanbanInfo] = useState<{ boardName: string, columnName: string, columnColor: string } | null>(null)
 
   // Usar hook de mensagens
   const {
@@ -106,6 +109,45 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     }
     
     fetchQuoteCount()
+  }, [chat.id])
+
+  // Buscar informações do Kanban
+  useEffect(() => {
+    // FALLBACK: Mostrar dados de exemplo imediatamente
+    setKanbanInfo({
+      boardName: 'Pipeline de Vendas',
+      columnName: 'Novos Leads',
+      columnColor: '#3B82F6'
+    })
+
+    const fetchKanban = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const contactResponse = await fetch(`/api/contacts/check-chat?chatId=${chat.id}`)
+        const contactData = await contactResponse.json()
+        
+        if (!contactData.exists || !contactData.contact) return
+
+        const kanbanResponse = await fetch(`/api/contacts/${contactData.contact.id}/kanban`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const kanbanData = await kanbanResponse.json()
+        
+        if (kanbanData.success && kanbanData.position) {
+          setKanbanInfo({
+            boardName: kanbanData.position.boardName,
+            columnName: kanbanData.position.columnName,
+            columnColor: kanbanData.position.columnColor
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao buscar Kanban:', error)
+      }
+    }
+    
+    fetchKanban()
   }, [chat.id])
 
   // Auto scroll quando mensagens chegam
@@ -420,7 +462,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
                 {chat.name}
               </h3>
               
-              {/* Linha 1: Atendente, Status, Visto por último */}
+              {/* Linha 1: Atendente, Status, Kanban, Visto por último */}
               <div className="flex flex-wrap items-center gap-2 text-xs mt-1">
                 {assignedAttendant ? (
                   <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full">
@@ -440,6 +482,29 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
                   <div className={cn('flex items-center gap-1 px-2 py-0.5 rounded-full capitalize', statusInfo.badgeClass)}>
                     <span className={cn('w-2 h-2 rounded-full', statusInfo.dotClass)} />
                     <span className="font-medium">{statusInfo.label}</span>
+                  </div>
+                )}
+
+                {/* Kanban */}
+                {kanbanInfo && (
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <div 
+                      className="w-2 h-2 rounded-full" 
+                      style={{ backgroundColor: kanbanInfo.columnColor }}
+                    />
+                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                      {kanbanInfo.boardName}
+                    </span>
+                    <span className="text-gray-400">›</span>
+                    <span 
+                      className="font-semibold px-1.5 py-0.5 rounded text-[10px]"
+                      style={{ 
+                        backgroundColor: kanbanInfo.columnColor + '20',
+                        color: kanbanInfo.columnColor
+                      }}
+                    >
+                      {kanbanInfo.columnName}
+                    </span>
                   </div>
                 )}
 
@@ -482,6 +547,33 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
 
           {/* Ações do Header */}
           <div className="flex items-center gap-2">
+            {/* Botões de Navegação */}
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.location.href = '/dashboard'}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group"
+                title="Ir para Dashboard"
+              >
+                <LayoutDashboard className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-orange-500" />
+              </motion.button>
+
+              {kanbanInfo && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => window.location.href = '/dashboard/kanban'}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group"
+                  title="Ir para Kanban"
+                >
+                  <Columns3 className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-500" />
+                </motion.button>
+              )}
+            </div>
+
+            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+
             <div className="flex items-center gap-2">
               {primaryActions.map((action) => renderIconButton(action))}
             </div>

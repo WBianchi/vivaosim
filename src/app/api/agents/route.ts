@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const model = searchParams.get('model')
     const niche = searchParams.get('niche')
+    const contactId = searchParams.get('contactId')
+    const chatId = searchParams.get('chatId')
 
     const where: any = {}
 
@@ -48,6 +50,14 @@ export async function GET(request: NextRequest) {
 
     if (niche && niche !== 'all') {
       where.niche = niche
+    }
+
+    if (contactId) {
+      where.contactId = contactId
+    }
+
+    if (chatId) {
+      where.chatId = chatId
     }
 
     const agents = await prisma.agent.findMany({

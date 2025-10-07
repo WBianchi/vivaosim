@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Users, Search, Check } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { getAuthToken } from '@/lib/auth-token'
 
 interface AssignAgentSidebarProps {
   isOpen: boolean
@@ -21,17 +22,54 @@ export function AssignAgentSidebar({ isOpen, onClose, chatId, clientData }: Assi
   useEffect(() => {
     if (isOpen) {
       fetchAgents()
+      fetchCurrentAgent()
     }
   }, [isOpen])
+
+  const fetchCurrentAgent = async () => {
+    try {
+      const token = getAuthToken()
+      const contactId = clientData?.id || chatId
+      
+      // Buscar agente atribuído a este contato
+      const response = await fetch(`/api/agents?contactId=${contactId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+      
+      console.log('🤖 Agente atual do contato:', data)
+      
+      if (data.agents && data.agents.length > 0) {
+        const agentId = data.agents[0].id
+        console.log('✅ Pré-selecionando agente:', agentId, data.agents[0].name)
+        setSelectedAgent(agentId)
+      } else {
+        console.log('⚠️ Nenhum agente atribuído a este contato')
+      }
+    } catch (error) {
+      console.error('Erro ao buscar agente atual:', error)
+    }
+  }
 
   const fetchAgents = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/users?role=agent')
+      const token = getAuthToken()
+      const response = await fetch('/api/agents', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await response.json()
       
-      if (data.users) {
-        setAgents(data.users)
+      console.log('🤖 Agentes IA encontrados:', data)
+      
+      if (data.agents) {
+        setAgents(data.agents)
+      } else if (data.success && data.data) {
+        setAgents(data.data)
       }
     } catch (error) {
       console.error('Erro ao buscar agentes:', error)
@@ -47,17 +85,25 @@ export function AssignAgentSidebar({ isOpen, onClose, chatId, clientData }: Assi
     }
 
     try {
-      const response = await fetch(`/api/contacts/${clientData?.id || chatId}/assign`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: selectedAgent })
+      const token = getAuthToken()
+      const contactId = clientData?.id || chatId
+      
+      // Atualizar o Agent com o contactId (igual ao chat)
+      const response = await fetch(`/api/agents/${selectedAgent}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ contactId })
       })
 
       if (response.ok) {
         alert('✅ Agente atribuído com sucesso!')
         onClose()
       } else {
-        alert('❌ Erro ao atribuir agente')
+        const data = await response.json()
+        alert(`❌ Erro ao atribuir agente: ${data.error || 'Erro desconhecido'}`)
       }
     } catch (error) {
       console.error('Erro ao atribuir agente:', error)

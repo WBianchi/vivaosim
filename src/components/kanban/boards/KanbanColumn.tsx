@@ -380,6 +380,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, kanbanAction
                         })()}
                         onEditClient={kanbanActions?.handleEditClient}
                         onManageTags={kanbanActions?.handleManageTags}
+                        onManageNotes={kanbanActions?.handleManageNotes}
+                        onAssignAgent={kanbanActions?.handleAssignAgent}
                         onCreateTicket={kanbanActions?.handleCreateTicket}
                         onCreateSchedule={kanbanActions?.handleCreateSchedule}
                         onCreateQuote={kanbanActions?.handleCreateQuote}

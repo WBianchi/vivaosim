@@ -48,6 +48,8 @@ import { TagSidebar } from './sidebars/TagSidebar'
 import { ContractSidebar } from './sidebars/ContractSidebar'
 import { ClientProfileSidebar } from './ClientProfileSidebar'
 import { ChangeQueueSheet } from './bottom-sheets/ChangeQueueSheet'
+import { AIMessageModal } from './modals/AIMessageModal'
+import { ScheduleSendModal } from './modals/ScheduleSendModal'
 import { AssignAgentSheet } from './bottom-sheets/AssignAgentSheet'
 import { ChangeStatusSheet } from './bottom-sheets/ChangeStatusSheet'
 import { SendPollModal } from './modals/SendPollModal'
@@ -75,6 +77,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
   const [message, setMessage] = useState('')
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [showActionsMenu, setShowActionsMenu] = useState(false)
+  const [showAIModal, setShowAIModal] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [showBottomSheet, setShowBottomSheet] = useState(false)
   const [bottomSheetType, setBottomSheetType] = useState<string>('')
@@ -919,7 +923,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
 
       {/* Área de Input */}
       <div className="flex items-end space-x-3">
-        {/* Botão de Anexo */}
+        {/* Botão de Anexos */}
         <motion.button
           onClick={() => {
             setShowAttachMenu(!showAttachMenu)
@@ -930,8 +934,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
           className={cn(
             'p-3 rounded-full transition-colors',
             showAttachMenu
-              ? 'bg-blue-500 text-white'
-              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              ? 'bg-orange-500 text-white'
+              : 'bg-orange-50/50 dark:bg-orange-900/10 text-orange-400/70 hover:text-orange-600 dark:text-orange-400/60 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'
           )}
           title="Anexar arquivo"
         >
@@ -954,7 +958,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
             'p-3 rounded-full transition-colors',
             showActionsMenu
               ? 'bg-purple-500 text-white'
-              : 'text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+              : 'bg-purple-50/50 dark:bg-purple-900/10 text-purple-400/70 hover:text-purple-600 dark:text-purple-400/60 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
           )}
           title="Ações business"
         >
@@ -963,6 +967,29 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
           ) : (
             <Settings className="w-5 h-5" />
           )}
+        </motion.button>
+
+        {/* Botão Enviar com I.A */}
+        <motion.button
+          onClick={() => setShowAIModal(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="p-3 rounded-full bg-blue-50/50 dark:bg-blue-900/10 text-blue-400/70 hover:text-blue-600 dark:text-blue-400/60 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors relative group"
+          title="Enviar com I.A"
+        >
+          <Bot className="w-5 h-5" />
+          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+        </motion.button>
+
+        {/* Botão Agendar Envio */}
+        <motion.button
+          onClick={() => setShowScheduleModal(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="p-3 rounded-full bg-green-50/50 dark:bg-green-900/10 text-green-400/70 hover:text-green-600 dark:text-green-400/60 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors relative group"
+          title="Agendar envio"
+        >
+          <CalendarDays className="w-5 h-5" />
         </motion.button>
 
         {/* Input de Mensagem */}
@@ -1980,6 +2007,30 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         }}
         currentAgent={currentAgent}
         chatId={chat.id}
+      />
+
+      {/* AI Message Modal */}
+      <AIMessageModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        onSend={(aiMessage) => {
+          setMessage(aiMessage)
+          setShowAIModal(false)
+        }}
+        initialMessage={message}
+        contactName={chat.name}
+      />
+
+      {/* Schedule Send Modal */}
+      <ScheduleSendModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSchedule={(date, time, items) => {
+          console.log('Agendamento:', { date, time, items })
+          alert(`Envio agendado para ${date} às ${time} com ${items.length} itens`)
+          setShowScheduleModal(false)
+        }}
+        contactName={chat.name}
       />
 
     </div>

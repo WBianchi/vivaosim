@@ -305,13 +305,13 @@ export const SideChat: React.FC<SideChatProps> = ({
   useEffect(() => {
     if (chats.length === 0) return
 
-    // FALLBACK TEMPORÁRIO: Adicionar dados de exemplo nos primeiros 4 chats
+    // FALLBACK: Adicionar dados de exemplo nos primeiros 4 chats
     const kanbanByChat: Record<string, { boardName: string, columnName: string, columnColor: string }> = {}
     
     const fallbacks = [
-      { boardName: 'Vendas 2024', columnName: 'Novos Leads', columnColor: '#3B82F6' },
-      { boardName: 'Vendas 2024', columnName: 'Qualificados', columnColor: '#10B981' },
-      { boardName: 'Vendas 2024', columnName: 'Proposta', columnColor: '#F59E0B' },
+      { boardName: 'Pipeline de Vendas', columnName: 'Novos Leads', columnColor: '#3B82F6' },
+      { boardName: 'Pipeline de Vendas', columnName: 'Qualificados', columnColor: '#10B981' },
+      { boardName: 'Pipeline de Vendas', columnName: 'Proposta', columnColor: '#F59E0B' },
       { boardName: 'Suporte', columnName: 'Em Atendimento', columnColor: '#8B5CF6' }
     ]
 
@@ -320,10 +320,7 @@ export const SideChat: React.FC<SideChatProps> = ({
     })
 
     setChatKanban(kanbanByChat)
-    console.log(`✅ SideChat: Fallback do Kanban aplicado`, kanbanByChat)
 
-    // TODO: Implementar busca real da API quando o backend estiver pronto
-    /*
     const fetchKanban = async () => {
       try {
         const token = getAuthToken()
@@ -361,21 +358,24 @@ export const SideChat: React.FC<SideChatProps> = ({
         })
 
         const results = await Promise.all(kanbanPromises)
-        const kanbanByChat: Record<string, { boardName: string, columnName: string, columnColor: string }> = {}
+        const realKanbanByChat: Record<string, { boardName: string, columnName: string, columnColor: string }> = {}
         results.forEach(({ chatId, kanban }) => {
           if (kanban) {
-            kanbanByChat[chatId] = kanban
+            realKanbanByChat[chatId] = kanban
           }
         })
 
-        setChatKanban(kanbanByChat)
+        // Atualizar apenas se encontrou dados reais
+        if (Object.keys(realKanbanByChat).length > 0) {
+          setChatKanban(realKanbanByChat)
+          console.log(`✅ SideChat: Kanban carregado para ${Object.keys(realKanbanByChat).length} chats`)
+        }
       } catch (error) {
         console.error('❌ SideChat: Erro ao buscar informações do Kanban:', error)
       }
     }
     
     fetchKanban()
-    */
   }, [chats])
 
   // Notificar mudança de conexão baseada no estado dos chats

@@ -1,14 +1,15 @@
 'use client'
 
-import { AllTicketsSidebar } from '@/components/chat/sidebars/AllTicketsSidebar'
-import { AllSchedulesSidebar } from '@/components/chat/sidebars/AllSchedulesSidebar'
-import { AllContractsSidebar } from '@/components/chat/sidebars/AllContractsSidebar'
-import { AllQuotesSidebar } from '@/components/chat/sidebars/AllQuotesSidebar'
-import { AllTagsSidebar } from '@/components/chat/sidebars/AllTagsSidebar'
 import { ViewClientSidebar } from '@/components/chat/sidebars/ViewClientSidebar'
 import { EditClientSidebar } from '@/components/chat/sidebars/EditClientSidebar'
 import { AssignAgentSidebar } from '@/components/chat/sidebars/AssignAgentSidebar'
 import { ChangeStatusSidebar } from '@/components/chat/sidebars/ChangeStatusSidebar'
+import { AllNotesSidebar } from '@/components/chat/sidebars/AllNotesSidebar'
+import { CreateTicketModal } from '@/components/tickets/CreateTicketModal'
+import { CreateScheduleModal } from '@/components/schedules/CreateScheduleModal'
+import { CreateQuoteModal } from '@/components/quotes/CreateQuoteModal'
+import { CreateContractModal } from '@/components/contracts/CreateContractModal'
+import { CreateTagModal } from '@/components/tags/CreateTagModal'
 import { SidebarType } from '@/hooks/useKanbanActions'
 
 interface KanbanSidebarsProps {
@@ -17,63 +18,82 @@ interface KanbanSidebarsProps {
   selectedItem?: any
   selectedItemType?: string
   onClose: () => void
+  onRefresh?: () => void
 }
 
 export const KanbanSidebars: React.FC<KanbanSidebarsProps> = ({
   sidebarType,
   selectedClient,
-  selectedItem,
-  selectedItemType,
-  onClose
+  onClose,
+  onRefresh
 }) => {
   if (!sidebarType || !selectedClient) return null
 
-  // Criar um chatId mock para compatibilidade com as sidebars
   const mockChatId = selectedClient.whatsappChatId || `kanban-${selectedClient.id}`
 
+  const handleSave = () => {
+    console.log('✅ Item salvo com sucesso')
+    onClose()
+    // Refresh do Kanban para atualizar badges
+    if (onRefresh) {
+      setTimeout(() => {
+        onRefresh()
+      }, 500)
+    }
+  }
+
   switch (sidebarType) {
-    case 'ticket':
+    // Modais de criação
+    case 'create-ticket':
       return (
-        <AllTicketsSidebar
-          isOpen={true}
+        <CreateTicketModal
           onClose={onClose}
-          chatId={mockChatId}
+          onSave={handleSave}
+          ticket={null}
         />
       )
-      
-    case 'schedule':
+
+    case 'create-schedule':
       return (
-        <AllSchedulesSidebar
-          isOpen={true}
+        <CreateScheduleModal
           onClose={onClose}
-          chatId={mockChatId}
+          onSave={handleSave}
+          schedule={null}
         />
       )
-      
-    case 'quote':
+
+    case 'create-quote':
       return (
-        <AllQuotesSidebar
-          isOpen={true}
+        <CreateQuoteModal
           onClose={onClose}
-          chatId={mockChatId}
+          onSave={handleSave}
+          quote={null}
         />
       )
-      
-    case 'contract':
+
+    case 'create-contract':
       return (
-        <AllContractsSidebar
-          isOpen={true}
+        <CreateContractModal
           onClose={onClose}
-          chatId={mockChatId}
+          onSave={handleSave}
         />
       )
-      
-    case 'tag':
+
+    case 'all-tags':
       return (
-        <AllTagsSidebar
+        <CreateTagModal
+          onClose={onClose}
+          onSave={handleSave}
+          tag={null}
+        />
+      )
+
+    case 'all-notes':
+      return (
+        <AllNotesSidebar
           isOpen={true}
           onClose={onClose}
-          chatId={mockChatId}
+          chatId={selectedClient.id}
         />
       )
       
@@ -96,10 +116,6 @@ export const KanbanSidebars: React.FC<KanbanSidebarsProps> = ({
           clientData={selectedClient}
         />
       )
-      
-    case 'view-item':
-      // TODO: Criar ViewItemSidebar específica
-      return null
       
     case 'assign-agent':
       return (

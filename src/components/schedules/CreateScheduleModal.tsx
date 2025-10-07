@@ -218,11 +218,13 @@ export const CreateScheduleModal: React.FC<CreateScheduleModalProps> = ({
   }
 
   const typeOptions = [
-    { value: 'meeting', label: 'Reunião' },
-    { value: 'call', label: 'Ligação' },
-    { value: 'visit', label: 'Visita' },
-    { value: 'presentation', label: 'Apresentação' },
-    { value: 'followup', label: 'Follow-up' }
+    { value: 'MEETING', label: 'Reunião' },
+    { value: 'CALL', label: 'Ligação' },
+    { value: 'VISIT', label: 'Visita' },
+    { value: 'VIDEO_CALL', label: 'Vídeo Chamada' },
+    { value: 'EVENT', label: 'Evento' },
+    { value: 'TASK', label: 'Tarefa' },
+    { value: 'OTHER', label: 'Outro' }
   ]
 
   const formatOptions = [

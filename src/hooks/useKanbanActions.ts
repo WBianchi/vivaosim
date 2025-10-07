@@ -6,12 +6,16 @@ export type SidebarType =
   | 'view-client'
   | 'view-item'
   | 'edit-client'
-  | 'tag'
-  | 'ticket'
-  | 'schedule'
-  | 'quote'
-  | 'contract'
-  | 'change-queue'
+  | 'all-tags'
+  | 'all-notes'
+  | 'all-tickets'
+  | 'all-schedules'
+  | 'all-quotes'
+  | 'all-contracts'
+  | 'create-ticket'
+  | 'create-schedule'
+  | 'create-quote'
+  | 'create-contract'
   | 'assign-agent'
   | 'change-status'
   | null
@@ -21,6 +25,7 @@ export const useKanbanActions = () => {
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [selectedItemType, setSelectedItemType] = useState<string>('')
+  const [refreshCallback, setRefreshCallback] = useState<(() => void) | null>(null)
 
   const openSidebar = (type: SidebarType, client: any, item?: any, itemType?: string) => {
     console.log(`🔄 Abrindo sidebar ${type} para cliente:`, client.name)
@@ -50,27 +55,31 @@ export const useKanbanActions = () => {
   }
 
   const handleManageTags = (client: any) => {
-    openSidebar('tag', client)
+    openSidebar('all-tags', client)
+  }
+
+  const handleManageNotes = (client: any) => {
+    openSidebar('all-notes', client)
+  }
+
+  const handleAssignAgent = (client: any) => {
+    openSidebar('assign-agent', client)
   }
 
   const handleCreateTicket = (client: any) => {
-    openSidebar('ticket', client)
+    openSidebar('create-ticket', client)
   }
 
   const handleCreateSchedule = (client: any) => {
-    openSidebar('schedule', client)
+    openSidebar('create-schedule', client)
   }
 
   const handleCreateQuote = (client: any) => {
-    openSidebar('quote', client)
+    openSidebar('create-quote', client)
   }
 
   const handleCreateContract = (client: any) => {
-    openSidebar('contract', client)
-  }
-
-  const handleChangeQueue = (client: any) => {
-    openSidebar('change-queue', client)
+    openSidebar('create-contract', client)
   }
 
   const handleDeleteClient = async (client: any) => {
@@ -96,11 +105,12 @@ export const useKanbanActions = () => {
     handleViewItem,
     handleEditClient,
     handleManageTags,
+    handleManageNotes,
+    handleAssignAgent,
     handleCreateTicket,
     handleCreateSchedule,
     handleCreateQuote,
     handleCreateContract,
-    handleChangeQueue,
     handleDeleteClient
   }
 }
