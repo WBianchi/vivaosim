@@ -173,28 +173,25 @@ export async function GET(
         })
       }
       
-      // 🔧 Corrigir URL da mídia - sempre usar o proxy da aplicação
+      // 🔧 Corrigir URL da mídia - usar servidor WAHA direto
       let mediaUrl = wahaMsg.mediaUrl || wahaMsg.media?.url
       
       if (mediaUrl) {
         try {
-          // Extrair apenas o path (/api/files/...)
-          const urlObj = new URL(mediaUrl)
-          const path = urlObj.pathname
-          
-          // Determinar o domínio correto
-          const requestUrl = new URL(request.url)
-          const host = requestUrl.host
-          const protocol = requestUrl.protocol
-          
-          const newUrl = `${protocol}//${host}${path}`
-          
-          console.log(`🔧 URL da mídia corrigida:`)
-          console.log(`   Original: ${mediaUrl}`)
-          console.log(`   Nova: ${newUrl}`)
-          console.log(`   Host: ${host}`)
-          
-          mediaUrl = newUrl
+          // Se a URL contém localhost, substituir pelo IP do WAHA
+          if (mediaUrl.includes('localhost')) {
+            // Extrair o path após /api/files/ ou /files/
+            const match = mediaUrl.match(/\/(api\/)?files\/(.+)/)
+            if (match) {
+              const filePath = match[2]
+              // Usar o formato do WAHA: http://IP:PORT/api/files/session/filename
+              mediaUrl = `${WAHA_BASE_URL}/api/files/${filePath}`
+              
+              console.log(`🔧 URL da mídia corrigida:`)
+              console.log(`   Original: ${wahaMsg.mediaUrl}`)
+              console.log(`   Nova: ${mediaUrl}`)
+            }
+          }
         } catch (error) {
           console.error('❌ Erro ao corrigir URL da mídia:', error)
         }
