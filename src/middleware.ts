@@ -42,8 +42,8 @@ export function middleware(request: NextRequest) {
   
   console.log('🛡️ Middleware - Path:', pathname)
   
-  // Não processar rotas de API
-  if (pathname.startsWith('/api/')) {
+  // Não processar rotas de API e webhooks
+  if (pathname.startsWith('/api/') || pathname.startsWith('/webhooks/')) {
     return NextResponse.next()
   }
   

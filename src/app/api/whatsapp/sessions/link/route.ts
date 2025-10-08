@@ -6,6 +6,8 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL || 'http://159.65.34.199:8081'
+const WAHA_BASE_URL = process.env.WAHA_API_URL || 'http://159.65.34.199:3001'
+const WAHA_API_KEY = process.env.WAHA_API_KEY || 'tappyone-waha-2024-secretkey'
 
 // Verificar autenticação
 async function verifyAuth(request: NextRequest) {
@@ -54,13 +56,32 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Criar registro no banco
+    // Buscar status real da sessão no WAHA
+    let sessionStatus: 'STARTING' | 'SCAN_QR_CODE' | 'WORKING' | 'FAILED' | 'STOPPED' = 'WORKING' // default
+    try {
+      const wahaResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/${sessionId}`, {
+        method: 'GET',
+        headers: {
+          'X-Api-Key': WAHA_API_KEY,
+        }
+      })
+      
+      if (wahaResponse.ok) {
+        const wahaSession = await wahaResponse.json()
+        sessionStatus = wahaSession.status as 'STARTING' | 'SCAN_QR_CODE' | 'WORKING' | 'FAILED' | 'STOPPED'
+        console.log(`📊 Status real da sessão no WAHA: ${sessionStatus}`)
+      }
+    } catch (err) {
+      console.error('⚠️ Erro ao buscar status do WAHA, usando WORKING como padrão:', err)
+    }
+
+    // Criar registro no banco com o status real
     const webhookUrl = `${WEBHOOK_BASE_URL}/webhooks/whatsapp`
     const session = await prisma.whatsAppSession.create({
       data: {
         sessionId,
         name: name || sessionId,
-        status: 'WORKING',
+        status: sessionStatus,
         webhookUrl,
         userId: user.userId,
         phoneNumber: phoneNumber || null,

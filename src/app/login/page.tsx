@@ -113,31 +113,29 @@ function LoginForm() {
       console.log('📦 Response completa:', data)
       
       if (data.success) {
-        console.log('✅ LOGIN SUCESSO - redirecionando...')
+        console.log('✅ LOGIN SUCESSO - dados recebidos')
         console.log('👤 Role do usuário:', data.data.user.role)
-        console.log('🍪 Setando cookies...')
+        console.log('🔑 Token recebido:', data.data.accessToken ? 'SIM' : 'NÃO')
         
-        // Setar cookies manualmente (sem secure para localhost)
-        document.cookie = `accessToken=${data.data.accessToken}; path=/; max-age=900; samesite=lax`
+        // Setar cookies com 7 dias de duração (sem secure para localhost)
+        const maxAge = 7 * 24 * 60 * 60 // 7 dias em segundos
+        document.cookie = `accessToken=${data.data.accessToken}; path=/; max-age=${maxAge}; samesite=lax`
         
-        // Redirecionar baseado no role
+        // Também salvar no localStorage como backup
+        localStorage.setItem('accessToken', data.data.accessToken)
+        
+        // Redirecionar baseado no role (URL consistente com middleware)
         let redirectUrl = '/dashboard'
         
         if (data.data.user.role === 'CLIENTE') {
-          redirectUrl = '/dashboard/cliente' // Área do cliente
+          redirectUrl = '/cliente'
         } else if (data.data.user.role === 'ADMINISTRADOR' || data.data.user.role === 'ATENDENTE' || data.data.user.role === 'ASSINANTE') {
           redirectUrl = '/dashboard'
         }
         
         console.log('🔄 Redirecionando para:', redirectUrl)
         
-        // Limpar cache antes de redirecionar
-        if ('caches' in window) {
-          caches.keys().then(names => {
-            names.forEach(name => caches.delete(name))
-          })
-        }
-        
+        // Usar window.location.href para garantir reload completo e carregar o AuthContext
         window.location.href = redirectUrl
       } else {
         console.error('❌ Login falhou:', data.error)

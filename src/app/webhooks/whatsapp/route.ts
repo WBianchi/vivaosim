@@ -24,13 +24,20 @@ interface WAHAWebhookPayload {
 // POST - Receber webhooks do WAHA
 export async function POST(request: NextRequest) {
   try {
-    const webhookData: WAHAWebhookPayload = await request.json()
+    console.log('🔔 WEBHOOK CHAMADO em /webhooks/whatsapp')
+    console.log('📍 Headers:', Object.fromEntries(request.headers.entries()))
+    
+    const rawBody = await request.text()
+    console.log('📦 Raw body:', rawBody)
+    
+    const webhookData: WAHAWebhookPayload = JSON.parse(rawBody)
 
     console.log('📨 Webhook recebido em /webhooks/whatsapp:', {
       event: webhookData.event,
       session: webhookData.session,
       from: webhookData.payload?.from,
-      fromMe: webhookData.payload?.fromMe
+      fromMe: webhookData.payload?.fromMe,
+      body: webhookData.payload?.body?.substring(0, 50)
     })
 
     // Processar apenas mensagens de entrada
@@ -68,6 +75,8 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
     if (!messageData.fromMe && messageData.body) {
       const chatId = messageData.from
       
+      console.log(`🔍 Buscando agente para chatId: ${chatId}`)
+      
       // Buscar agente ativo para este chat
       const agent = await prisma.agent.findFirst({
         where: { 
@@ -76,8 +85,11 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
         }
       })
 
+      console.log(`🔎 Resultado da busca:`, agent ? `Agente ${agent.name} encontrado` : 'NENHUM agente encontrado')
+
       if (agent) {
-        console.log(`🤖 Agente encontrado: ${agent.name} (${agent.model})`)
+        console.log(`🤖 Agente ATIVO encontrado: ${agent.name} (${agent.model})`)
+        console.log(`📝 Prompt: ${agent.prompt?.substring(0, 100)}...`)
         
         // Gerar resposta com IA
         const aiResponse = await generateAIResponse(

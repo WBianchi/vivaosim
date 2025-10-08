@@ -32,6 +32,7 @@ import { Chat } from '@/types/chat'
 import { cn } from '@/lib/utils'
 import { ChatNotifications } from './ChatNotifications'
 import { AllQuotesSidebar } from './sidebars/AllQuotesSidebar'
+import { CustomizationPanel } from './CustomizationPanel'
 import { getAuthToken } from '@/lib/auth-token'
 import { useAuth } from '@/contexts/AuthContext'
 import type { SidebarType } from '@/app/chat/page'
@@ -65,7 +66,6 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   } = useCustomization()
   const { logout } = useAuth()
   const [showColorPicker, setShowColorPicker] = React.useState(false)
-  const [customizationTab, setCustomizationTab] = React.useState<'topbar' | 'sidebar' | 'chat' | 'messages'>('topbar')
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
   const roleLabel =
@@ -82,18 +82,6 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   const userDisplayName = user?.name || user?.email || 'Usuário'
   const userEmail = user?.email || 'Sem e-mail'
   const userInitial = (user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()
-
-  const gradients = [
-    { name: 'Oceano', from: 'from-blue-400', to: 'to-cyan-500', preview: 'bg-gradient-to-r from-blue-400 to-cyan-500' },
-    { name: 'Pôr do Sol', from: 'from-orange-400', to: 'to-pink-500', preview: 'bg-gradient-to-r from-orange-400 to-pink-500' },
-    { name: 'Floresta', from: 'from-green-400', to: 'to-emerald-600', preview: 'bg-gradient-to-r from-green-400 to-emerald-600' },
-    { name: 'Aurora', from: 'from-purple-400', to: 'to-pink-500', preview: 'bg-gradient-to-r from-purple-400 to-pink-500' },
-    { name: 'Fogo', from: 'from-red-500', to: 'to-orange-600', preview: 'bg-gradient-to-r from-red-500 to-orange-600' },
-    { name: 'Noite', from: 'from-indigo-600', to: 'to-purple-700', preview: 'bg-gradient-to-r from-indigo-600 to-purple-700' },
-    { name: 'Limão', from: 'from-lime-400', to: 'to-green-500', preview: 'bg-gradient-to-r from-lime-400 to-green-500' },
-    { name: 'Rosa Choque', from: 'from-pink-500', to: 'to-rose-600', preview: 'bg-gradient-to-r from-pink-500 to-rose-600' },
-    { name: 'Céu', from: 'from-sky-400', to: 'to-blue-600', preview: 'bg-gradient-to-r from-sky-400 to-blue-600' },
-  ]
 
   const solidColors = [
     { name: 'Azul', value: 'blue', class: 'bg-blue-500' },
@@ -363,229 +351,16 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
             <Palette className="w-5 h-5" />
           </motion.button>
 
-          {showColorPicker && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 top-12 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 w-96 max-h-[600px] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Palette className="w-4 h-4" />
-                    Customizar Interface
-                  </h3>
-                  <button
-                    onClick={() => setShowColorPicker(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                  <button
-                    onClick={() => setCustomizationTab('topbar')}
-                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                      customizationTab === 'topbar'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Topbar
-                  </button>
-                  <button
-                    onClick={() => setCustomizationTab('sidebar')}
-                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                      customizationTab === 'sidebar'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Sidebar
-                  </button>
-                  <button
-                    onClick={() => setCustomizationTab('chat')}
-                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                      customizationTab === 'chat'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Chat
-                  </button>
-                  <button
-                    onClick={() => setCustomizationTab('messages')}
-                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                      customizationTab === 'messages'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Mensagens
-                  </button>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-4 space-y-4">
-                {/* Gradientes */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    🎨 Gradientes
-                  </h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {gradients.map((gradient) => (
-                      <button
-                        key={gradient.name}
-                        onClick={() => {
-                          const gradientData = { from: gradient.from, to: gradient.to }
-                          if (customizationTab === 'topbar') updateTopbar({ gradient: gradientData })
-                          else if (customizationTab === 'sidebar') updateSidebar({ gradient: gradientData })
-                          else if (customizationTab === 'chat') updateChat({ gradient: gradientData })
-                          else if (customizationTab === 'messages') updateMessages({ gradient: gradientData })
-                        }}
-                        className="group relative"
-                        title={gradient.name}
-                      >
-                        <div className={`w-full h-12 rounded-lg ${gradient.preview} hover:scale-105 transition-transform shadow-sm`} />
-                        <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 block text-center group-hover:text-gray-900 dark:group-hover:text-white">
-                          {gradient.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Cores Sólidas */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    🎯 Cores Sólidas
-                  </h4>
-                  <div className="grid grid-cols-5 gap-2">
-                    {solidColors.map((color) => (
-                      <button
-                        key={color.value}
-                        onClick={() => {
-                          if (customizationTab === 'topbar') updateTopbar({ color: color.value, gradient: undefined })
-                          else if (customizationTab === 'sidebar') updateSidebar({ color: color.value, gradient: undefined })
-                          else if (customizationTab === 'chat') updateChat({ color: color.value, gradient: undefined })
-                          else if (customizationTab === 'messages') updateMessages({ color: color.value, gradient: undefined })
-                        }}
-                        className="group flex flex-col items-center"
-                        title={color.name}
-                      >
-                        <div className={`w-10 h-10 rounded-full ${color.class} hover:scale-110 transition-transform shadow-md`} />
-                        <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 group-hover:text-gray-900 dark:group-hover:text-white">
-                          {color.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Opções Específicas */}
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    ⚙️ Opções de {customizationTab === 'topbar' ? 'Topbar' : customizationTab === 'sidebar' ? 'Sidebar' : customizationTab === 'chat' ? 'Chat' : 'Mensagens'}
-                  </h4>
-                  
-                  {customizationTab === 'topbar' && (
-                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Mostrar logo
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Mostrar estatísticas
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Efeito de vidro (blur)
-                      </label>
-                    </div>
-                  )}
-
-                  {customizationTab === 'sidebar' && (
-                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Ícones coloridos
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Mostrar atalhos
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" />
-                        Sidebar compacta
-                      </label>
-                    </div>
-                  )}
-
-                  {customizationTab === 'chat' && (
-                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Bolhas arredondadas
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Mostrar avatar
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" />
-                        Fundo com imagem
-                      </label>
-                    </div>
-                  )}
-
-                  {customizationTab === 'messages' && (
-                    <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Mensagens enviadas à direita
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Mostrar horário
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
-                        Animações de entrada
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* Botões de Ação */}
-                <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button 
-                    onClick={() => {
-                      if (confirm('Resetar todas as customizações?')) {
-                        resetSettings()
-                      }
-                    }}
-                    className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    Resetar
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setShowColorPicker(false)
-                      alert('✅ Customizações aplicadas e salvas!')
-                    }}
-                    className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors"
-                  >
-                    Aplicar
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
+          <CustomizationPanel
+            isOpen={showColorPicker}
+            onClose={() => setShowColorPicker(false)}
+            settings={settings}
+            updateTopbar={updateTopbar}
+            updateSidebar={updateSidebar}
+            updateChat={updateChat}
+            updateMessages={updateMessages}
+            resetSettings={resetSettings}
+          />
         </div>
 
         {/* Configurações */}

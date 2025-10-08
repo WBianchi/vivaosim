@@ -90,6 +90,7 @@ export const SideChat: React.FC<SideChatProps> = ({
   
   const {
     chats,
+    filteredChats, // ✅ USAR O FILTRADO DO HOOK
     isLoading,
     error,
     total,
@@ -102,11 +103,9 @@ export const SideChat: React.FC<SideChatProps> = ({
     loadMore
   } = useChats({
     autoRefresh: true,
-    refreshInterval: 30000 // 30 segundos para ser menos agressivo
+    refreshInterval: 30000, // 30 segundos para ser menos agressivo
+    chatMeta // Passar chatMeta para filtros de status
   })
-  
-  // Filtrar e ordenar chats
-  const filteredChats = chats
   
   // Buscar orçamentos dos chats
   useEffect(() => {
@@ -415,19 +414,23 @@ export const SideChat: React.FC<SideChatProps> = ({
     }
   }
 
+  // Calcular contagens dos filtros baseados em chatMeta
+  const favoritesCount = chats.filter(c => c.isPinned).length
+  const inProgressCount = chats.filter(c => chatMeta[c.id]?.status?.code === 'EM_ANDAMENTO').length
+  const waitingCount = chats.filter(c => chatMeta[c.id]?.status?.code === 'AGUARDANDO').length
+  const finishedCount = chats.filter(c => chatMeta[c.id]?.status?.code === 'FINALIZADO').length
+  const archivedCount = chats.filter(c => c.isArchived).length
+  const groupsCount = chats.filter(c => c.isGroup).length
+
   const filterOptions = [
     { value: 'all', label: 'Todas', icon: MessageSquare, count: chats.length, color: 'blue' },
-    { value: 'favorites', label: 'Favoritos', icon: Heart, count: 0, color: 'pink' },
-    { value: 'in_progress', label: 'Em Atendimento', icon: PlayCircle, count: 0, color: 'blue' },
-    { value: 'waiting', label: 'Aguardando', icon: PauseCircle, count: 0, color: 'yellow' },
+    { value: 'favorites', label: 'Favoritos', icon: Heart, count: favoritesCount, color: 'pink' },
+    { value: 'in_progress', label: 'Em Atendimento', icon: PlayCircle, count: inProgressCount, color: 'blue' },
+    { value: 'waiting', label: 'Aguardando', icon: Clock, count: waitingCount, color: 'yellow' },
+    { value: 'finished', label: 'Finalizados', icon: CheckCircle2, count: finishedCount, color: 'green' },
     { value: 'unread', label: 'Não lidas', icon: Circle, count: chats.filter(c => c.unreadCount > 0).length, color: 'red' },
-    { value: 'pinned', label: 'Fixadas', icon: Pin, count: chats.filter(c => c.isPinned).length, color: 'yellow' },
-
-    { value: 'resolved', label: 'Finalizados', icon: CheckCircle2, count: 0, color: 'green' },
-    { value: 'archived', label: 'Arquivadas', icon: Archive, count: chats.filter(c => c.isArchived).length, color: 'gray' },
-    { value: 'groups', label: 'Grupos', icon: Users, count: chats.filter(c => c.isGroup).length, color: 'purple' },
-    { value: 'tickets', label: 'Com Tickets', icon: Ticket, count: 0, color: 'orange' },
-    { value: 'priority', label: 'Prioridade', icon: TrendingUp, count: 0, color: 'cyan' }
+    { value: 'archived', label: 'Arquivadas', icon: Archive, count: archivedCount, color: 'gray' },
+    { value: 'groups', label: 'Grupos', icon: Users, count: groupsCount, color: 'purple' }
   ]
 
   const scrollFilters = (direction: 'left' | 'right') => {
@@ -500,11 +503,22 @@ export const SideChat: React.FC<SideChatProps> = ({
 
   const updateChatMeta = async (chat: Chat, payload: { assignedToId?: string | null; status?: string | null }) => {
     try {
+      console.log('🔧 updateChatMeta chamado:', { chatId: chat.id, payload })
+      
       const token = getAuthToken()
       if (!token) {
+        console.error('❌ Token não encontrado')
         alert('Token de autenticação não encontrado. Faça login novamente.')
         return false
       }
+
+      const requestBody = {
+        ...payload,
+        chatName: chat.name,
+        chatNumber: chat.contact?.phone || chat.contact?.id?.replace('@c.us', '') || null
+      }
+      
+      console.log('📤 Enviando requisição:', requestBody)
 
       const response = await fetch(`/api/chats/${encodeURIComponent(chat.id)}/meta`, {
         method: 'PUT',
@@ -512,14 +526,12 @@ export const SideChat: React.FC<SideChatProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...payload,
-          chatName: chat.name,
-          chatNumber: chat.contact?.phone || chat.contact?.id?.replace('@c.us', '') || null
-        })
+        body: JSON.stringify(requestBody)
       })
 
+      console.log('📥 Response status:', response.status)
       const data = await response.json()
+      console.log('📥 Response data:', data)
 
       if (!response.ok || !data.success) {
         console.error('❌ SideChat: Erro ao atualizar chat:', data)
@@ -528,6 +540,7 @@ export const SideChat: React.FC<SideChatProps> = ({
       }
 
       if (data.meta) {
+        console.log('✅ Atualizando meta local:', data.meta)
         onMetaMerge(chat.id, data.meta)
       }
 
@@ -539,7 +552,7 @@ export const SideChat: React.FC<SideChatProps> = ({
     }
   }
 
-  const confirmAction = async (chat: Chat, action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete') => {
+  const confirmAction = async (chat: Chat, action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete', statusOverride?: string) => {
     if (!chat) return
 
     if (action === 'transfer') {
@@ -558,20 +571,79 @@ export const SideChat: React.FC<SideChatProps> = ({
     }
 
     if (action === 'status') {
-      if (!selectedStatus) {
+      // Usar statusOverride se fornecido, senão usar selectedStatus
+      const statusToUse = statusOverride || selectedStatus
+      
+      console.log('🎯 Alterando status - statusToUse:', statusToUse)
+      
+      if (!statusToUse) {
         alert('Selecione um status para atualizar o atendimento.')
         return
       }
 
-      const success = await updateChatMeta(chat, { status: selectedStatus })
+      console.log('📡 Enviando requisição de status:', { chatId: chat.id, status: statusToUse })
+      const success = await updateChatMeta(chat, { status: statusToUse })
+      console.log('✅ Resultado da atualização:', success)
+      
       if (success) {
         setActionState({ chatId: '', action: null })
         setSelectedStatus(null)
+        // Não precisa refresh - o onMetaMerge já atualizou o estado local
+        // await refreshChats()
       }
       return
     }
 
-    // Demais ações ainda não implementadas
+    // Ações de favorite, archive e delete
+    if (action === 'favorite' || action === 'archive' || action === 'delete') {
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          alert('Token de autenticação não encontrado. Faça login novamente.')
+          return
+        }
+
+        // Determinar a ação correta
+        let apiAction: 'favorite' | 'unfavorite' | 'archive' | 'unarchive' | 'delete' = action
+        if (action === 'favorite') {
+          // Se já está favoritado (pinned), desfavoritar
+          apiAction = chat.isPinned ? 'unfavorite' : 'favorite'
+        } else if (action === 'archive') {
+          // Se já está arquivado, desarquivar
+          apiAction = chat.isArchived ? 'unarchive' : 'archive'
+        }
+
+        const response = await fetch(`/api/chats/${encodeURIComponent(chat.id)}/actions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ action: apiAction })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data.success) {
+          console.error('❌ Erro ao executar ação:', data)
+          alert(data.error || 'Erro ao executar ação. Tente novamente.')
+          return
+        }
+
+        console.log(`✅ Ação "${apiAction}" executada com sucesso`)
+        
+        // Atualizar lista de chats
+        await refreshChats()
+        
+        setActionState({ chatId: '', action: null })
+      } catch (error) {
+        console.error('❌ Erro ao executar ação:', error)
+        alert('Erro ao executar ação. Tente novamente.')
+      }
+      return
+    }
+
+    // Outras ações não implementadas
     setActionState({ chatId: '', action: null })
   }
 
@@ -603,20 +675,20 @@ export const SideChat: React.FC<SideChatProps> = ({
         }
       case 'favorite':
         return {
-          title: 'Adicionar aos favoritos?',
-          description: 'Esta conversa ficará destacada na lista',
+          title: actionState.chatId ? (chats.find(c => c.id === actionState.chatId)?.isPinned ? 'Remover dos favoritos?' : 'Adicionar aos favoritos?') : 'Favoritar?',
+          description: actionState.chatId ? (chats.find(c => c.id === actionState.chatId)?.isPinned ? 'Esta conversa não ficará mais destacada' : 'Esta conversa ficará destacada na lista') : 'Gerenciar favoritos',
           icon: Heart,
           color: 'pink',
-          confirmText: 'Favoritar',
+          confirmText: actionState.chatId ? (chats.find(c => c.id === actionState.chatId)?.isPinned ? 'Desfavoritar' : 'Favoritar') : 'Confirmar',
           cancelText: 'Cancelar'
         }
       case 'archive':
         return {
-          title: 'Arquivar conversa?',
-          description: 'A conversa será movida para arquivadas',
+          title: actionState.chatId ? (chats.find(c => c.id === actionState.chatId)?.isArchived ? 'Desarquivar conversa?' : 'Arquivar conversa?') : 'Arquivar?',
+          description: actionState.chatId ? (chats.find(c => c.id === actionState.chatId)?.isArchived ? 'A conversa voltará para a lista principal' : 'A conversa será movida para arquivadas') : 'Gerenciar arquivamento',
           icon: Archive,
           color: 'orange',
-          confirmText: 'Arquivar',
+          confirmText: actionState.chatId ? (chats.find(c => c.id === actionState.chatId)?.isArchived ? 'Desarquivar' : 'Arquivar') : 'Confirmar',
           cancelText: 'Cancelar'
         }
       case 'delete':
@@ -758,7 +830,12 @@ export const SideChat: React.FC<SideChatProps> = ({
               return (
                 <button
                   key={option.value}
-                  onClick={() => setFilter({ ...filter, status: option.value as any })}
+                  onClick={() => {
+                    console.log('🔘 Filtro clicado:', option.value)
+                    console.log('📊 Filtro atual:', filter)
+                    setFilter({ ...filter, status: option.value as any })
+                    console.log('✅ Filtro atualizado para:', option.value)
+                  }}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-full transition-all whitespace-nowrap flex-shrink-0 shadow-sm hover:shadow-md',
                     getColors()
@@ -998,8 +1075,8 @@ export const SideChat: React.FC<SideChatProps> = ({
                                 key={option.code}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setSelectedStatus(option.code)
-                                  confirmAction(chat, 'status')
+                                  // Passar o status diretamente para evitar problema de estado assíncrono
+                                  confirmAction(chat, 'status', option.code)
                                 }}
                                 className={cn(
                                   'w-full p-2 flex items-center gap-2 rounded-lg transition-colors text-left border border-transparent',
@@ -1130,11 +1207,24 @@ export const SideChat: React.FC<SideChatProps> = ({
                         {chat.name}
                       </h3>
                       
-                      {/* Ícones de Status */}
+                      {/* Badges e Ícones de Status */}
                       <div className="flex items-center space-x-1">
+                        {/* Badge Favorito */}
                         {chat.isPinned && (
-                          <Pin className="w-3 h-3 text-blue-500" />
+                          <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-pink-100 dark:bg-pink-900/30 border border-pink-300 dark:border-pink-700 rounded-full">
+                            <Heart className="w-2.5 h-2.5 text-pink-600 dark:text-pink-400 fill-pink-600 dark:fill-pink-400" />
+                            <span className="text-[9px] font-semibold text-pink-700 dark:text-pink-300">FAV</span>
+                          </div>
                         )}
+                        
+                        {/* Badge Arquivado */}
+                        {chat.isArchived && (
+                          <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-full">
+                            <Archive className="w-2.5 h-2.5 text-orange-600 dark:text-orange-400" />
+                            <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-300">ARQ</span>
+                          </div>
+                        )}
+                        
                         {chat.isMuted && (
                           <div className="w-3 h-3 bg-gray-400 rounded-full flex items-center justify-center">
                             <span className="text-xs text-white">🔇</span>
@@ -1177,7 +1267,7 @@ export const SideChat: React.FC<SideChatProps> = ({
                           <ArrowRightLeft className="w-3 h-3" />
                         </motion.button>
 
-                        {/* Favoritar */}
+                        {/* Favoritar/Desfavoritar */}
                         <motion.button
                           whileHover={{ scale: 1.15 }}
                           whileTap={{ scale: 0.85 }}
@@ -1185,13 +1275,18 @@ export const SideChat: React.FC<SideChatProps> = ({
                             e.stopPropagation()
                             handleAction(chat.id, 'favorite')
                           }}
-                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-yellow-600 dark:hover:text-yellow-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
-                          title="Favoritar"
+                          className={cn(
+                            "p-1 rounded-md shadow-sm hover:shadow-md transition-all border",
+                            chat.isPinned
+                              ? "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 border-pink-300 dark:border-pink-700"
+                              : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 border-gray-200 dark:border-gray-600"
+                          )}
+                          title={chat.isPinned ? "Desfavoritar" : "Favoritar"}
                         >
-                          <Star className="w-3 h-3" />
+                          <Heart className={cn("w-3 h-3", chat.isPinned && "fill-pink-600 dark:fill-pink-400")} />
                         </motion.button>
 
-                        {/* Arquivar */}
+                        {/* Arquivar/Desarquivar */}
                         <motion.button
                           whileHover={{ scale: 1.15 }}
                           whileTap={{ scale: 0.85 }}
@@ -1199,8 +1294,13 @@ export const SideChat: React.FC<SideChatProps> = ({
                             e.stopPropagation()
                             handleAction(chat.id, 'archive')
                           }}
-                          className="p-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 rounded-md shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-600"
-                          title="Arquivar"
+                          className={cn(
+                            "p-1 rounded-md shadow-sm hover:shadow-md transition-all border",
+                            chat.isArchived
+                              ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-700"
+                              : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 border-gray-200 dark:border-gray-600"
+                          )}
+                          title={chat.isArchived ? "Desarquivar" : "Arquivar"}
                         >
                           <Archive className="w-3 h-3" />
                         </motion.button>
@@ -1242,8 +1342,24 @@ export const SideChat: React.FC<SideChatProps> = ({
                   </div>
 
                   {/* Informações de Orçamento, Tags, Contratos, Agente, Agendamento e Kanban */}
-                  {(chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id] || chatAgents[chat.id] || chatKanban[chat.id]) && (
+                  {(statusDisplay || chatQuotes[chat.id] || chatTags[chat.id] || chatContracts[chat.id] || chatAgents[chat.id] || chatKanban[chat.id]) && (
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      {/* Status do Atendimento */}
+                      {statusDisplay && (
+                        <div className={cn(
+                          "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                          statusDisplay.code === 'AGUARDANDO' && "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700",
+                          statusDisplay.code === 'EM_ANDAMENTO' && "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700",
+                          statusDisplay.code === 'PAUSADO' && "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-700",
+                          statusDisplay.code === 'FINALIZADO' && "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700"
+                        )}>
+                          {(() => {
+                            const StatusIcon = STATUS_ICONS[statusDisplay.code as AttendanceStatusCode]
+                            return StatusIcon ? <StatusIcon className="w-2.5 h-2.5" /> : null
+                          })()}
+                          <span>{statusDisplay.label}</span>
+                        </div>
+                      )}
                       {/* Orçamento - Preço */}
                       {chatQuotes[chat.id] && (
                         <div className="flex items-center gap-1 text-[11px]">
@@ -1328,15 +1444,8 @@ export const SideChat: React.FC<SideChatProps> = ({
                     </div>
                   )}
 
-                  {/* Badges - Status, Atendente, Tags, Contrato */}
+                  {/* Badges - Atendente, Tags, Contrato */}
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {statusDisplay && (
-                      <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium capitalize', statusDisplay.badgeClass)}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', statusDisplay.dotClass)} />
-                        {statusDisplay.label}
-                      </span>
-                    )}
-
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                       <User className="w-2.5 h-2.5" />
                       {assignedName || 'Não atribuído'}

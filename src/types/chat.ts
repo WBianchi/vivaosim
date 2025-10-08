@@ -379,7 +379,7 @@ export enum WhatsAppStatus {
 // Filtros e buscas
 export interface ChatFilter {
   search?: string
-  status?: 'all' | 'unread' | 'archived' | 'pinned'
+  status?: 'all' | 'unread' | 'archived' | 'pinned' | 'favorites' | 'groups' | 'in_progress' | 'waiting' | 'finished'
   labels?: string[]
   hasTicket?: boolean
   ticketStatus?: TicketStatus

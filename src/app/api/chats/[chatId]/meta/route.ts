@@ -266,8 +266,12 @@ export async function PUT(
       where: { whatsappChatId: decodedChatId }
     })
 
+    console.log('📋 Attendance existente:', attendance ? `ID: ${attendance.id}, Status: ${attendance.status}` : 'Nenhum')
+
     const shouldUpdateStatus = typeof status === 'string' && status.length > 0
     const shouldUpdateAssigned = typeof assignedToId !== 'undefined'
+
+    console.log('🔍 Flags:', { shouldUpdateStatus, shouldUpdateAssigned, status, assignedToId })
 
     if (attendance) {
       const updateData: Record<string, unknown> = {}
@@ -280,18 +284,23 @@ export async function PUT(
         updateData.attendantId = assignedToId
       }
 
+      console.log('📝 Atualizando attendance existente:', updateData)
+
       if (Object.keys(updateData).length > 0) {
         attendance = await prisma.attendance.update({
           where: { id: attendance.id },
           data: updateData
         })
+        console.log('✅ Attendance atualizado:', { id: attendance.id, status: attendance.status })
       }
     } else if (shouldUpdateStatus || (shouldUpdateAssigned && assignedToId)) {
       const attendantId = assignedToId || contact?.assignedToId || user.userId
 
+      console.log('➕ Criando novo attendance:', { status, attendantId })
+
       attendance = await prisma.attendance.create({
         data: {
-          status: (status as string) || 'AGUARDANDO',
+          status: (status as 'AGUARDANDO' | 'EM_ANDAMENTO' | 'PAUSADO' | 'FINALIZADO') || 'AGUARDANDO',
           contactId: contact!.id,
           attendantId,
           whatsappChatId: decodedChatId,
@@ -299,6 +308,7 @@ export async function PUT(
           tags: []
         }
       })
+      console.log('✅ Attendance criado:', { id: attendance.id, status: attendance.status })
     }
 
     const meta = await getChatMeta(decodedChatId)

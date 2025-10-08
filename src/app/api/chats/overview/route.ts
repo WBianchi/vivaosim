@@ -65,11 +65,10 @@ async function findActiveSession(userId: string) {
   try {
     console.log('🔍 Buscando sessões vinculadas do usuário...')
     
-    // Buscar apenas sessões vinculadas ao banco de dados do usuário
+    // Buscar TODAS as sessões vinculadas ao usuário (não filtrar por status aqui)
     const dbSessions = await prisma.whatsAppSession.findMany({
       where: {
-        userId: userId,
-        status: 'WORKING'
+        userId: userId
       },
       orderBy: {
         updatedAt: 'desc'
@@ -79,31 +78,43 @@ async function findActiveSession(userId: string) {
     console.log('📋 Sessões vinculadas encontradas:', dbSessions.length)
     
     if (dbSessions.length === 0) {
-      console.log('⚠️ Nenhuma sessão vinculada e ativa encontrada')
+      console.log('⚠️ Nenhuma sessão vinculada encontrada')
       return null
     }
     
-    // Usar a primeira sessão WORKING vinculada
-    const session = dbSessions[0]
-    
-    // Verificar se ainda está WORKING no WAHA
-    try {
-      const wahaResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/${session.sessionId}`, {
-        method: 'GET',
-        headers: {
-          'X-Api-Key': WAHA_API_KEY,
+    // Verificar cada sessão até encontrar uma WORKING
+    for (const session of dbSessions) {
+      // Verificar se ainda está WORKING no WAHA
+      try {
+        const wahaResponse = await fetch(`${WAHA_BASE_URL}/api/sessions/${session.sessionId}`, {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': WAHA_API_KEY,
+          }
+        })
+        
+        if (wahaResponse.ok) {
+          const wahaSession = await wahaResponse.json()
+          
+          // Atualizar status no banco se mudou
+          if (wahaSession.status !== session.status) {
+            console.log(`🔄 Atualizando status da sessão ${session.sessionId}: ${session.status} → ${wahaSession.status}`)
+            await prisma.whatsAppSession.update({
+              where: { id: session.id },
+              data: { status: wahaSession.status }
+            })
+          }
+          
+          if (wahaSession.status === 'WORKING') {
+            console.log('✅ Sessão ativa encontrada:', session.sessionId, 'Status: WORKING')
+            return { name: session.sessionId, status: 'WORKING' }
+          } else {
+            console.log(`⚠️ Sessão ${session.sessionId} não está WORKING. Status atual: ${wahaSession.status}`)
+          }
         }
-      })
-      
-      if (wahaResponse.ok) {
-        const wahaSession = await wahaResponse.json()
-        if (wahaSession.status === 'WORKING') {
-          console.log('✅ Sessão ativa encontrada:', session.sessionId, 'Status: WORKING')
-          return { name: session.sessionId, status: 'WORKING' }
-        }
+      } catch (err) {
+        console.error('❌ Erro ao verificar status no WAHA:', err)
       }
-    } catch (err) {
-      console.error('❌ Erro ao verificar status no WAHA:', err)
     }
     
     console.log('⚠️ Nenhuma sessão WORKING vinculada encontrada')
@@ -267,6 +278,29 @@ export async function GET(request: NextRequest) {
     const wahaChats: WAHAChat[] = await response.json()
     console.log(`✅ WAHA retornou ${wahaChats.length} chats`)
 
+    // Buscar sessão do banco para ter o ID
+    const dbSession = await prisma.whatsAppSession.findUnique({
+      where: { sessionId: finalSessionId },
+      select: { id: true }
+    })
+
+    // Buscar dados do banco (isPinned, isArchived) para todos os chats de uma vez
+    const chatIds = wahaChats.map(c => c.id)
+    const dbChats = dbSession ? await prisma.whatsAppChat.findMany({
+      where: {
+        chatId: { in: chatIds },
+        sessionId: dbSession.id
+      },
+      select: {
+        chatId: true,
+        pinned: true,
+        archived: true
+      }
+    }) : []
+
+    // Criar mapa para acesso rápido
+    const dbChatsMap = new Map(dbChats.map(c => [c.chatId, c]))
+
     // Transformar dados WAHA para nosso formato
     const chats = await Promise.all(wahaChats.map(async (wahaChat) => {
       // Buscar URL real da foto diretamente da WAHA
@@ -289,6 +323,9 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         console.log('⚠️ Erro ao buscar foto:', wahaChat.id)
       }
+
+      // Buscar dados do banco para este chat
+      const dbChat = dbChatsMap.get(wahaChat.id)
       
       return {
       id: wahaChat.id,
@@ -311,9 +348,10 @@ export async function GET(request: NextRequest) {
         lastSeen: undefined
       } : undefined,
       isGroup: wahaChat.isGroup,
-      isArchived: wahaChat.archived || false,
+      // Priorizar dados do banco, fallback para WAHA
+      isArchived: dbChat?.archived ?? wahaChat.archived ?? false,
       isMuted: wahaChat.muteExpiration ? wahaChat.muteExpiration > Date.now() : false,
-      isPinned: wahaChat.pinned || false,
+      isPinned: dbChat?.pinned ?? wahaChat.pinned ?? false,
       unreadCount: 0, // TODO: calcular mensagens não lidas
       lastMessage: wahaChat.lastMessage ? {
         id: wahaChat.lastMessage.id,

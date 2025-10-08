@@ -62,7 +62,7 @@ function getRoleBasedRedirect(role: string): string {
     case 'ASSINANTE':
       return '/dashboard'
     case 'CLIENTE':
-      return '/profile'
+      return '/cliente'
     default:
       return '/'
   }
@@ -189,24 +189,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('👤 UserData:', userData)
       console.log('🔑 Token:', token ? 'exists' : 'missing')
       
-      // Atualizar estado ANTES de redirecionar
+      // Atualizar estado
       setUser(userData)
       setAccessToken(token)
       localStorage.setItem('accessToken', token)
       
-      // Setar cookie com tempo maior (7 dias)
+      // Setar cookie com 7 dias (sem secure para localhost, samesite=lax para compatibilidade)
       const maxAge = 7 * 24 * 60 * 60 // 7 dias em segundos
-      document.cookie = `accessToken=${token}; path=/; max-age=${maxAge}; secure; samesite=strict`
+      document.cookie = `accessToken=${token}; path=/; max-age=${maxAge}; samesite=lax`
       
       console.log('✅ Estado atualizado:', { user: userData.name, role: userData.role })
+      console.log('🍪 Cookie setado com max-age:', maxAge, 'segundos (7 dias)')
       
-      // Redirecionar baseado no role usando router.push
-      const redirectUrl = getRoleBasedRedirect(userData.role)
-      console.log('🔄 Redirecionando para:', redirectUrl)
-      
-      // Usar router.push ao invés de window.location para manter o estado
-      router.push(redirectUrl)
-      router.refresh() // Forçar refresh do layout
+      // NÃO redirecionar aqui - deixar a página de login fazer isso
+      // Isso evita conflito de redirecionamento duplo
 
     } catch (error: any) {
       console.error('❌ Erro no AuthContext:', error)

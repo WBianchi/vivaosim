@@ -8,6 +8,7 @@ interface UseChatsOptions {
   sessionId?: string
   autoRefresh?: boolean
   refreshInterval?: number
+  chatMeta?: Record<string, any> // Metadados dos chats para filtros de status
 }
 
 interface UseChatsReturn {
@@ -31,7 +32,8 @@ export const useChats = (options: UseChatsOptions = {}): UseChatsReturn => {
   const {
     sessionId: providedSessionId,
     autoRefresh = true,
-    refreshInterval = 30000 // 30 segundos
+    refreshInterval = 30000, // 30 segundos
+    chatMeta = {}
   } = options
 
   const [chats, setChats] = useState<Chat[]>([])
@@ -141,6 +143,7 @@ export const useChats = (options: UseChatsOptions = {}): UseChatsReturn => {
 
   // Filtrar chats
   useEffect(() => {
+    console.log('🔍 useChats - Aplicando filtros:', { filterStatus: filter.status, totalChats: chats.length })
     let filtered = [...chats]
 
     // Filtro de status
@@ -153,6 +156,24 @@ export const useChats = (options: UseChatsOptions = {}): UseChatsReturn => {
         break
       case 'pinned':
         filtered = filtered.filter(chat => chat.isPinned)
+        break
+      case 'favorites':
+        filtered = filtered.filter(chat => chat.isPinned)
+        break
+      case 'groups':
+        filtered = filtered.filter(chat => chat.isGroup)
+        break
+      case 'in_progress':
+        filtered = filtered.filter(chat => chatMeta[chat.id]?.status?.code === 'EM_ANDAMENTO')
+        break
+      case 'waiting':
+        filtered = filtered.filter(chat => chatMeta[chat.id]?.status?.code === 'AGUARDANDO')
+        break
+      case 'finished':
+        filtered = filtered.filter(chat => chatMeta[chat.id]?.status?.code === 'FINALIZADO')
+        break
+      case 'all':
+        // Não filtrar nada, mostrar todos
         break
     }
 
@@ -220,8 +241,9 @@ export const useChats = (options: UseChatsOptions = {}): UseChatsReturn => {
       return timeB - timeA
     })
 
+    console.log('✅ useChats - Filtros aplicados:', { filteredCount: filtered.length, originalCount: chats.length })
     setFilteredChats(filtered)
-  }, [chats, filter, searchQuery])
+  }, [chats, filter, searchQuery, chatMeta])
 
   // Carregar chats iniciais
   useEffect(() => {

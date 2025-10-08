@@ -140,8 +140,14 @@ export async function GET(request: NextRequest) {
 
     const metaByChat: Record<string, any> = {}
 
+    // Inicializar todos os chats com status padrão AGUARDANDO
     chatIds.forEach(chatId => {
-      metaByChat[chatId] = {}
+      metaByChat[chatId] = {
+        status: {
+          code: 'AGUARDANDO',
+          label: 'Aguardando atendimento'
+        }
+      }
     })
 
     contacts.forEach(contact => {
