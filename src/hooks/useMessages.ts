@@ -48,7 +48,7 @@ export const useMessages = (options: UseMessagesOptions = {}): UseMessagesReturn
       setError(null)
 
       const token = localStorage.getItem('accessToken')
-      const response = await fetch(`/api/chats/${chatId}/messages?limit=${limit}&downloadMedia=false`, {
+      const response = await fetch(`/api/chats/${chatId}/messages?limit=${limit}&downloadMedia=true`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -160,7 +160,7 @@ export const useMessages = (options: UseMessagesOptions = {}): UseMessagesReturn
         isLoadingRef.current = true
         
         const token = localStorage.getItem('accessToken')
-        const response = await fetch(`/api/chats/${chatId}/messages?limit=${limit}&downloadMedia=false`, {
+        const response = await fetch(`/api/chats/${chatId}/messages?limit=${limit}&downloadMedia=true`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

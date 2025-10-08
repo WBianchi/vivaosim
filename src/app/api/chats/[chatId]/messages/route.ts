@@ -132,18 +132,65 @@ export async function GET(
 
     const wahaMessages = await response.json()
     console.log(`✅ WAHA retornou ${wahaMessages.length} mensagens`)
+    
+    // 🐛 DEBUG: Ver estrutura das mensagens do WAHA
+    if (wahaMessages.length > 0) {
+      console.log('🐛 [DEBUG] Primeira mensagem do WAHA:', JSON.stringify(wahaMessages[0], null, 2))
+    }
 
     // Transformar mensagens WAHA para nosso formato
-    const messages = wahaMessages.map((wahaMsg: any) => ({
+    const messages = wahaMessages.map((wahaMsg: any) => {
+      // 🎯 Detectar tipo correto baseado em hasMedia e mimetype
+      let messageType = 'text'
+      
+      if (wahaMsg.hasMedia && wahaMsg.media) {
+        const mimetype = wahaMsg.media.mimetype || ''
+        
+        if (mimetype.startsWith('image/')) {
+          messageType = 'image'
+        } else if (mimetype.startsWith('video/')) {
+          messageType = 'video'
+        } else if (mimetype.startsWith('audio/') || mimetype.includes('ogg')) {
+          messageType = 'audio'
+        } else {
+          messageType = 'document'
+        }
+      } else if (wahaMsg.location) {
+        messageType = 'location'
+      } else if (wahaMsg.vcard) {
+        messageType = 'contact'
+      }
+      
+      // 🐛 DEBUG: Log de cada mensagem
+      if (wahaMsg.hasMedia || messageType !== 'text') {
+        console.log('🐛 [DEBUG] Mensagem processada:', {
+          id: wahaMsg.id,
+          typeOriginal: wahaMsg.type,
+          typeDetectado: messageType,
+          hasMedia: wahaMsg.hasMedia,
+          mimetype: wahaMsg.media?.mimetype,
+          mediaUrl: wahaMsg.mediaUrl || wahaMsg.media?.url
+        })
+      }
+      
+      // 🔧 Corrigir URL da mídia (substituir localhost pela URL da app)
+      let mediaUrl = wahaMsg.mediaUrl || wahaMsg.media?.url
+      if (mediaUrl && mediaUrl.includes('localhost:3000')) {
+        // Substituir localhost pela URL da aplicação
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vivaosim.vercel.app'
+        mediaUrl = mediaUrl.replace('http://localhost:3000', appUrl)
+      }
+      
+      return ({
       id: wahaMsg.id,
       chatId: chatId,
       from: wahaMsg.from,
       to: wahaMsg.to,
       body: wahaMsg.body || wahaMsg.caption || '',
-      type: wahaMsg.type || 'text',
+      type: messageType,
       timestamp: new Date(wahaMsg.timestamp * 1000),
       hasMedia: wahaMsg.hasMedia || false,
-      mediaUrl: wahaMsg.mediaUrl || wahaMsg.media?.url,
+      mediaUrl: mediaUrl,
       mimeType: wahaMsg.media?.mimetype,
       fileName: wahaMsg.media?.filename,
       isForwarded: wahaMsg.isForwarded || false,
@@ -165,7 +212,8 @@ export async function GET(
       ack: wahaMsg.ack || 0,
       editedTimestamp: wahaMsg.editedTimestamp ? new Date(wahaMsg.editedTimestamp * 1000) : undefined,
       revokedTimestamp: wahaMsg.revokedTimestamp ? new Date(wahaMsg.revokedTimestamp * 1000) : undefined
-    }))
+      })
+    })
 
     return NextResponse.json({
       success: true,

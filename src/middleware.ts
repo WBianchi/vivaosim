@@ -32,9 +32,10 @@ const authRoutes = [
 const roleBasedRoutes = {
   '/admin': ['ADMINISTRADOR'],
   '/dashboard': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
+  '/dashboard/cliente': ['CLIENTE'],
   '/crm': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
   '/chat': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
-  '/cliente': ['CLIENTE']
+  '/cliente': ['CLIENTE'] // Manter para compatibilidade
 }
 
 export function middleware(request: NextRequest) {
@@ -97,7 +98,7 @@ function getRedirectUrlByRole(role: string): string {
     case 'ASSINANTE':
       return '/dashboard'
     case 'CLIENTE':
-      return '/cliente'
+      return '/dashboard/cliente'
     default:
       return '/'
   }

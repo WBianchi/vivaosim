@@ -285,10 +285,48 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     }
   }
 
-  // Componente de mensagem - SIMPLIFICADO
+  // Renderizar conteúdo da mensagem baseado no tipo
+  const renderMessageContent = (message: Message) => {
+    const type = message.type || MessageType.TEXT
+    const isFromMe = message.isFromMe
+
+    switch (type) {
+      case MessageType.IMAGE:
+        return <MessageImage message={message} isFromMe={isFromMe} />
+      
+      case MessageType.VIDEO:
+        return <MessageVideo message={message} isFromMe={isFromMe} />
+      
+      case MessageType.AUDIO:
+        return <MessageAudio message={message} isFromMe={isFromMe} />
+      
+      case MessageType.DOCUMENT:
+        return <MessageDocument message={message} isFromMe={isFromMe} />
+      
+      case MessageType.POLL:
+        return <MessagePoll message={message} isFromMe={isFromMe} />
+      
+      case MessageType.LIST:
+        return <MessageList message={message} isFromMe={isFromMe} />
+      
+      case MessageType.CONTACT:
+        return <MessageContact message={message} isFromMe={isFromMe} />
+      
+      case MessageType.LOCATION:
+        return <MessageLocation message={message} isFromMe={isFromMe} />
+      
+      case MessageType.EVENT:
+        return <MessageEvent message={message} isFromMe={isFromMe} />
+      
+      case MessageType.TEXT:
+      default:
+        return <MessageText message={message} isFromMe={isFromMe} />
+    }
+  }
+
+  // Componente de mensagem
   const MessageBubble: React.FC<{ message: Message }> = React.memo(({ message }) => {
     const isFromMe = message.isFromMe
-    const content = message.body || message.content || 'Mensagem'
     
     return (
       <div
@@ -297,21 +335,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
           isFromMe ? 'justify-end' : 'justify-start'
         )}
       >
-        <div
-          className={cn(
-            'max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-2xl shadow-lg',
-            isFromMe
-              ? 'bg-blue-500 text-white rounded-br-md'
-              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-md'
-          )}
-        >
-          <div className="break-words whitespace-pre-wrap text-sm">
-            {content}
-          </div>
+        <div className={cn('max-w-xs lg:max-w-md xl:max-w-lg')}>
+          {renderMessageContent(message)}
           
+          {/* Timestamp e status */}
           <div className={cn(
-            'flex items-center justify-end space-x-1 mt-2 text-xs',
-            isFromMe ? 'text-blue-100' : 'text-gray-500'
+            'flex items-center justify-end space-x-1 mt-1 text-xs px-2',
+            isFromMe ? 'text-blue-600' : 'text-gray-500'
           )}>
             <span>{formatMessageTime(message.timestamp)}</span>
             {isFromMe && getMessageStatusIcon(message.ack)}
