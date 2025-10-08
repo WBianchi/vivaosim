@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
-const WAHA_URL = process.env.WAHA_URL || 'http://159.65.34.199:3000'
+const WAHA_URL = process.env.WAHA_URL || 'http://159.65.34.199:3001'  // ✅ PORTA CORRETA
 const WAHA_API_KEY = process.env.WAHA_API_KEY || 'tappyone-waha-2024-secretkey'
 
 interface WAHAMessagePayload {
