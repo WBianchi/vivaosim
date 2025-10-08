@@ -173,12 +173,31 @@ export async function GET(
         })
       }
       
-      // 🔧 Corrigir URL da mídia (substituir localhost pela URL da app)
+      // 🔧 Corrigir URL da mídia - sempre usar o proxy da aplicação
       let mediaUrl = wahaMsg.mediaUrl || wahaMsg.media?.url
-      if (mediaUrl && mediaUrl.includes('localhost:3000')) {
-        // Substituir localhost pela URL da aplicação
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vivaosim.vercel.app'
-        mediaUrl = mediaUrl.replace('http://localhost:3000', appUrl)
+      
+      if (mediaUrl) {
+        try {
+          // Extrair apenas o path (/api/files/...)
+          const urlObj = new URL(mediaUrl)
+          const path = urlObj.pathname
+          
+          // Determinar o domínio correto
+          const requestUrl = new URL(request.url)
+          const host = requestUrl.host
+          const protocol = requestUrl.protocol
+          
+          const newUrl = `${protocol}//${host}${path}`
+          
+          console.log(`🔧 URL da mídia corrigida:`)
+          console.log(`   Original: ${mediaUrl}`)
+          console.log(`   Nova: ${newUrl}`)
+          console.log(`   Host: ${host}`)
+          
+          mediaUrl = newUrl
+        } catch (error) {
+          console.error('❌ Erro ao corrigir URL da mídia:', error)
+        }
       }
       
       return ({
