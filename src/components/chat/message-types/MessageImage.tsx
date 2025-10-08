@@ -16,14 +16,6 @@ export const MessageImage: React.FC<MessageImageProps> = ({ message, isFromMe })
   const [showFullImage, setShowFullImage] = useState(false)
 
   const imageUrl = message.mediaUrl || message.content || message.body || ''
-  
-  // 🐛 DEBUG
-  console.log('📸 [MessageImage] Renderizando:', {
-    id: message.id,
-    imageUrl,
-    hasMediaUrl: !!message.mediaUrl,
-    type: message.type
-  })
 
   return (
     <div className="group relative">

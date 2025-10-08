@@ -132,11 +132,6 @@ export async function GET(
 
     const wahaMessages = await response.json()
     console.log(`✅ WAHA retornou ${wahaMessages.length} mensagens`)
-    
-    // 🐛 DEBUG: Ver estrutura das mensagens do WAHA
-    if (wahaMessages.length > 0) {
-      console.log('🐛 [DEBUG] Primeira mensagem do WAHA:', JSON.stringify(wahaMessages[0], null, 2))
-    }
 
     // Transformar mensagens WAHA para nosso formato
     const messages = wahaMessages.map((wahaMsg: any) => {
@@ -161,39 +156,15 @@ export async function GET(
         messageType = 'contact'
       }
       
-      // 🐛 DEBUG: Log de cada mensagem
-      if (wahaMsg.hasMedia || messageType !== 'text') {
-        console.log('🐛 [DEBUG] Mensagem processada:', {
-          id: wahaMsg.id,
-          typeOriginal: wahaMsg.type,
-          typeDetectado: messageType,
-          hasMedia: wahaMsg.hasMedia,
-          mimetype: wahaMsg.media?.mimetype,
-          mediaUrl: wahaMsg.mediaUrl || wahaMsg.media?.url
-        })
-      }
-      
-      // 🔧 Corrigir URL da mídia - usar servidor WAHA direto
+      // 🔧 Corrigir URL da mídia - usar proxy da aplicação
       let mediaUrl = wahaMsg.mediaUrl || wahaMsg.media?.url
       
-      if (mediaUrl) {
-        try {
-          // Se a URL contém localhost, substituir pelo IP do WAHA
-          if (mediaUrl.includes('localhost')) {
-            // Extrair o path após /api/files/ ou /files/
-            const match = mediaUrl.match(/\/(api\/)?files\/(.+)/)
-            if (match) {
-              const filePath = match[2]
-              // Usar o formato do WAHA: http://IP:PORT/api/files/session/filename
-              mediaUrl = `${WAHA_BASE_URL}/api/files/${filePath}`
-              
-              console.log(`🔧 URL da mídia corrigida:`)
-              console.log(`   Original: ${wahaMsg.mediaUrl}`)
-              console.log(`   Nova: ${mediaUrl}`)
-            }
-          }
-        } catch (error) {
-          console.error('❌ Erro ao corrigir URL da mídia:', error)
+      if (mediaUrl && (mediaUrl.includes('localhost') || mediaUrl.includes('159.65.34.199'))) {
+        const match = mediaUrl.match(/\/(?:api\/)?files\/(.+)/)
+        if (match) {
+          const filePath = match[1]
+          const requestUrl = new URL(request.url)
+          mediaUrl = `${requestUrl.protocol}//${requestUrl.host}/api/proxy-media/${filePath}`
         }
       }
       

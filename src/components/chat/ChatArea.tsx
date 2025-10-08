@@ -331,11 +331,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     return (
       <div
         className={cn(
-          'flex mb-4 w-full',
+          'flex mb-4 w-full px-4',
           isFromMe ? 'justify-end' : 'justify-start'
         )}
       >
-        <div className={cn('max-w-xs lg:max-w-md xl:max-w-lg')}>
+        <div className={cn(
+          'max-w-xs lg:max-w-md xl:max-w-lg',
+          isFromMe && 'ml-auto'
+        )}>
           {renderMessageContent(message)}
           
           {/* Timestamp e status */}
