@@ -5,6 +5,18 @@ const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ''
 const WAHA_URL = process.env.WAHA_URL || 'http://159.65.34.199:3001'  // ✅ PORTA CORRETA
 const WAHA_API_KEY = process.env.WAHA_API_KEY || 'tappyone-waha-2024-secretkey'
 
+// 🚫 Sistema de deduplicação
+const processedMessages = new Set<string>()
+const CLEANUP_INTERVAL = 60000 // Limpar a cada 1 minuto
+
+// Limpar mensagens antigas
+setInterval(() => {
+  if (processedMessages.size > 1000) {
+    processedMessages.clear()
+    console.log('🧹 Cache de mensagens limpo')
+  }
+}, CLEANUP_INTERVAL)
+
 interface WAHAMessagePayload {
   id: string
   timestamp: number
@@ -42,6 +54,21 @@ export async function POST(request: NextRequest) {
 
     // Processar apenas mensagens de entrada
     if ((webhookData.event === 'message' || webhookData.event === 'message.any') && !webhookData.payload?.fromMe) {
+      // 🚫 Verificar duplicação usando ID da mensagem
+      const messageId = webhookData.payload?.id || `${webhookData.payload?.from}-${webhookData.payload?.timestamp}`
+      
+      if (processedMessages.has(messageId)) {
+        console.log(`🚫 Mensagem duplicada bloqueada: ${messageId}`)
+        return NextResponse.json({ 
+          success: true,
+          message: 'Duplicata bloqueada'
+        })
+      }
+      
+      // Registrar mensagem como processada
+      processedMessages.add(messageId)
+      console.log(`✅ Mensagem registrada: ${messageId}`)
+      
       await handleMessage(webhookData)
     }
 
