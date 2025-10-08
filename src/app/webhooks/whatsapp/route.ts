@@ -75,13 +75,34 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
     if (!messageData.fromMe && messageData.body) {
       const chatId = messageData.from
       
-      console.log(`🔍 Buscando agente para chatId: ${chatId}`)
+      console.log(`🔍 Buscando agente para sessão: ${session}`)
       
-      // Buscar agente ativo para este chat
+      // 🎯 CORREÇÃO: Buscar agente pela SESSÃO, não pelo chatId específico
+      // Primeiro, buscar a sessão WhatsApp no banco
+      const whatsappSession = await prisma.whatsAppSession.findFirst({
+        where: { 
+          sessionId: session,
+          status: 'WORKING'
+        },
+        include: {
+          user: true
+        }
+      })
+
+      if (!whatsappSession) {
+        console.log(`❌ Sessão ${session} não encontrada no banco`)
+        return
+      }
+
+      console.log(`✅ Sessão encontrada: ${whatsappSession.name} (User: ${whatsappSession.user?.name})`)
+      
+      // 🎯 Buscar QUALQUER agente ATIVO (não vinculado a chat específico)
       const agent = await prisma.agent.findFirst({
         where: { 
-          chatId: chatId,
           status: 'ACTIVE'
+        },
+        orderBy: {
+          lastUsed: 'desc' // Pegar o mais recentemente usado
         }
       })
 
