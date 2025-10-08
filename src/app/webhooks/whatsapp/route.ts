@@ -215,7 +215,7 @@ async function generateAIResponse(
   }
 }
 
-// Enviar resposta via WAHA
+// Enviar resposta via WAHA com anti-bloqueio
 async function sendAutoReply(
   sessionId: string,
   chatId: string,
@@ -224,6 +224,55 @@ async function sendAutoReply(
   try {
     console.log(`📤 Enviando auto-resposta para ${chatId}...`)
     
+    // 1️⃣ Enviar "visto" (seen)
+    console.log('👁️ Enviando "visto"...')
+    await fetch(`${WAHA_URL}/api/sendSeen`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: sessionId,
+        chatId: chatId
+      })
+    })
+    
+    // 2️⃣ Iniciar digitação
+    console.log('⌨️ Iniciando digitação...')
+    await fetch(`${WAHA_URL}/api/startTyping`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: sessionId,
+        chatId: chatId
+      })
+    })
+    
+    // 3️⃣ Aguardar tempo aleatório baseado no tamanho da mensagem
+    const typingTime = Math.min(Math.max(message.length * 50, 1000), 5000) // Entre 1-5 segundos
+    console.log(`⏳ Aguardando ${typingTime}ms (simulando digitação)...`)
+    await new Promise(resolve => setTimeout(resolve, typingTime))
+    
+    // 4️⃣ Parar digitação
+    console.log('🛑 Parando digitação...')
+    await fetch(`${WAHA_URL}/api/stopTyping`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: sessionId,
+        chatId: chatId
+      })
+    })
+    
+    // 5️⃣ Enviar mensagem
+    console.log('📨 Enviando mensagem...')
     const response = await fetch(`${WAHA_URL}/api/sendText`, {
       method: 'POST',
       headers: { 
