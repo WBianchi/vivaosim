@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
       body: webhookData.payload?.body?.substring(0, 50)
     })
 
-    // Processar apenas mensagens de entrada - APENAS 'message.any' para evitar duplicatas
-    if (webhookData.event === 'message.any' && !webhookData.payload?.fromMe) {
+    // Processar apenas mensagens de entrada
+    if ((webhookData.event === 'message' || webhookData.event === 'message.any') && !webhookData.payload?.fromMe) {
       // 🚫 Verificar duplicação usando ID da mensagem
       const messageId = webhookData.payload?.id || `${webhookData.payload?.from}-${webhookData.payload?.timestamp}`
       
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       
       // Registrar mensagem como processada
       processedMessages.add(messageId)
-      console.log(`✅ Mensagem registrada: ${messageId}`)
+      console.log(`✅ Mensagem registrada: ${messageId} (evento: ${webhookData.event})`)
       
       await handleMessage(webhookData)
     }
