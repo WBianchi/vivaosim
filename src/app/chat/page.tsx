@@ -52,6 +52,10 @@ export default function ChatPage() {
   const [chatQuoteCount, setChatQuoteCount] = useState(0)
   const [chatScheduleCount, setChatScheduleCount] = useState(0)
   const [chatMeta, setChatMeta] = useState<Record<string, ChatAssignmentMeta>>({})
+  const [aiResponseText, setAiResponseText] = useState('')
+  const [translateText, setTranslateText] = useState('')
+  const [replyToMessage, setReplyToMessage] = useState<any>(null)
+  const [forwardMessageId, setForwardMessageId] = useState('')
 
   // Buscar contagens do chat ativo
   useEffect(() => {
@@ -193,6 +197,10 @@ export default function ChatPage() {
                     chatQuoteCount={chatQuoteCount}
                     chatScheduleCount={chatScheduleCount}
                     meta={state.activeChat ? chatMeta[state.activeChat.id] : undefined}
+                    onAIResponse={setAiResponseText}
+                    onTranslate={setTranslateText}
+                    onReply={setReplyToMessage}
+                    onForward={setForwardMessageId}
                   />
                 </div>
                 
@@ -201,6 +209,12 @@ export default function ChatPage() {
                   <FooterChatArea 
                     chat={state.activeChat}
                     onSidebarToggle={handleSidebarToggle}
+                    aiResponseText={aiResponseText}
+                    translateText={translateText}
+                    replyToMessage={replyToMessage}
+                    onAIModalClose={() => setAiResponseText('')}
+                    onTranslateModalClose={() => setTranslateText('')}
+                    onReplyClose={() => setReplyToMessage(null)}
                   />
                 </div>
               </>

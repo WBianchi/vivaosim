@@ -2,39 +2,97 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Forward, SmilePlus, Bot, Languages, MoreVertical } from 'lucide-react'
+import { Forward, SmilePlus, Bot, Languages, MoreVertical, Reply, Trash2 } from 'lucide-react'
 import { Message } from '@/types/chat'
 
 interface MessageActionsProps {
   message: Message
   isFromMe: boolean
+  onReply?: (message: Message) => void
+  onAIResponse?: (messageText: string) => void
+  onTranslate?: (messageText: string) => void
+  onForward?: (messageId: string) => void
+  onDelete?: (messageId: string) => void
 }
 
-export const MessageActions: React.FC<MessageActionsProps> = ({ message, isFromMe }) => {
+export const MessageActions: React.FC<MessageActionsProps> = ({ 
+  message, 
+  isFromMe,
+  onReply,
+  onAIResponse,
+  onTranslate,
+  onForward,
+  onDelete
+}) => {
   const [showActions, setShowActions] = useState(false)
   const [showReactions, setShowReactions] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const reactions = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 
-  const handleForward = () => {
-    console.log('🔄 Encaminhar mensagem:', message.id)
-    // TODO: Implementar encaminhamento
+  const handleReply = () => {
+    if (onReply) {
+      onReply(message)
+    }
+    setShowActions(false)
+  }
+
+  const handleForwardClick = () => {
+    if (onForward) {
+      onForward(message.id)
+    }
+    setShowActions(false)
   }
 
   const handleReaction = (emoji: string) => {
     console.log('😀 Reagir com:', emoji, 'mensagem:', message.id)
-    // TODO: Implementar reação
+    // TODO: Implementar reação via API
     setShowReactions(false)
   }
 
   const handleAIResponse = () => {
-    console.log('🤖 Responder com IA:', message.id)
-    // TODO: Implementar resposta IA
+    if (onAIResponse && message.body) {
+      onAIResponse(message.body)
+    }
+    setShowActions(false)
   }
 
-  const handleTranslate = () => {
-    console.log('🌐 Traduzir mensagem:', message.id)
-    // TODO: Implementar tradução
+  const handleTranslateClick = () => {
+    if (onTranslate && message.body) {
+      onTranslate(message.body)
+    }
+    setShowActions(false)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Deseja realmente excluir esta mensagem?')) return
+
+    setDeleting(true)
+    try {
+      const response = await fetch('/api/whatsapp/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId: message.id,
+          chatId: message.chatId
+        })
+      })
+
+      if (response.ok) {
+        if (onDelete) {
+          onDelete(message.id)
+        }
+        alert('✅ Mensagem excluída!')
+      } else {
+        alert('❌ Erro ao excluir mensagem')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir:', error)
+      alert('❌ Erro ao excluir mensagem')
+    } finally {
+      setDeleting(false)
+      setShowActions(false)
+    }
   }
 
   return (
@@ -55,27 +113,36 @@ export const MessageActions: React.FC<MessageActionsProps> = ({ message, isFromM
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className={`absolute ${isFromMe ? 'right-0' : 'left-0'} mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[180px]`}
+          className={`absolute ${isFromMe ? 'right-0' : 'left-0'} mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-[9999] min-w-[200px]`}
         >
-          {/* Encaminhar */}
+          {/* Responder - Sempre visível */}
           <button
-            onClick={handleForward}
+            onClick={handleReply}
             className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            <Forward className="w-4 h-4 text-blue-500" />
+            <Reply className="w-4 h-4 text-blue-500" />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Responder</span>
+          </button>
+
+          {/* Encaminhar - Sempre visível */}
+          <button
+            onClick={handleForwardClick}
+            className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Forward className="w-4 h-4 text-indigo-500" />
             <span className="text-sm text-gray-700 dark:text-gray-300">Encaminhar</span>
           </button>
 
-          {/* Reação */}
+          {/* Traduzir - Sempre visível */}
           <button
-            onClick={() => setShowReactions(!showReactions)}
+            onClick={handleTranslateClick}
             className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            <SmilePlus className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Reagir</span>
+            <Languages className="w-4 h-4 text-green-500" />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Traduzir</span>
           </button>
 
-          {/* Responder com IA */}
+          {/* Responder com IA - Apenas para mensagens RECEBIDAS */}
           {!isFromMe && (
             <button
               onClick={handleAIResponse}
@@ -86,14 +153,19 @@ export const MessageActions: React.FC<MessageActionsProps> = ({ message, isFromM
             </button>
           )}
 
-          {/* Traduzir */}
-          <button
-            onClick={handleTranslate}
-            className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <Languages className="w-4 h-4 text-green-500" />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Traduzir</span>
-          </button>
+          {/* Excluir - Apenas para mensagens ENVIADAS */}
+          {isFromMe && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+              <span className="text-sm text-red-600 dark:text-red-400">
+                {deleting ? 'Excluindo...' : 'Excluir'}
+              </span>
+            </button>
+          )}
         </motion.div>
       )}
 

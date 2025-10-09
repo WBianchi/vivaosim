@@ -71,9 +71,24 @@ import type { SidebarType } from '@/app/chat/page'
 interface FooterChatAreaProps {
   chat: Chat
   onSidebarToggle?: (sidebar: SidebarType) => void
+  aiResponseText?: string
+  translateText?: string
+  replyToMessage?: any
+  onAIModalClose?: () => void
+  onTranslateModalClose?: () => void
+  onReplyClose?: () => void
 }
 
-export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarToggle }) => {
+export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ 
+  chat, 
+  onSidebarToggle,
+  aiResponseText = '',
+  translateText = '',
+  replyToMessage = null,
+  onAIModalClose,
+  onTranslateModalClose,
+  onReplyClose
+}) => {
   const [message, setMessage] = useState('')
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [showActionsMenu, setShowActionsMenu] = useState(false)
@@ -93,6 +108,31 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
   const [aiMode, setAiMode] = useState<'manual' | 'assistant' | 'auto'>('manual') // Modo da IA
   const [showAgentModal, setShowAgentModal] = useState(false)
   const [currentAgent, setCurrentAgent] = useState<any>(null)
+
+  // Abrir modal de IA quando receber texto para responder
+  useEffect(() => {
+    if (aiResponseText) {
+      setShowAIModal(true)
+    }
+  }, [aiResponseText])
+
+  // Abrir modal de IA quando receber texto para traduzir
+  useEffect(() => {
+    if (translateText) {
+      setShowAIModal(true)
+    }
+  }, [translateText])
+
+  // Preencher input quando receber mensagem para responder
+  useEffect(() => {
+    if (replyToMessage) {
+      // Focar no input
+      const textarea = document.querySelector('textarea[placeholder*="Digite"]') as HTMLTextAreaElement
+      if (textarea) {
+        textarea.focus()
+      }
+    }
+  }, [replyToMessage])
 
   // Buscar agente atual do chat
   useEffect(() => {
@@ -995,6 +1035,30 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
 
         {/* Input de Mensagem */}
         <div className="flex-1 relative">
+          {/* Preview de Resposta */}
+          {replyToMessage && (
+            <div className="mb-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-lg flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                  Respondendo para {replyToMessage.isFromMe ? 'você' : chat.name}
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                  {replyToMessage.body || 'Mídia'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (onReplyClose) {
+                    onReplyClose()
+                  }
+                }}
+                className="ml-2 p-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-end bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-2">
             {/* Textarea */}
             <textarea
@@ -2009,12 +2073,26 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
       {/* AI Message Modal */}
       <AIMessageModal
         isOpen={showAIModal}
-        onClose={() => setShowAIModal(false)}
+        onClose={() => {
+          setShowAIModal(false)
+          if (onAIModalClose) {
+            onAIModalClose()
+          }
+          if (onTranslateModalClose) {
+            onTranslateModalClose()
+          }
+        }}
         onSend={(aiMessage) => {
           setMessage(aiMessage)
           setShowAIModal(false)
+          if (onAIModalClose) {
+            onAIModalClose()
+          }
+          if (onTranslateModalClose) {
+            onTranslateModalClose()
+          }
         }}
-        initialMessage={message}
+        initialMessage={aiResponseText || translateText || message}
         contactName={chat.name}
       />
 

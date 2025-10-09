@@ -55,6 +55,7 @@ import {
   MessageContact,
   MessageLocation
 } from './message-types'
+import { MessageActions } from './message-types/MessageActions'
 
 interface ChatAreaProps {
   chat: Chat
@@ -63,9 +64,24 @@ interface ChatAreaProps {
   chatContractCount?: number
   chatScheduleCount?: number
   meta?: ChatAssignmentMeta
+  onAIResponse?: (messageText: string) => void
+  onTranslate?: (messageText: string) => void
+  onReply?: (message: any) => void
+  onForward?: (messageId: string) => void
 }
 
-export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQuoteCount: propQuoteCount, chatContractCount: propContractCount, chatScheduleCount: propScheduleCount, meta }) => {
+export const ChatArea: React.FC<ChatAreaProps> = ({ 
+  chat, 
+  onSidebarToggle, 
+  chatQuoteCount: propQuoteCount, 
+  chatContractCount: propContractCount, 
+  chatScheduleCount: propScheduleCount, 
+  meta,
+  onAIResponse,
+  onTranslate,
+  onReply,
+  onForward
+}) => {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -73,6 +89,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
   const [chatContractCount, setChatContractCount] = useState(propContractCount || 0)
   const [chatScheduleCount, setChatScheduleCount] = useState(propScheduleCount || 0)
   const [kanbanInfo, setKanbanInfo] = useState<{ boardName: string, columnName: string, columnColor: string } | null>(null)
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null)
 
   // Usar hook de mensagens
   const {
@@ -180,6 +197,36 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
 
   const handleNotesClick = () => {
     console.log('📝 Abrindo anotações do chat', chat.id)
+  }
+
+  // Handlers para ações de mensagem
+  const handleReply = (message: Message) => {
+    if (onReply) {
+      onReply(message)
+    }
+  }
+
+  const handleAIResponse = (messageText: string) => {
+    if (onAIResponse) {
+      onAIResponse(messageText)
+    }
+  }
+
+  const handleTranslate = (messageText: string) => {
+    if (onTranslate) {
+      onTranslate(messageText)
+    }
+  }
+
+  const handleForwardMessage = (messageId: string) => {
+    if (onForward) {
+      onForward(messageId)
+    }
+  }
+
+  const handleDeleteMessage = (messageId: string) => {
+    // Remover mensagem da lista localmente
+    refreshMessages()
   }
 
   const renderIconButton = ({
@@ -333,11 +380,27 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     return (
       <div
         className={cn(
-          'flex mb-4 w-full',
+          'flex mb-4 w-full group',
           isFromMe ? 'justify-end pr-4' : 'justify-start pl-4'
         )}
       >
-        <div className={cn('max-w-xs lg:max-w-md xl:max-w-lg')}>
+        <div className={cn('max-w-xs lg:max-w-md xl:max-w-lg relative')}>
+          {/* Ações da mensagem */}
+          <div className={cn(
+            'absolute top-0',
+            isFromMe ? '-left-10' : '-right-10'
+          )}>
+            <MessageActions
+              message={message}
+              isFromMe={isFromMe}
+              onReply={handleReply}
+              onAIResponse={handleAIResponse}
+              onTranslate={handleTranslate}
+              onForward={handleForwardMessage}
+              onDelete={handleDeleteMessage}
+            />
+          </div>
+
           {renderMessageContent(message)}
           
           {/* Timestamp e status */}
