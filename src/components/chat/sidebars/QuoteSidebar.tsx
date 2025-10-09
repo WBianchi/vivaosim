@@ -99,20 +99,40 @@ export function QuoteSidebar({ isOpen, onClose, chatId, contactId, contactName }
   }
 
   const handleSaveQuote = async () => {
+    if (!contactId) {
+      alert('❌ Contato não identificado. Por favor, tente novamente.')
+      return
+    }
+
     setLoading(true)
     
     try {
+      const token = getAuthToken()
       const total = calculateTotal()
+      
+      // Formatar itens com os campos corretos
+      const formattedItems = items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        total: item.quantity * item.price
+      }))
       
       // 1. Criar orçamento
       const quoteResponse = await fetch('/api/quotes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({
-          ...formData,
+          title: formData.title,
+          description: formData.description,
+          validUntil: formData.validUntil ? new Date(formData.validUntil).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias se não informado
+          discount: formData.discount || 0,
           contactId,
           chatId,
-          items,
+          items: formattedItems,
           total,
           tags: selectedTags
         })
@@ -125,7 +145,10 @@ export function QuoteSidebar({ isOpen, onClose, chatId, contactId, contactName }
         if (selectedTags.length > 0) {
           await fetch(`/api/quotes/${quoteData.quote.id}/tags`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json' 
+            },
             body: JSON.stringify({ tagIds: selectedTags })
           })
         }

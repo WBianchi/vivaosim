@@ -43,7 +43,7 @@ import { CreateScheduleSheet } from './bottom-sheets/CreateScheduleSheet'
 import { CreateQuoteSheet } from './bottom-sheets/CreateQuoteSheet'
 import { ManageTagsSheet } from './bottom-sheets/ManageTagsSheet'
 import { CreateContractSheet } from './bottom-sheets/CreateContractSheet'
-import { QuoteSidebar } from './sidebars/QuoteSidebar'
+import { AllQuotesSidebar } from './sidebars/AllQuotesSidebar'
 import { TagSidebar } from './sidebars/TagSidebar'
 import { ContractSidebar } from './sidebars/ContractSidebar'
 import { ClientProfileSidebar } from './ClientProfileSidebar'
@@ -84,7 +84,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
   const [bottomSheetType, setBottomSheetType] = useState<string>('')
   const [clientExists, setClientExists] = useState<boolean | null>(null) // null = não verificado, true = existe, false = não existe
   const [clientData, setClientData] = useState<any>(null)
-  const [showQuoteSidebar, setShowQuoteSidebar] = useState(false)
+  const [showAllQuotesSidebar, setShowAllQuotesSidebar] = useState(false)
   const [showTagSidebar, setShowTagSidebar] = useState(false)
   const [showContractSidebar, setShowContractSidebar] = useState(false)
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
@@ -300,8 +300,8 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         break
       case 'quote':
       case 'create-quote':
-        console.log('💰 Abrindo sidebar para criar orçamento')
-        setShowQuoteSidebar(true)
+        console.log('💰 Abrindo sidebar de orçamentos')
+        setShowAllQuotesSidebar(true)
         break
       case 'schedule':
         console.log('📅 Abrindo sidebar de agendamentos')
@@ -1955,13 +1955,11 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         chatName={chat.name}
       />
 
-      {/* Quote Sidebar */}
-      <QuoteSidebar
-        isOpen={showQuoteSidebar}
-        onClose={() => setShowQuoteSidebar(false)}
+      {/* All Quotes Sidebar */}
+      <AllQuotesSidebar
+        isOpen={showAllQuotesSidebar}
+        onClose={() => setShowAllQuotesSidebar(false)}
         chatId={chat.id}
-        contactId={clientData?.id}
-        contactName={clientData?.name || chat.name}
       />
 
       {/* Tag Sidebar */}
