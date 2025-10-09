@@ -40,12 +40,8 @@ interface SiteData {
 const fixImageUrl = (url: string | null | undefined): string => {
   if (!url) return ''
   
-  // Se já é uma URL completa válida, retorna
+  // Se já é uma URL completa válida (http/https), retorna como está
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    // Se contém localhost, substitui pelo domínio atual
-    if (url.includes('localhost')) {
-      return url.replace(/https?:\/\/localhost:\d+/, window.location.origin)
-    }
     return url
   }
   
