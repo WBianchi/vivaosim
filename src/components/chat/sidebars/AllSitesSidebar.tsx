@@ -16,6 +16,8 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
   const [loading, setLoading] = useState(false)
   const [sites, setSites] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [contactData, setContactData] = useState<any>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +49,7 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
           console.log('📱 Contato encontrado:', contactData)
           
           if (contactData.exists && contactData.contact) {
+            setContactData(contactData.contact)
             const contactId = contactData.contact.id
             console.log('🎯 Filtrando sites pelo contactId:', contactId)
             
@@ -64,6 +67,75 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
       console.error('❌ AllSitesSidebar: Erro ao buscar sites:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCreateSite = async () => {
+    if (!contactData) {
+      alert('❌ Contato não encontrado')
+      return
+    }
+
+    setCreating(true)
+    try {
+      // Gerar subdomain baseado no nome do contato
+      const subdomain = contactData.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 50) + '-' + Date.now()
+
+      const response = await fetch(`/api/contacts/${contactData.id}/site`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subdomain,
+          title: `Site de ${contactData.name}`,
+          description: `Site personalizado de ${contactData.name}`,
+          theme: 'romantic',
+          primaryColor: '#FF6B35',
+          status: 'draft'
+        })
+      })
+
+      if (response.ok) {
+        alert('✅ Site criado com sucesso!')
+        fetchSites()
+      } else {
+        const error = await response.json()
+        alert('❌ ' + (error.message || 'Erro ao criar site'))
+      }
+    } catch (error) {
+      console.error('Erro ao criar site:', error)
+      alert('❌ Erro ao criar site')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handlePublishSite = async (siteId: string) => {
+    if (!confirm('Publicar este site? Ele ficará visível publicamente.')) return
+
+    try {
+      const response = await fetch('/api/sites/clientes/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId })
+      })
+
+      if (response.ok) {
+        alert('✅ Site publicado com sucesso!')
+        fetchSites()
+      } else {
+        const error = await response.json()
+        alert('❌ ' + (error.message || 'Erro ao publicar site'))
+      }
+    } catch (error) {
+      console.error('Erro ao publicar site:', error)
+      alert('❌ Erro ao publicar site')
     }
   }
 
@@ -153,9 +225,28 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
             ) : filteredSites.length === 0 ? (
               <div className="text-center py-12">
                 <Globe className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                   {searchTerm ? 'Nenhum site encontrado' : 'Nenhum site configurado'}
                 </p>
+                {chatId && contactData && !searchTerm && (
+                  <button
+                    onClick={handleCreateSite}
+                    disabled={creating}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 mx-auto transition-colors"
+                  >
+                    {creating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Criando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Criar Site para {contactData.name}
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -251,6 +342,17 @@ export function AllSitesSidebar({ isOpen, onClose, chatId }: AllSitesSidebarProp
                         <Eye className="w-3.5 h-3.5" />
                         Visualizar
                       </motion.button>
+                      {(site.statusPublicacao === 'RASCUNHO' || site.status === 'RASCUNHO') && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors"
+                          onClick={() => handlePublishSite(site.id)}
+                        >
+                          <Globe className="w-3.5 h-3.5" />
+                          Publicar
+                        </motion.button>
+                      )}
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}

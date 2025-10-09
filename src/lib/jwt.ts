@@ -23,7 +23,7 @@ export interface RefreshTokenPayload {
 
 export function generateAccessToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '15m', // Access token expires in 15 minutes
+    expiresIn: '24h', // Access token expires in 24 hours
     issuer: 'vivaosim',
     audience: 'vivaosim-app'
   })

@@ -247,13 +247,24 @@ export default function SitePage() {
     )
   }
 
+  // Se não tem site, mostrar mensagem
   if (!siteData) {
     return (
-      <div className="p-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center">
-          <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Site não disponível</h3>
-          <p className="text-gray-600">Entre em contato com seu atendente para criar seu site.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+          <Globe className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Site ainda não criado
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Seu site está sendo preparado. Entre em contato com o suporte para ativar seu site personalizado.
+          </p>
+          <button
+            onClick={() => window.location.href = '/dashboard/cliente'}
+            className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
+          >
+            Voltar ao Dashboard
+          </button>
         </div>
       </div>
     )

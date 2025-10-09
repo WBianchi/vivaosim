@@ -17,6 +17,8 @@ import {
   Sun,
   Moon,
   Palette,
+  Languages,
+  Globe,
   Wifi,
   WifiOff,
   ChevronDown,
@@ -67,6 +69,7 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   const { logout } = useAuth()
   const [showColorPicker, setShowColorPicker] = React.useState(false)
   const [showUserMenu, setShowUserMenu] = React.useState(false)
+  const [showTranslation, setShowTranslation] = React.useState(false)
 
   const roleLabel =
     user?.role === 'ADMINISTRADOR'
@@ -230,11 +233,11 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
     
     if (isActive) {
       switch (color) {
-        case 'blue': return `${baseClasses} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400`
-        case 'green': return `${baseClasses} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400`
-        case 'purple': return `${baseClasses} bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400`
-        case 'orange': return `${baseClasses} bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400`
-        case 'red': return `${baseClasses} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`
+        case 'blue': return `${baseClasses} bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-400`
+        case 'green': return `${baseClasses} bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400`
+        case 'purple': return `${baseClasses} bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-400`
+        case 'orange': return `${baseClasses} bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-400`
+        case 'red': return `${baseClasses} bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-400`
         default: return `${baseClasses} bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300`
       }
     }
@@ -358,7 +361,9 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
         </motion.div>
 
         {/* Notificações */}
-        <ChatNotifications />
+        <div className="bg-white dark:bg-gray-800 rounded-lg">
+          <ChatNotifications />
+        </div>
 
         {/* Toggle Dark/Light */}
         <motion.button
@@ -376,7 +381,7 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
         </motion.button>
 
         {/* Color Picker */}
-        <div className="relative">
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg">
           <motion.button
             onClick={() => setShowColorPicker(!showColorPicker)}
             whileHover={{ scale: 1.05 }}
@@ -399,14 +404,63 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
           />
         </div>
 
-        {/* Configurações */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-        </motion.button>
+        {/* Tradução */}
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowTranslation(!showTranslation)}
+            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Tradução"
+          >
+            <Languages className="w-5 h-5" />
+          </motion.button>
+
+          {showTranslation && (
+            <>
+              <div 
+                className="fixed inset-0 z-[9998]" 
+                onClick={() => setShowTranslation(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999]">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
+                      <Globe className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Tradução Automática</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Selecione o idioma</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-3">
+                <div className="space-y-2">
+                  {[
+                    { code: 'pt', name: 'Português', flag: '🇧🇷' },
+                    { code: 'en', name: 'English', flag: '🇺🇸' },
+                    { code: 'es', name: 'Español', flag: '🇪🇸' },
+                    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+                    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+                    { code: 'it', name: 'Italiano', flag: '🇮🇹' }
+                  ].map((lang) => (
+                    <button
+                      key={lang.code}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <span className="text-2xl">{lang.flag}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            </>
+          )}
+        </div>
 
         {/* Menu do Usuário */}
         <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-700">
@@ -463,10 +517,10 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                   className={cn(
-                    'absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl border backdrop-blur-xl z-50',
+                    'absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl border z-[9999]',
                     isDarkMode
-                      ? 'bg-gray-900/95 border-gray-700/50'
-                      : 'bg-white/95 border-gray-200/50'
+                      ? 'bg-gray-900 border-gray-700'
+                      : 'bg-white border-gray-200'
                   )}
                 >
                   {/* Profile Header */}

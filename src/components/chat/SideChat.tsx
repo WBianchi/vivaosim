@@ -423,7 +423,7 @@ export const SideChat: React.FC<SideChatProps> = ({
   const groupsCount = chats.filter(c => c.isGroup).length
 
   const filterOptions = [
-    { value: 'all', label: 'Todas', icon: MessageSquare, count: chats.length, color: 'blue' },
+    { value: 'all', label: 'Todas', icon: MessageSquare, count: chats.filter(c => !c.isArchived).length, color: 'blue' },
     { value: 'favorites', label: 'Favoritos', icon: Heart, count: favoritesCount, color: 'pink' },
     { value: 'in_progress', label: 'Em Atendimento', icon: PlayCircle, count: inProgressCount, color: 'blue' },
     { value: 'waiting', label: 'Aguardando', icon: Clock, count: waitingCount, color: 'yellow' },

@@ -148,6 +148,10 @@ export const useChats = (options: UseChatsOptions = {}): UseChatsReturn => {
 
     // Filtro de status
     switch (filter.status) {
+      case 'all':
+        // Na aba "Todas", excluir arquivadas
+        filtered = filtered.filter(chat => !chat.isArchived)
+        break
       case 'unread':
         filtered = filtered.filter(chat => chat.unreadCount > 0)
         break

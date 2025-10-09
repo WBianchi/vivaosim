@@ -146,7 +146,7 @@ export const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="absolute right-0 top-16 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 w-[420px] max-h-[700px] overflow-hidden flex flex-col"
+      className="absolute right-0 top-16 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] w-[420px] max-h-[700px] overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">

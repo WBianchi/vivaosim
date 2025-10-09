@@ -31,14 +31,70 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
 
-    // Buscar contato do usuário pelo email
-    const contact = await prisma.contact.findFirst({
-      where: { email: userEmail }
+    // Buscar contato do usuário pelo email OU pelo userId
+    let contact = await prisma.contact.findFirst({
+      where: { 
+        OR: [
+          { email: userEmail },
+          { userId: user.id }
+        ]
+      }
     })
 
     console.log('📋 Contact:', contact)
 
+    // Se não encontrou contato, buscar site diretamente pelo userId
     if (!contact) {
+      console.log('⚠️ Contato não encontrado, buscando site pelo userId...')
+      
+      const site = await prisma.clientSite.findFirst({
+        where: { 
+          OR: [
+            { atendenteId: user.id },
+            { contact: { userId: user.id } }
+          ]
+        },
+        include: {
+          contact: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true
+            }
+          },
+          atendente: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          produtos: {
+            select: {
+              id: true,
+              nome: true,
+              preco: true,
+              imagem: true,
+              ativo: true
+            }
+          },
+          _count: {
+            select: {
+              produtos: true,
+              convidados: true,
+              custosDespesas: true,
+              recebimentos: true
+            }
+          }
+        }
+      })
+
+      if (site) {
+        console.log('✅ Site encontrado pelo userId!')
+        return NextResponse.json({ success: true, site })
+      }
+
       return NextResponse.json({ 
         success: true, 
         site: null,

@@ -462,7 +462,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Header do Chat */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* Avatar melhorado */}

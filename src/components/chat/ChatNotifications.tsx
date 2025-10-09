@@ -2,59 +2,57 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, X, MessageSquare, User, Calendar } from 'lucide-react'
+import { Bell, X, MessageSquare, User, Calendar, DollarSign, FileSignature, Ticket } from 'lucide-react'
 
 interface Notification {
   id: string
-  type: 'message' | 'mention' | 'schedule'
+  type: 'quote' | 'schedule' | 'contract' | 'ticket'
   title: string
   message: string
   time: string
   read: boolean
-  chatId?: string
+  link?: string
 }
 
 export const ChatNotifications = () => {
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'message',
-      title: 'Nova mensagem',
-      message: 'João Silva enviou uma mensagem',
-      time: '2 min atrás',
-      read: false,
-      chatId: '123'
-    },
-    {
-      id: '2',
-      type: 'mention',
-      title: 'Você foi mencionado',
-      message: 'Maria mencionou você em um chat',
-      time: '5 min atrás',
-      read: false,
-      chatId: '456'
-    },
-    {
-      id: '3',
-      type: 'schedule',
-      title: 'Agendamento próximo',
-      message: 'Reunião com cliente em 15 minutos',
-      time: '10 min atrás',
-      read: true
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications()
     }
-  ])
+  }, [showNotifications])
+
+  const fetchNotifications = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/notifications/recent')
+      const data = await response.json()
+      
+      if (data.success) {
+        setNotifications(data.notifications)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar notificações:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const unreadCount = notifications.filter(n => !n.read).length
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'message':
-        return <MessageSquare className="w-4 h-4" />
-      case 'mention':
-        return <User className="w-4 h-4" />
+      case 'quote':
+        return <DollarSign className="w-4 h-4" />
       case 'schedule':
         return <Calendar className="w-4 h-4" />
+      case 'contract':
+        return <FileSignature className="w-4 h-4" />
+      case 'ticket':
+        return <Ticket className="w-4 h-4" />
       default:
         return <Bell className="w-4 h-4" />
     }
@@ -105,7 +103,7 @@ export const ChatNotifications = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowNotifications(false)}
-              className="fixed inset-0 z-40"
+              className="fixed inset-0 z-[9998]"
             />
 
             {/* Painel */}
@@ -113,7 +111,7 @@ export const ChatNotifications = () => {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute right-0 top-12 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+              className="absolute right-0 top-12 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] overflow-hidden"
             >
               {/* Header */}
               <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -137,7 +135,12 @@ export const ChatNotifications = () => {
 
               {/* Lista de Notificações */}
               <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
+                {loading ? (
+                  <div className="p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Carregando...</p>
+                  </div>
+                ) : notifications.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                     <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>Nenhuma notificação</p>
@@ -151,23 +154,24 @@ export const ChatNotifications = () => {
                       exit={{ opacity: 0, x: 20 }}
                       onClick={() => {
                         markAsRead(notification.id)
-                        if (notification.chatId) {
-                          // Navegar para o chat
-                          console.log('Abrir chat:', notification.chatId)
+                        if (notification.link) {
+                          window.location.href = notification.link
                         }
                       }}
-                      className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                        !notification.read ? 'bg-orange-50 dark:bg-orange-900/10' : ''
+                      className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                        !notification.read ? 'bg-orange-50 dark:bg-orange-900' : ''
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div
                           className={`p-2 rounded-lg ${
-                            notification.type === 'message'
-                              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                              : notification.type === 'mention'
-                              ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                              : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                            notification.type === 'quote'
+                              ? 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400'
+                              : notification.type === 'contract'
+                              ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400'
+                              : notification.type === 'ticket'
+                              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
+                              : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
                           }`}
                         >
                           {getIcon(notification.type)}

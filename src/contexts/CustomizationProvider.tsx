@@ -129,7 +129,7 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
   // Gerar classes CSS para Topbar
   const getTopbarClasses = () => {
     const { topbar } = settings
-    let classes = 'h-16 border-b border-gray-200 dark:border-gray-700 flex items-center px-6 shadow-sm transition-all duration-300'
+    let classes = 'h-16 border-b border-gray-200 dark:border-gray-700 flex items-center px-6 shadow-sm transition-all duration-300 relative z-50'
 
     if (topbar.gradient) {
       classes += ` bg-gradient-to-r ${topbar.gradient.from} ${topbar.gradient.to}`
