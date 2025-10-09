@@ -33,6 +33,7 @@ const roleBasedRoutes = {
   '/admin': ['ADMINISTRADOR'],
   '/dashboard': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
   '/dashboard/cliente': ['CLIENTE'],
+  '/dashboard/site': ['CLIENTE'], // Página do cliente para gerenciar seu site
   '/crm': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
   '/chat': ['ADMINISTRADOR', 'ATENDENTE', 'ASSINANTE'],
   '/cliente': ['CLIENTE'] // Manter para compatibilidade

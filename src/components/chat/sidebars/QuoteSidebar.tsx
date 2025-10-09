@@ -140,7 +140,7 @@ export function QuoteSidebar({ isOpen, onClose, chatId, contactId, contactName }
 
       const quoteData = await quoteResponse.json()
 
-      if (quoteData.success) {
+      if (quoteData.quote) {
         // 2. Associar tags ao orçamento
         if (selectedTags.length > 0) {
           await fetch(`/api/quotes/${quoteData.quote.id}/tags`, {
@@ -155,6 +155,8 @@ export function QuoteSidebar({ isOpen, onClose, chatId, contactId, contactName }
 
         alert('✅ Orçamento criado com sucesso!')
         onClose()
+      } else {
+        alert(`❌ ${quoteData.error || 'Erro ao criar orçamento'}`)
       }
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error)

@@ -58,7 +58,11 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         chatId: true,
+        title: true,
+        description: true,
         total: true,
+        discount: true,
+        validUntil: true,
         status: true,
         createdAt: true,
         contact: {
@@ -66,7 +70,8 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true
           }
-        }
+        },
+        items: true
       },
       orderBy: {
         createdAt: 'desc'

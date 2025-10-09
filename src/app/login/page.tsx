@@ -128,7 +128,7 @@ function LoginForm() {
         let redirectUrl = '/dashboard'
         
         if (data.data.user.role === 'CLIENTE') {
-          redirectUrl = '/cliente'
+          redirectUrl = '/dashboard/cliente'
         } else if (data.data.user.role === 'ADMINISTRADOR' || data.data.user.role === 'ATENDENTE' || data.data.user.role === 'ASSINANTE') {
           redirectUrl = '/dashboard'
         }

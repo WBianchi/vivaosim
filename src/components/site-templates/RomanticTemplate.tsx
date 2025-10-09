@@ -36,14 +36,35 @@ interface SiteData {
   }
 }
 
+// Função para corrigir URLs de imagens
+const fixImageUrl = (url: string | null | undefined): string => {
+  if (!url) return ''
+  
+  // Se já é uma URL completa válida, retorna
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    // Se contém localhost, substitui pelo domínio atual
+    if (url.includes('localhost')) {
+      return url.replace(/https?:\/\/localhost:\d+/, window.location.origin)
+    }
+    return url
+  }
+  
+  // Se é um caminho relativo, adiciona o origin
+  if (url.startsWith('/')) {
+    return `${window.location.origin}${url}`
+  }
+  
+  return url
+}
+
 export default function RomanticTemplate({ site }: { site: SiteData }) {
   const [selectedPresente, setSelectedPresente] = useState<any>(null)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
-  // Extrair banner e galeria do configuracoes
-  const bannerImages = site.configuracoes?.banner || []
-  const galeriaImages = site.configuracoes?.galeria || []
+  // Extrair banner e galeria do configuracoes e corrigir URLs
+  const bannerImages = (site.configuracoes?.banner || []).map(fixImageUrl)
+  const galeriaImages = (site.configuracoes?.galeria || []).map(fixImageUrl)
 
   const styles = {
     primary: site.corPrimaria,
@@ -85,7 +106,7 @@ export default function RomanticTemplate({ site }: { site: SiteData }) {
             {/* Logo */}
             <div className="flex items-center gap-3">
               {site.logo ? (
-                <img src={site.logo} alt={site.nomeEvento} className="h-12 w-auto" />
+                <img src={fixImageUrl(site.logo)} alt={site.nomeEvento} className="h-12 w-auto" />
               ) : (
                 <div className="flex items-center gap-2">
                   <Heart className="w-8 h-8" style={{ color: styles.primary }} fill={styles.primary} />

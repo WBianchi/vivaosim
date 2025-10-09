@@ -49,29 +49,50 @@ export default function ChatPage() {
   })
 
   const [chatContractCount, setChatContractCount] = useState(0)
+  const [chatQuoteCount, setChatQuoteCount] = useState(0)
+  const [chatScheduleCount, setChatScheduleCount] = useState(0)
   const [chatMeta, setChatMeta] = useState<Record<string, ChatAssignmentMeta>>({})
 
-  // Buscar contratos do chat ativo
+  // Buscar contagens do chat ativo
   useEffect(() => {
-    const fetchChatContracts = async () => {
+    const fetchChatCounts = async () => {
       if (!state.activeChat) {
         setChatContractCount(0)
+        setChatQuoteCount(0)
+        setChatScheduleCount(0)
         return
       }
 
       try {
-        const response = await fetch(`/api/contracts?chatId=${state.activeChat.id}`)
-        const data = await response.json()
-        
-        if (data.contracts) {
-          setChatContractCount(data.contracts.length)
+        // Buscar contratos
+        const contractsRes = await fetch(`/api/contracts?chatId=${state.activeChat.id}`)
+        const contractsData = await contractsRes.json()
+        if (contractsData.contracts) {
+          setChatContractCount(contractsData.contracts.length)
+        }
+
+        // Buscar orçamentos
+        const quotesRes = await fetch(`/api/quotes/by-chats?chatIds=${state.activeChat.id}`)
+        const quotesData = await quotesRes.json()
+        if (quotesData.success && quotesData.quotes) {
+          setChatQuoteCount(quotesData.quotes.length)
+        }
+
+        // Buscar agendamentos
+        const contactRes = await fetch(`/api/contacts/check-chat?chatId=${state.activeChat.id}`)
+        const contactData = await contactRes.json()
+        if (contactData.exists && contactData.contact) {
+          const schedulesRes = await fetch(`/api/schedules?contactId=${contactData.contact.id}`)
+          const schedulesData = await schedulesRes.json()
+          const schedulesList = Array.isArray(schedulesData) ? schedulesData : (schedulesData.schedules || [])
+          setChatScheduleCount(schedulesList.length)
         }
       } catch (error) {
-        console.error('Erro ao buscar contratos do chat:', error)
+        console.error('Erro ao buscar contagens do chat:', error)
       }
     }
 
-    fetchChatContracts()
+    fetchChatCounts()
   }, [state.activeChat])
 
   // Verificar autenticação (só redireciona se não está carregando)
@@ -169,6 +190,8 @@ export default function ChatPage() {
                     chat={state.activeChat}
                     onSidebarToggle={handleSidebarToggle}
                     chatContractCount={chatContractCount}
+                    chatQuoteCount={chatQuoteCount}
+                    chatScheduleCount={chatScheduleCount}
                     meta={state.activeChat ? chatMeta[state.activeChat.id] : undefined}
                   />
                 </div>

@@ -45,7 +45,7 @@ import { ManageTagsSheet } from './bottom-sheets/ManageTagsSheet'
 import { CreateContractSheet } from './bottom-sheets/CreateContractSheet'
 import { AllQuotesSidebar } from './sidebars/AllQuotesSidebar'
 import { TagSidebar } from './sidebars/TagSidebar'
-import { ContractSidebar } from './sidebars/ContractSidebar'
+import { AllContractsSidebar } from './sidebars/AllContractsSidebar'
 import { ClientProfileSidebar } from './ClientProfileSidebar'
 import { ChangeQueueSheet } from './bottom-sheets/ChangeQueueSheet'
 import { AIMessageModal } from './modals/AIMessageModal'
@@ -86,7 +86,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
   const [clientData, setClientData] = useState<any>(null)
   const [showAllQuotesSidebar, setShowAllQuotesSidebar] = useState(false)
   const [showTagSidebar, setShowTagSidebar] = useState(false)
-  const [showContractSidebar, setShowContractSidebar] = useState(false)
+  const [showAllContractsSidebar, setShowAllContractsSidebar] = useState(false)
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const [showSalesModal, setShowSalesModal] = useState(false)
   const [isAgentActive, setIsAgentActive] = useState<boolean>(true) // Status do agente
@@ -308,8 +308,9 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         onSidebarToggle?.('schedule')
         break
       case 'create-contract':
-        console.log('📋 Abrindo sidebar para criar contrato')
-        setShowContractSidebar(true)
+      case 'contract':
+        console.log('📋 Abrindo sidebar de contratos')
+        setShowAllContractsSidebar(true)
         break
       case 'manage-tags':
         console.log('🏷️ Abrindo sidebar para gerenciar tags')
@@ -1971,13 +1972,11 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({ chat, onSidebarT
         contactName={clientData?.name || chat.name}
       />
 
-      {/* Contract Sidebar */}
-      <ContractSidebar
-        isOpen={showContractSidebar}
-        onClose={() => setShowContractSidebar(false)}
+      {/* All Contracts Sidebar */}
+      <AllContractsSidebar
+        isOpen={showAllContractsSidebar}
+        onClose={() => setShowAllContractsSidebar(false)}
         chatId={chat.id}
-        contactId={clientData?.id}
-        contactName={clientData?.name || chat.name}
       />
 
       {/* Client Profile Sidebar */}

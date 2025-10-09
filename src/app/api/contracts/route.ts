@@ -104,8 +104,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const validatedData = createContractSchema.parse(body)
+    // Verificar se é FormData (com arquivo) ou JSON
+    const contentType = request.headers.get('content-type')
+    let validatedData: any
+
+    if (contentType?.includes('multipart/form-data')) {
+      // Processar FormData
+      const formData = await request.formData()
+      const body = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string || null,
+        amount: parseFloat(formData.get('amount') as string),
+        startDate: formData.get('startDate') as string || null,
+        endDate: formData.get('endDate') as string || null,
+        contactId: formData.get('contactId') as string,
+        chatId: formData.get('chatId') as string || null,
+        assignedToId: formData.get('assignedToId') as string || null,
+        paymentTerms: formData.get('paymentTerms') as string || null,
+        adminSignature: formData.get('adminSignature') as string || null,
+        clientSignature: formData.get('clientSignature') as string || null,
+        status: formData.get('status') as string || 'draft'
+      }
+      
+      // TODO: Processar arquivo contractFile se necessário
+      const contractFile = formData.get('contractFile') as File | null
+      
+      validatedData = body
+    } else {
+      // Processar JSON normal
+      const body = await request.json()
+      validatedData = createContractSchema.parse(body)
+    }
     
     // Gerar número único do contrato (formato: CTR-YYYY-NNNN)
     const year = new Date().getFullYear()
@@ -140,7 +169,10 @@ export async function POST(request: NextRequest) {
         chatId: validatedData.chatId,
         contactId: validatedData.contactId,
         createdById: user.userId,
-        assignedToId: validatedData.assignedToId || null
+        assignedToId: validatedData.assignedToId || null,
+        status: validatedData.status || 'draft',
+        providerSignature: validatedData.adminSignature || null,
+        clientSignature: validatedData.clientSignature || null
       },
       include: {
         contact: { 

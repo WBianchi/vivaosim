@@ -62,7 +62,7 @@ function getRoleBasedRedirect(role: string): string {
     case 'ASSINANTE':
       return '/dashboard'
     case 'CLIENTE':
-      return '/cliente'
+      return '/dashboard/cliente'
     default:
       return '/'
   }

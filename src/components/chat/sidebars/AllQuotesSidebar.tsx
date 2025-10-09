@@ -36,6 +36,13 @@ export function AllQuotesSidebar({ isOpen, onClose, chatId }: AllQuotesSidebarPr
   const [editingQuote, setEditingQuote] = useState<any | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [contactData, setContactData] = useState<any>(null)
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    validUntil: '',
+    discount: 0,
+    items: [] as any[]
+  })
 
   useEffect(() => {
     if (isOpen) {
@@ -129,6 +136,68 @@ export function AllQuotesSidebar({ isOpen, onClose, chatId }: AllQuotesSidebarPr
       case 'PENDENTE': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
       case 'REJEITADO': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+    }
+  }
+
+  const handleEdit = (quote: any) => {
+    const validUntil = quote.validUntil ? new Date(quote.validUntil).toISOString().split('T')[0] : ''
+    setEditingQuote(quote)
+    setEditForm({
+      title: quote.title,
+      description: quote.description || '',
+      validUntil,
+      discount: parseFloat(quote.discount) || 0,
+      items: quote.items && Array.isArray(quote.items) 
+        ? quote.items.map((item: any) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: parseFloat(item.unitPrice)
+          }))
+        : [{ name: '', quantity: 1, price: 0 }]
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingQuote) return
+
+    try {
+      const token = getAuthToken()
+      
+      const formattedItems = editForm.items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        total: item.quantity * item.price
+      }))
+
+      const subtotal = formattedItems.reduce((sum, item) => sum + item.total, 0)
+      const total = subtotal - (subtotal * editForm.discount / 100)
+
+      const response = await fetch(`/api/quotes/${editingQuote.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: editForm.title,
+          description: editForm.description,
+          validUntil: editForm.validUntil ? new Date(editForm.validUntil).toISOString() : null,
+          discount: editForm.discount,
+          amount: subtotal,
+          total,
+          items: formattedItems
+        })
+      })
+
+      if (response.ok) {
+        setEditingQuote(null)
+        fetchQuotes()
+        alert('✅ Orçamento atualizado com sucesso!')
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar orçamento:', error)
+      alert('❌ Erro ao atualizar orçamento')
     }
   }
 
@@ -291,7 +360,7 @@ export function AllQuotesSidebar({ isOpen, onClose, chatId }: AllQuotesSidebarPr
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                alert('Edição em desenvolvimento')
+                                handleEdit(quote)
                               }}
                               className="flex-1 py-2 px-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                             >
@@ -348,6 +417,142 @@ export function AllQuotesSidebar({ isOpen, onClose, chatId }: AllQuotesSidebarPr
           contactId={contactData?.id}
           contactName={contactData?.name}
         />
+      )}
+
+      {/* Modal de Edição de Orçamento */}
+      {editingQuote && (
+        <Dialog.Root open={!!editingQuote} onOpenChange={() => setEditingQuote(null)}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60]" />
+            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-[70] w-[500px] max-h-[80vh] overflow-y-auto">
+              <div className="p-6 space-y-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Editar Orçamento</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                {/* Itens */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Itens</label>
+                    <button
+                      onClick={() => setEditForm({ ...editForm, items: [...editForm.items, { name: '', quantity: 1, price: 0 }] })}
+                      className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Adicionar
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {editForm.items.map((item, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => {
+                            const newItems = [...editForm.items]
+                            newItems[index].name = e.target.value
+                            setEditForm({ ...editForm, items: newItems })
+                          }}
+                          placeholder="Nome"
+                          className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newItems = [...editForm.items]
+                            newItems[index].quantity = parseInt(e.target.value) || 1
+                            setEditForm({ ...editForm, items: newItems })
+                          }}
+                          placeholder="Qtd"
+                          className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => {
+                            const newItems = [...editForm.items]
+                            newItems[index].price = parseFloat(e.target.value) || 0
+                            setEditForm({ ...editForm, items: newItems })
+                          }}
+                          placeholder="Preço"
+                          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        {editForm.items.length > 1 && (
+                          <button
+                            onClick={() => {
+                              const newItems = editForm.items.filter((_, i) => i !== index)
+                              setEditForm({ ...editForm, items: newItems })
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Válido até</label>
+                    <input
+                      type="date"
+                      value={editForm.validUntil}
+                      onChange={(e) => setEditForm({ ...editForm, validUntil: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desconto (%)</label>
+                    <input
+                      type="number"
+                      value={editForm.discount}
+                      onChange={(e) => setEditForm({ ...editForm, discount: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onClick={() => setEditingQuote(null)}
+                    className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       )}
     </Dialog.Root>
   )

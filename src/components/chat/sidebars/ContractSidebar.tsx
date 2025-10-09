@@ -9,7 +9,10 @@ import {
   Loader2,
   Calendar,
   DollarSign,
-  User
+  User,
+  Upload,
+  FileText,
+  Edit3
 } from 'lucide-react'
 import { getAuthToken } from '@/lib/auth-token'
 
@@ -31,7 +34,10 @@ export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactNam
     startDate: '',
     endDate: '',
     paymentTerms: '',
-    status: 'draft'
+    status: 'draft',
+    contractFile: null as File | null,
+    adminSignature: '',
+    clientSignature: ''
   })
 
   // Simular carregamento inicial
@@ -63,32 +69,42 @@ export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactNam
         return
       }
 
-      // Preparar dados
-      const payload: any = {
-        title: formData.title,
-        description: formData.description || null,
-        amount: parseFloat(formData.value),
-        chatId: chatId || null,
-        contactId: contactId
-      }
-
-      // Adicionar datas apenas se preenchidas
+      // Preparar FormData para enviar arquivo
+      const formDataToSend = new FormData()
+      formDataToSend.append('title', formData.title)
+      formDataToSend.append('description', formData.description || '')
+      formDataToSend.append('amount', formData.value)
+      formDataToSend.append('chatId', chatId || '')
+      formDataToSend.append('contactId', contactId || '')
+      
       if (formData.startDate) {
-        payload.startDate = new Date(formData.startDate).toISOString()
+        formDataToSend.append('startDate', new Date(formData.startDate).toISOString())
       }
       if (formData.endDate) {
-        payload.endDate = new Date(formData.endDate).toISOString()
+        formDataToSend.append('endDate', new Date(formData.endDate).toISOString())
       }
+      if (formData.paymentTerms) {
+        formDataToSend.append('paymentTerms', formData.paymentTerms)
+      }
+      if (formData.adminSignature) {
+        formDataToSend.append('adminSignature', formData.adminSignature)
+      }
+      if (formData.clientSignature) {
+        formDataToSend.append('clientSignature', formData.clientSignature)
+      }
+      if (formData.contractFile) {
+        formDataToSend.append('contractFile', formData.contractFile)
+      }
+      formDataToSend.append('status', formData.status)
 
-      console.log('📋 Enviando contrato:', payload)
+      console.log('📋 Enviando contrato...')
 
       const response = await fetch('/api/contracts', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: formDataToSend
       })
 
       const data = await response.json()
@@ -122,7 +138,10 @@ export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactNam
           startDate: '',
           endDate: '',
           paymentTerms: '',
-          status: 'draft'
+          status: 'draft',
+          contractFile: null,
+          adminSignature: '',
+          clientSignature: ''
         })
         onClose()
       }
@@ -263,6 +282,77 @@ export function ContractSidebar({ isOpen, onClose, chatId, contactId, contactNam
                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Ex: 50% entrada, 50% na entrega"
               />
+            </div>
+
+            {/* Arquivo do Contrato */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Arquivo do Contrato (PDF)
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      setFormData({ ...formData, contractFile: file })
+                    }
+                  }}
+                  className="hidden"
+                  id="contract-file"
+                />
+                <label
+                  htmlFor="contract-file"
+                  className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {formData.contractFile ? (
+                    <>
+                      <FileText className="w-4 h-4 text-indigo-600" />
+                      <span className="text-gray-900 dark:text-white">{formData.contractFile.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-500">Selecionar arquivo PDF</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            {/* Assinatura do Administrador */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Assinatura do Administrador
+              </label>
+              <div className="relative">
+                <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.adminSignature}
+                  onChange={(e) => setFormData({ ...formData, adminSignature: e.target.value })}
+                  className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Nome completo do responsável"
+                />
+              </div>
+            </div>
+
+            {/* Assinatura do Cliente */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Assinatura do Cliente
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.clientSignature}
+                  onChange={(e) => setFormData({ ...formData, clientSignature: e.target.value })}
+                  className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Nome completo do cliente"
+                />
+              </div>
             </div>
 
             {/* Status */}

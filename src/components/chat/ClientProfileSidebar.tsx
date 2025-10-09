@@ -238,6 +238,47 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
     }
   }
 
+  const createClientSite = async () => {
+    try {
+      console.log('🌐 Criando site para o cliente...')
+      
+      // Gerar subdomain baseado no nome do cliente
+      const subdomain = formData.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+        .replace(/[^a-z0-9]/g, '-') // Substitui caracteres especiais por hífen
+        .replace(/-+/g, '-') // Remove hífens duplicados
+        .replace(/^-|-$/g, '') // Remove hífens no início e fim
+        .substring(0, 50) // Limita tamanho
+      
+      const response = await fetch(`/api/contacts/${clientData.id}/site`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subdomain,
+          title: `Site de ${formData.name}`,
+          description: `Site pessoal de ${formData.name}`,
+          theme: 'modern',
+          primaryColor: '#3B82F6',
+          status: 'draft'
+        })
+      })
+
+      if (response.ok) {
+        console.log('✅ Site criado com sucesso!')
+      } else {
+        const error = await response.json()
+        console.log('⚠️ Site já existe ou erro:', error)
+      }
+    } catch (error) {
+      console.error('❌ Erro ao criar site:', error)
+      // Não bloqueia o fluxo se der erro
+    }
+  }
+
   const handleSave = async () => {
     try {
       if (!clientData || !clientData.id) {
@@ -267,6 +308,11 @@ export const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
       // Enviar credenciais por WhatsApp se solicitado
       if (formData.sendCredentials && formData.email && formData.password) {
         await sendCredentialsByWhatsApp()
+      }
+
+      // Criar site automaticamente para o cliente se ainda não tiver
+      if (formData.email && formData.password) {
+        await createClientSite()
       }
 
       // Mostrar feedback de sucesso

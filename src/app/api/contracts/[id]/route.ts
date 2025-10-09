@@ -73,7 +73,72 @@ export async function GET(
   }
 }
 
-// PATCH - Atualizar contrato
+// PUT - Atualizar contrato completo
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await verifyAuth(request)
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    const contract = await prisma.contract.update({
+      where: { id: params.id },
+      data: {
+        title: body.title,
+        description: body.description,
+        amount: body.amount,
+        startDate: body.startDate ? new Date(body.startDate) : null,
+        endDate: body.endDate ? new Date(body.endDate) : null,
+        status: body.status,
+        providerSignature: body.providerSignature,
+        clientSignature: body.clientSignature
+      },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      contract
+    })
+
+  } catch (error: any) {
+    console.error('Erro ao atualizar contrato:', error)
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Erro interno do servidor'
+    }, { status: 500 })
+  }
+}
+
+// PATCH - Atualizar contrato parcial
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

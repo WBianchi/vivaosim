@@ -61,15 +61,17 @@ interface ChatAreaProps {
   onSidebarToggle: (sidebar: SidebarType) => void
   chatQuoteCount?: number
   chatContractCount?: number
+  chatScheduleCount?: number
   meta?: ChatAssignmentMeta
 }
 
-export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQuoteCount: propQuoteCount, chatContractCount: propContractCount, meta }) => {
+export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQuoteCount: propQuoteCount, chatContractCount: propContractCount, chatScheduleCount: propScheduleCount, meta }) => {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const [chatQuoteCount, setChatQuoteCount] = useState(propQuoteCount || 0)
   const [chatContractCount, setChatContractCount] = useState(propContractCount || 0)
+  const [chatScheduleCount, setChatScheduleCount] = useState(propScheduleCount || 0)
   const [kanbanInfo, setKanbanInfo] = useState<{ boardName: string, columnName: string, columnColor: string } | null>(null)
 
   // Usar hook de mensagens
@@ -170,7 +172,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     }, 100)
   }, [])
 
-  const scheduleCount = 0
+  const scheduleCount = chatScheduleCount || 0
   const quoteCount = chatQuoteCount || 0
   const tagCount = Array.isArray(chat.labels) ? chat.labels.length : 0
   const contractCount = chatContractCount || 0

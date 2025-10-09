@@ -97,6 +97,8 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   
   const [totalQuotes, setTotalQuotes] = React.useState(0)
   const [totalContracts, setTotalContracts] = React.useState(0)
+  const [totalTags, setTotalTags] = React.useState(0)
+  const [totalSchedules, setTotalSchedules] = React.useState(0)
   const [showQuotesSidebar, setShowQuotesSidebar] = React.useState(false)
 
   // Buscar total de orçamentos
@@ -164,6 +166,40 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
     
     fetchTotalContracts()
   }, [])
+
+  // Atualizar contagem de tags do chat atual
+  React.useEffect(() => {
+    if (activeChat && Array.isArray(activeChat.labels)) {
+      setTotalTags(activeChat.labels.length)
+    } else {
+      setTotalTags(0)
+    }
+  }, [activeChat])
+
+  // Buscar total de agendamentos do chat atual
+  React.useEffect(() => {
+    const fetchSchedules = async () => {
+      if (!activeChat) {
+        setTotalSchedules(0)
+        return
+      }
+
+      try {
+        const contactRes = await fetch(`/api/contacts/check-chat?chatId=${activeChat.id}`)
+        const contactData = await contactRes.json()
+        if (contactData.exists && contactData.contact) {
+          const schedulesRes = await fetch(`/api/schedules?contactId=${contactData.contact.id}`)
+          const schedulesData = await schedulesRes.json()
+          const schedulesList = Array.isArray(schedulesData) ? schedulesData : (schedulesData.schedules || [])
+          setTotalSchedules(schedulesList.length)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar agendamentos:', error)
+      }
+    }
+
+    fetchSchedules()
+  }, [activeChat])
 
   const sidebarButtons = [
     {

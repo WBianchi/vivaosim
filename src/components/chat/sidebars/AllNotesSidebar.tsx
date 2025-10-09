@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, ClipboardList, Plus, Search, Clock, User, Pin, Save, XCircle } from 'lucide-react'
+import { X, ClipboardList, Plus, Search, Clock, User, Pin, Save, XCircle, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 import { getAuthToken } from '@/lib/auth-token'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -18,6 +18,9 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
   const [searchTerm, setSearchTerm] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [contactData, setContactData] = useState<any>(null)
+  const [expandedNote, setExpandedNote] = useState<string | null>(null)
+  const [editingNote, setEditingNote] = useState<any | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -27,9 +30,31 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
 
   useEffect(() => {
     if (isOpen) {
-      fetchNotes()
+      if (chatId) {
+        fetchContactData()
+      } else {
+        fetchNotes()
+      }
     }
   }, [isOpen, chatId])
+
+  useEffect(() => {
+    if (isOpen && contactData) {
+      fetchNotes()
+    }
+  }, [contactData])
+
+  const fetchContactData = async () => {
+    try {
+      const response = await fetch(`/api/contacts/check-chat?chatId=${chatId}`)
+      const data = await response.json()
+      if (data.exists && data.contact) {
+        setContactData(data.contact)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados do contato:', error)
+    }
+  }
 
   const fetchNotes = async () => {
     setLoading(true)
@@ -41,9 +66,9 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
         return
       }
 
-      // Tentar buscar por contactId primeiro, depois chatId
-      const url = chatId 
-        ? `/api/notes?contactId=${chatId}`
+      // Buscar por contactId do banco
+      const url = contactData
+        ? `/api/notes?contactId=${contactData.id}`
         : '/api/notes'
 
       console.log(`🔍 AllNotesSidebar: Buscando anotações... (id: ${chatId || 'todos'})`)
@@ -85,7 +110,7 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
         content: formData.content || null,
         category: formData.category,
         isPinned: formData.isPinned,
-        contactId: chatId || null, // Usar chatId como contactId quando vier do Kanban
+        contactId: contactData?.id || null,
         chatId: null
       }
 
@@ -167,6 +192,26 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
     return labels[category || 'general'] || 'Geral'
   }
 
+  const handleDelete = async (noteId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta anotação?')) return
+
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        setNotes(notes.filter(n => n.id !== noteId))
+        alert('✅ Anotação excluída com sucesso!')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir anotação:', error)
+      alert('❌ Erro ao excluir anotação')
+    }
+  }
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
@@ -237,12 +282,16 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
                     key={note.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 rounded-lg border transition-colors cursor-pointer ${
+                    className={`rounded-lg border transition-colors overflow-hidden ${
                       note.isPinned 
                         ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' 
                         : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 hover:border-cyan-300 dark:hover:border-cyan-600'
                     }`}
                   >
+                    <div 
+                      onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+                      className="p-4 cursor-pointer"
+                    >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -259,6 +308,13 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
                           </span>
                         )}
                       </div>
+                      <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+                        {expandedNote === note.id ? (
+                          <ChevronUp className="w-4 h-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-gray-500" />
+                        )}
+                      </button>
                     </div>
                     
                     {note.content && (
@@ -284,6 +340,43 @@ export function AllNotesSidebar({ isOpen, onClose, chatId }: AllNotesSidebarProp
                         <span className="text-xs italic">Editado</span>
                       )}
                     </div>
+                    </div>
+
+                    {/* Área expandida com ações */}
+                    <AnimatePresence>
+                      {expandedNote === note.id && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="border-t border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3"
+                        >
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                alert('Edição em desenvolvimento')
+                              }}
+                              className="flex-1 py-2 px-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              Editar
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(note.id)
+                              }}
+                              className="flex-1 py-2 px-3 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Excluir
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 ))}
               </div>

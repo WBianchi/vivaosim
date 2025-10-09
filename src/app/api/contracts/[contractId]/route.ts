@@ -17,10 +17,10 @@ async function verifyAuth(request: NextRequest) {
   }
 }
 
-// PUT - Atualizar orçamento
+// PUT - Atualizar contrato
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: { contractId: string } }
 ) {
   try {
     const user = await verifyAuth(request)
@@ -28,64 +28,45 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { quoteId } = params
+    const { contractId } = params
     const body = await request.json()
 
-    // Atualizar orçamento
-    const quote = await prisma.quote.update({
-      where: { id: quoteId },
+    const contract = await prisma.contract.update({
+      where: { id: contractId },
       data: {
         title: body.title,
         description: body.description,
-        validUntil: body.validUntil,
-        discount: body.discount,
         amount: body.amount,
-        total: body.total
+        startDate: body.startDate ? new Date(body.startDate) : null,
+        endDate: body.endDate ? new Date(body.endDate) : null,
+        status: body.status,
+        providerSignature: body.providerSignature,
+        clientSignature: body.clientSignature
       },
       include: {
         contact: true,
-        createdBy: true,
-        items: true
+        createdBy: true
       }
     })
 
-    // Atualizar itens se fornecidos
-    if (body.items && Array.isArray(body.items)) {
-      // Deletar itens antigos
-      await prisma.quoteItem.deleteMany({
-        where: { quoteId }
-      })
-
-      // Criar novos itens
-      await prisma.quoteItem.createMany({
-        data: body.items.map((item: any) => ({
-          quoteId,
-          name: item.name,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          total: item.total
-        }))
-      })
-    }
-
     return NextResponse.json({
       success: true,
-      quote
+      contract
     })
 
   } catch (error) {
-    console.error('Erro ao atualizar orçamento:', error)
+    console.error('Erro ao atualizar contrato:', error)
     return NextResponse.json({
-      error: 'Erro ao atualizar orçamento',
+      error: 'Erro ao atualizar contrato',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
 
-// DELETE - Excluir orçamento
+// DELETE - Excluir contrato
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { quoteId: string } }
+  { params }: { params: { contractId: string } }
 ) {
   try {
     const user = await verifyAuth(request)
@@ -93,21 +74,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { quoteId } = params
+    const { contractId } = params
 
-    await prisma.quote.delete({
-      where: { id: quoteId }
+    await prisma.contract.delete({
+      where: { id: contractId }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Orçamento excluído com sucesso'
+      message: 'Contrato excluído com sucesso'
     })
 
   } catch (error) {
-    console.error('Erro ao excluir orçamento:', error)
+    console.error('Erro ao excluir contrato:', error)
     return NextResponse.json({
-      error: 'Erro ao excluir orçamento',
+      error: 'Erro ao excluir contrato',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
