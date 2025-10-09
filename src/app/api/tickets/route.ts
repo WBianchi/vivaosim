@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const contactId = searchParams.get('contactId')
+    const chatId = searchParams.get('chatId')
     const status = searchParams.get('status')
     const priority = searchParams.get('priority')
     const category = searchParams.get('category')
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
     const where: any = {}
     
     if (contactId) where.contactId = contactId
+    if (chatId) where.chatId = chatId
     if (status && status !== 'all') where.status = status
     if (priority && priority !== 'all') where.priority = priority
     if (category && category !== 'all') where.category = category

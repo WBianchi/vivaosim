@@ -11,7 +11,7 @@ import { ChatArea } from '@/components/chat/ChatArea'
 import { FooterChatArea } from '@/components/chat/FooterChatArea'
 import { SideChat } from '@/components/chat/SideChat'
 import { AllQuotesSidebar } from '@/components/chat/sidebars/AllQuotesSidebar'
-import { AllTagsSidebar } from '@/components/chat/sidebars/AllTagsSidebar'
+import { TagSidebar } from '@/components/chat/sidebars/TagSidebar'
 import { AllContractsSidebar } from '@/components/chat/sidebars/AllContractsSidebar'
 import { AllTicketsSidebar } from '@/components/chat/sidebars/AllTicketsSidebar'
 import { AllSchedulesSidebar } from '@/components/chat/sidebars/AllSchedulesSidebar'
@@ -221,10 +221,12 @@ export default function ChatPage() {
         chatId={state.activeChat?.id}
       />
 
-      <AllTagsSidebar
+      <TagSidebar
         isOpen={state.activeSidebar === 'tag'}
         onClose={() => handleSidebarToggle(null)}
-        chatId={state.activeChat?.id}
+        chatId={state.activeChat?.id || ''}
+        contactId={state.activeChat?.contact?.id}
+        contactName={state.activeChat?.contact?.name}
       />
 
       <AllContractsSidebar
@@ -237,6 +239,7 @@ export default function ChatPage() {
         isOpen={state.activeSidebar === 'ticket'}
         onClose={() => handleSidebarToggle(null)}
         chatId={state.activeChat?.id}
+        contactId={state.activeChat?.contact?.id}
       />
 
       <AllSchedulesSidebar

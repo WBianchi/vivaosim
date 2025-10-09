@@ -331,14 +331,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
     return (
       <div
         className={cn(
-          'flex mb-4 w-full px-4',
-          isFromMe ? 'justify-end' : 'justify-start'
+          'flex mb-4 w-full',
+          isFromMe ? 'justify-end pr-4' : 'justify-start pl-4'
         )}
       >
-        <div className={cn(
-          'max-w-xs lg:max-w-md xl:max-w-lg',
-          isFromMe && 'ml-auto'
-        )}>
+        <div className={cn('max-w-xs lg:max-w-md xl:max-w-lg')}>
           {renderMessageContent(message)}
           
           {/* Timestamp e status */}
@@ -623,7 +620,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ chat, onSidebarToggle, chatQ
       {/* Área de Mensagens */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-1 min-h-0 bg-gray-50 dark:bg-gray-900"
+        className="flex-1 overflow-y-auto py-4 space-y-1 min-h-0 bg-gray-50 dark:bg-gray-900"
       >
         {messagesError ? (
           <div className="flex items-center justify-center h-full">

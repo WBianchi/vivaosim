@@ -1,9 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Message } from '@/types/chat'
-import { MessageActions } from './MessageActions'
-import { Check, CheckCheck } from 'lucide-react'
+import { Check, CheckCheck, MoreVertical, Reply, Forward, Languages, Sparkles } from 'lucide-react'
 
 interface MessageTextProps {
   message: Message
@@ -11,6 +10,8 @@ interface MessageTextProps {
 }
 
 export const MessageText: React.FC<MessageTextProps> = ({ message, isFromMe }) => {
+  const [showMenu, setShowMenu] = useState(false)
+
   // Detectar links no texto
   const linkifyText = (text: string) => {
     if (!text) return null
@@ -54,7 +55,67 @@ export const MessageText: React.FC<MessageTextProps> = ({ message, isFromMe }) =
   }
 
   return (
-    <div className="group relative max-w-[70%]">
+    <div className="group relative">
+      {/* Botão de menu (3 pontinhos) */}
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 z-10"
+      >
+        <MoreVertical className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+      </button>
+
+      {/* Menu dropdown */}
+      {showMenu && (
+        <>
+          <div 
+            className="fixed inset-0 z-20" 
+            onClick={() => setShowMenu(false)}
+          />
+          <div className={`absolute ${isFromMe ? 'right-0' : 'left-0'} top-8 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[180px]`}>
+            <button
+              onClick={() => {
+                console.log('Responder mensagem:', message.id)
+                setShowMenu(false)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+            >
+              <Reply className="w-4 h-4" />
+              Responder
+            </button>
+            <button
+              onClick={() => {
+                console.log('Encaminhar mensagem:', message.id)
+                setShowMenu(false)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+            >
+              <Forward className="w-4 h-4" />
+              Encaminhar
+            </button>
+            <button
+              onClick={() => {
+                console.log('Traduzir mensagem:', message.id)
+                setShowMenu(false)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+            >
+              <Languages className="w-4 h-4" />
+              Traduzir
+            </button>
+            <button
+              onClick={() => {
+                console.log('Responder com IA:', message.id)
+                setShowMenu(false)
+              }}
+              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-purple-600 dark:text-purple-400"
+            >
+              <Sparkles className="w-4 h-4" />
+              Responder com IA
+            </button>
+          </div>
+        </>
+      )}
+
       <div className={`p-3 rounded-xl ${
         isFromMe 
           ? 'bg-blue-500 text-white' 
@@ -97,11 +158,6 @@ export const MessageText: React.FC<MessageTextProps> = ({ message, isFromMe }) =
           </span>
           {getMessageStatus()}
         </div>
-      </div>
-
-      {/* Ações */}
-      <div className="absolute -top-2 -right-2">
-        <MessageActions message={message} isFromMe={isFromMe} />
       </div>
     </div>
   )

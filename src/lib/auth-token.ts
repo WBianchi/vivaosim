@@ -5,6 +5,13 @@
 export function getAuthToken(): string | null {
   // Tentar localStorage primeiro (compatibilidade com código antigo)
   if (typeof window !== 'undefined') {
+    // Buscar accessToken primeiro (padrão atual)
+    const accessToken = localStorage.getItem('accessToken')
+    if (accessToken) {
+      return accessToken
+    }
+
+    // Fallback: buscar token antigo
     const localToken = localStorage.getItem('token')
     if (localToken) {
       return localToken
