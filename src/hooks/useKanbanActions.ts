@@ -83,15 +83,36 @@ export const useKanbanActions = () => {
   }
 
   const handleDeleteClient = async (client: any) => {
-    if (confirm(`Deseja excluir o cliente ${client.name}?`)) {
-      try {
-        console.log('🗑️ Excluindo cliente:', client.id)
-        // TODO: Implementar API de exclusão
-        alert('🚧 Exclusão em desenvolvimento')
-      } catch (error) {
-        console.error('❌ Erro ao excluir cliente:', error)
-        alert('❌ Erro ao excluir cliente')
+    if (!confirm(`Remover ${client.name} do Kanban?\n\nO cliente e seus dados (orçamentos, agendamentos, etc) serão mantidos, apenas será removido desta coluna.`)) {
+      return
+    }
+
+    try {
+      console.log('🗑️ Removendo cliente do Kanban:', client.id)
+      
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1]
+
+      // Apenas remove do Kanban (seta kanbanColumnId como null)
+      const response = await fetch(`/api/contacts/${client.id}/remove-from-kanban`, {
+        method: 'PATCH',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        alert('✅ Cliente removido do Kanban!')
+        // Recarregar a página para atualizar o Kanban
+        window.location.reload()
+      } else {
+        throw new Error(data.error || 'Erro ao remover cliente')
       }
+    } catch (error) {
+      console.error('❌ Erro ao remover cliente:', error)
+      alert('❌ Erro ao remover cliente: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
     }
   }
 

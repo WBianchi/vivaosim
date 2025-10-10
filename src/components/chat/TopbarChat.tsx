@@ -26,7 +26,8 @@ import {
   UserCircle,
   BarChart3,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  LayoutDashboard
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 import { useCustomization } from '@/contexts/CustomizationProvider'
@@ -64,7 +65,8 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
     updateChat, 
     updateMessages,
     resetSettings,
-    getTopbarClasses 
+    getTopbarClasses,
+    getTopbarStyle
   } = useCustomization()
   const { logout } = useAuth()
   const [showColorPicker, setShowColorPicker] = React.useState(false)
@@ -246,9 +248,22 @@ export const TopbarChat: React.FC<TopbarChatProps> = ({
   }
 
   return (
-    <header className={getTopbarClasses()}>
-      {/* Logo e Branding */}
+    <header className={getTopbarClasses()} style={getTopbarStyle()}>
+      {/* Botão Voltar + Logo e Branding */}
       <div className="flex items-center space-x-4 mr-8">
+        {/* Botão Voltar para Dashboard */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => window.location.href = '/dashboard'}
+          className="p-2 bg-orange-50/50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+          title="Voltar para Dashboard"
+        >
+          <LayoutDashboard className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+        </motion.button>
+
+        <div className="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
+
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
             <MessageSquare className="w-5 h-5 text-white" />

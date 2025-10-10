@@ -80,6 +80,19 @@ export const ClientCard: React.FC<ClientCardProps> = ({
   onCreateContract,
   onDeleteClient
 }) => {
+  // Debug: Log dos dados do cliente
+  console.log('🎴 ClientCard renderizado:', {
+    name: client.name,
+    quotes: client.quotes,
+    quotesCount: client.quotesCount,
+    schedules: client.schedules,
+    contracts: client.contracts,
+    tickets: client.tickets,
+    notes: client.notes,
+    value: client.value,
+    tags: client.tags
+  })
+
   const [showTooltip, setShowTooltip] = useState(false)
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
   const [showExpandedInfo, setShowExpandedInfo] = useState(false)

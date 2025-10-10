@@ -7,6 +7,7 @@ import { HiArrowLeft, HiPlus } from 'react-icons/hi2'
 import { KanbanColumn } from './KanbanColumn'
 import { getAuthToken } from '@/lib/auth-token'
 import { CreateClientModal } from '@/components/clients/CreateClientModal'
+import { ImportFromChatModal } from '../modals/ImportFromChatModal'
 
 interface Board {
   id: string
@@ -56,6 +57,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
   const [loading, setLoading] = useState(true)
   const [agents, setAgents] = useState<any[]>([])
   const [showCreateClientModal, setShowCreateClientModal] = useState(false)
+  const [showImportFromChatModal, setShowImportFromChatModal] = useState(false)
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -74,15 +76,39 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
       
       if (response.ok) {
         const data = await response.json()
-        // Garantir que cada coluna tenha uma cor
-        const columnsWithColors = (data.columns || []).map((col: Column, index: number) => {
-          const defaultColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#EF4444']
-          return {
-            ...col,
-            color: col.color || defaultColors[index % defaultColors.length]
-          }
-        })
-        setColumns(columnsWithColors)
+        const defaultColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#EF4444']
+        
+        // Para cada coluna, buscar os clientes com contagens
+        const columnsWithClients = await Promise.all(
+          (data.columns || []).map(async (col: Column, index: number) => {
+            try {
+              const clientsResponse = await fetch(`/api/kanban/columns/${col.id}/clients`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              })
+              
+              if (clientsResponse.ok) {
+                const clientsData = await clientsResponse.json()
+                return {
+                  ...col,
+                  color: col.color || defaultColors[index % defaultColors.length],
+                  clients: clientsData.clients || []
+                }
+              }
+            } catch (error) {
+              console.error(`Erro ao buscar clientes da coluna ${col.id}:`, error)
+            }
+            
+            return {
+              ...col,
+              color: col.color || defaultColors[index % defaultColors.length],
+              clients: []
+            }
+          })
+        )
+        
+        setColumns(columnsWithClients)
       }
     } catch (error) {
       console.error('Erro ao carregar colunas:', error)
@@ -165,6 +191,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
   const handleAddClient = (columnId?: string) => {
     setSelectedColumnId(columnId || null)
     setShowCreateClientModal(true)
+  }
+
+  const handleImportFromChat = async (contactId: string, columnId: string) => {
+    // Recarregar colunas após importar
+    await fetchColumns()
   }
 
   const handleSaveClient = async (clientData: any) => {
@@ -292,6 +323,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
               <HiPlus className="w-4 h-4" />
               Adicionar Cliente
             </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowImportFromChatModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+              </svg>
+              Importar do Chat
+            </motion.button>
           </div>
         </div>
 
@@ -355,6 +398,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ board, onBack, kanbanA
             setSelectedColumnId(null)
           }}
           onSave={handleSaveClient}
+        />
+      )}
+
+      {/* Modal de Importar do Chat */}
+      {showImportFromChatModal && (
+        <ImportFromChatModal
+          isOpen={showImportFromChatModal}
+          onClose={() => setShowImportFromChatModal(false)}
+          onImport={handleImportFromChat}
+          boardId={board.id}
+          columns={columns}
         />
       )}
     </div>

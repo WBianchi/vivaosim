@@ -3,6 +3,7 @@
 import React from 'react'
 import { Message } from '@/types/chat'
 import { Check, CheckCheck } from 'lucide-react'
+import { useCustomization } from '@/contexts/CustomizationProvider'
 
 interface MessageTextProps {
   message: Message
@@ -10,6 +11,7 @@ interface MessageTextProps {
 }
 
 export const MessageText: React.FC<MessageTextProps> = ({ message, isFromMe }) => {
+  const { getMessageStyle } = useCustomization()
 
   // Detectar links no texto
   const linkifyText = (text: string) => {
@@ -55,11 +57,14 @@ export const MessageText: React.FC<MessageTextProps> = ({ message, isFromMe }) =
 
   return (
     <div className="relative">
-      <div className={`p-3 rounded-xl ${
-        isFromMe 
-          ? 'bg-blue-500 text-white' 
-          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-      } shadow-md`}>
+      <div 
+        className={`p-3 rounded-xl ${
+          isFromMe 
+            ? 'bg-blue-500 text-white' 
+            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+        } shadow-md`}
+        style={getMessageStyle(isFromMe)}
+      >
         {/* Mensagem citada (se houver) */}
         {message.quotedMessage && (
           <div className={`mb-2 pb-2 border-l-4 pl-3 ${

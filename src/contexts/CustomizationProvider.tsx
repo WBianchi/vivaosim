@@ -4,29 +4,37 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 interface CustomizationSettings {
   topbar: {
-    gradient?: { from: string; to: string }
-    color?: string
+    type?: 'gradient' | 'solid'
+    gradientFrom?: string
+    gradientTo?: string
+    solidColor?: string
     showLogo: boolean
     showStats: boolean
     glassEffect: boolean
   }
   sidebar: {
-    gradient?: { from: string; to: string }
-    color?: string
+    type?: 'gradient' | 'solid'
+    gradientFrom?: string
+    gradientTo?: string
+    solidColor?: string
     coloredIcons: boolean
     showShortcuts: boolean
     compact: boolean
   }
   chat: {
-    gradient?: { from: string; to: string }
-    color?: string
+    type?: 'gradient' | 'solid'
+    gradientFrom?: string
+    gradientTo?: string
+    solidColor?: string
     roundedBubbles: boolean
     showAvatar: boolean
     backgroundImage: boolean
   }
   messages: {
-    gradient?: { from: string; to: string }
-    color?: string
+    type?: 'gradient' | 'solid'
+    gradientFrom?: string
+    gradientTo?: string
+    solidColor?: string
     roundedBubbles: boolean
     sentRight: boolean
     showTime: boolean
@@ -66,9 +74,13 @@ interface CustomizationContextType {
   updateMessages: (updates: Partial<CustomizationSettings['messages']>) => void
   resetSettings: () => void
   getTopbarClasses: () => string
+  getTopbarStyle: () => React.CSSProperties
   getSidebarClasses: () => string
+  getSidebarStyle: () => React.CSSProperties
   getChatClasses: () => string
+  getChatStyle: () => React.CSSProperties
   getMessageClasses: (isSent: boolean) => string
+  getMessageStyle: (isSent: boolean) => React.CSSProperties
 }
 
 const CustomizationContext = createContext<CustomizationContextType | undefined>(undefined)
@@ -131,13 +143,8 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     const { topbar } = settings
     let classes = 'h-16 border-b border-gray-200 dark:border-gray-700 flex items-center px-6 shadow-sm transition-all duration-300 relative z-50'
 
-    if (topbar.gradient) {
-      classes += ` bg-gradient-to-r ${topbar.gradient.from} ${topbar.gradient.to}`
-    } else if (topbar.color) {
-      classes += ` bg-${topbar.color}-500 dark:bg-${topbar.color}-600`
-    } else {
-      classes += ' bg-white dark:bg-gray-800'
-    }
+    // Aplicar cor de fundo padrão
+    classes += ' bg-white dark:bg-gray-800'
 
     if (topbar.glassEffect) {
       classes += ' backdrop-blur-md bg-opacity-80 dark:bg-opacity-80'
@@ -146,18 +153,28 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     return classes
   }
 
+  // Gerar estilo inline para Topbar
+  const getTopbarStyle = () => {
+    const { topbar } = settings
+    if (topbar.type === 'gradient' && topbar.gradientFrom && topbar.gradientTo) {
+      return {
+        background: `linear-gradient(135deg, ${topbar.gradientFrom}, ${topbar.gradientTo})`
+      }
+    } else if (topbar.type === 'solid' && topbar.solidColor) {
+      return {
+        backgroundColor: topbar.solidColor
+      }
+    }
+    return {}
+  }
+
   // Gerar classes CSS para Sidebar
   const getSidebarClasses = () => {
     const { sidebar } = settings
     let classes = 'h-full border-r border-gray-200 dark:border-gray-700 transition-all duration-300'
 
-    if (sidebar.gradient) {
-      classes += ` bg-gradient-to-b ${sidebar.gradient.from} ${sidebar.gradient.to}`
-    } else if (sidebar.color) {
-      classes += ` bg-${sidebar.color}-50 dark:bg-${sidebar.color}-900/20`
-    } else {
-      classes += ' bg-gray-50 dark:bg-gray-800'
-    }
+    // Aplicar cor de fundo padrão
+    classes += ' bg-gray-50 dark:bg-gray-800'
 
     if (sidebar.compact) {
       classes += ' w-16'
@@ -168,24 +185,49 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     return classes
   }
 
+  // Gerar estilo inline para Sidebar
+  const getSidebarStyle = () => {
+    const { sidebar } = settings
+    if (sidebar.type === 'gradient' && sidebar.gradientFrom && sidebar.gradientTo) {
+      return {
+        background: `linear-gradient(180deg, ${sidebar.gradientFrom}, ${sidebar.gradientTo})`
+      }
+    } else if (sidebar.type === 'solid' && sidebar.solidColor) {
+      return {
+        backgroundColor: sidebar.solidColor
+      }
+    }
+    return {}
+  }
+
   // Gerar classes CSS para Chat
   const getChatClasses = () => {
     const { chat } = settings
     let classes = 'flex-1 overflow-y-auto transition-all duration-300'
 
-    if (chat.gradient) {
-      classes += ` bg-gradient-to-b ${chat.gradient.from} ${chat.gradient.to}`
-    } else if (chat.color) {
-      classes += ` bg-${chat.color}-50 dark:bg-${chat.color}-900/10`
-    } else {
-      classes += ' bg-gray-50 dark:bg-gray-900'
-    }
+    // Aplicar cor de fundo padrão
+    classes += ' bg-gray-50 dark:bg-gray-900'
 
     if (chat.backgroundImage) {
       classes += ' bg-[url("/chat-bg.png")] bg-cover bg-center'
     }
 
     return classes
+  }
+
+  // Gerar estilo inline para Chat
+  const getChatStyle = () => {
+    const { chat } = settings
+    if (chat.type === 'gradient' && chat.gradientFrom && chat.gradientTo) {
+      return {
+        background: `linear-gradient(180deg, ${chat.gradientFrom}, ${chat.gradientTo})`
+      }
+    } else if (chat.type === 'solid' && chat.solidColor) {
+      return {
+        backgroundColor: chat.solidColor
+      }
+    }
+    return {}
   }
 
   // Gerar classes CSS para Mensagens
@@ -200,13 +242,8 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     }
 
     if (isSent) {
-      if (messages.gradient) {
-        classes += ` bg-gradient-to-r ${messages.gradient.from} ${messages.gradient.to} text-white`
-      } else if (messages.color) {
-        classes += ` bg-${messages.color}-500 text-white`
-      } else {
-        classes += ' bg-green-500 text-white'
-      }
+      // Aplicar cor padrão
+      classes += ' bg-green-500 text-white'
       
       if (messages.sentRight) {
         classes += ' ml-auto'
@@ -222,6 +259,25 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     return classes
   }
 
+  // Gerar estilo inline para Mensagens
+  const getMessageStyle = (isSent: boolean) => {
+    const { messages } = settings
+    if (!isSent) return {}
+
+    if (messages.type === 'gradient' && messages.gradientFrom && messages.gradientTo) {
+      return {
+        background: `linear-gradient(135deg, ${messages.gradientFrom}, ${messages.gradientTo})`,
+        color: 'white'
+      }
+    } else if (messages.type === 'solid' && messages.solidColor) {
+      return {
+        backgroundColor: messages.solidColor,
+        color: 'white'
+      }
+    }
+    return {}
+  }
+
   return (
     <CustomizationContext.Provider
       value={{
@@ -232,9 +288,13 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
         updateMessages,
         resetSettings,
         getTopbarClasses,
+        getTopbarStyle,
         getSidebarClasses,
+        getSidebarStyle,
         getChatClasses,
-        getMessageClasses
+        getChatStyle,
+        getMessageClasses,
+        getMessageStyle
       }}
     >
       {children}

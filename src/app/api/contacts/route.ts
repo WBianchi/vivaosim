@@ -107,12 +107,22 @@ export async function GET(request: NextRequest) {
     const where: any = {}
     
     if (search) {
+      // Normalizar busca removendo formatação
+      const normalizedSearch = search.replace(/\D/g, '')
+      
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
-        { whatsappNumber: { contains: search, mode: 'insensitive' } }
+        { whatsappNumber: { contains: search, mode: 'insensitive' } },
+        // Buscar também por números sem formatação
+        ...(normalizedSearch ? [
+          { phone: { contains: normalizedSearch, mode: 'insensitive' } },
+          { whatsappNumber: { contains: normalizedSearch, mode: 'insensitive' } }
+        ] : [])
       ]
+      
+      console.log(`🔍 Buscando contatos com: "${search}" (normalizado: "${normalizedSearch}")`)
     }
     
     if (queueId) where.queueId = queueId
@@ -145,6 +155,16 @@ export async function GET(request: NextRequest) {
       }),
       prisma.contact.count({ where })
     ])
+
+    console.log(`✅ Encontrados ${contacts.length} contatos`)
+    if (contacts.length > 0) {
+      console.log(`📋 Primeiros contatos:`, contacts.slice(0, 3).map(c => ({
+        name: c.name,
+        phone: c.phone,
+        whatsappNumber: c.whatsappNumber,
+        email: c.email
+      })))
+    }
 
     return NextResponse.json({
       contacts,
@@ -273,6 +293,56 @@ export async function POST(request: NextRequest) {
         createdBy: { select: { id: true, name: true, email: true } }
       }
     })
+
+    // Criar whatsapp_chats se não existir
+    if (validatedData.whatsappChatId && validatedData.whatsappNumber) {
+      try {
+        // Verificar se já existe whatsapp_chats
+        const existingChat = await prisma.whatsAppChat.findFirst({
+          where: {
+            chatId: validatedData.whatsappChatId
+          }
+        })
+
+        if (!existingChat) {
+          console.log(`📱 Criando whatsapp_chats para: ${validatedData.whatsappChatId}`)
+          
+          // Buscar whatsapp_contacts
+          const whatsappContact = await prisma.whatsAppContact.findFirst({
+            where: {
+              contactId: validatedData.whatsappChatId
+            }
+          })
+
+          // Buscar sessionId ativo
+          const activeSession = await prisma.whatsAppSession.findFirst({
+            orderBy: {
+              updatedAt: 'desc'
+            }
+          })
+
+          if (activeSession) {
+            await prisma.whatsAppChat.create({
+              data: {
+                chatId: validatedData.whatsappChatId,
+                name: validatedData.whatsappName || validatedData.name,
+                isGroup: validatedData.whatsappIsGroup || false,
+                sessionId: activeSession.id,
+                contactId: whatsappContact?.id || undefined
+              }
+            })
+            console.log(`✅ whatsapp_chats criado com sucesso`)
+          } else {
+            console.log(`⚠️ Nenhuma sessão ativa encontrada, whatsapp_chats não criado`)
+          }
+        } else {
+          console.log(`✅ whatsapp_chats já existe: ${validatedData.whatsappChatId}`)
+        }
+      } catch (chatError) {
+        console.error('❌ Erro ao criar whatsapp_chats:', chatError)
+        // Não falhar a criação do contato por causa disso
+      }
+    }
 
     // Log de atividade
     if ((contactData as any).createdById) {

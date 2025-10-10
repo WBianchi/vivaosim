@@ -43,6 +43,7 @@ import { useMessages } from '@/hooks/useMessages'
 import { cn } from '@/lib/utils'
 import { getAuthToken } from '@/lib/auth-token'
 import { resolveStatusDisplay } from '@/lib/chat-status'
+import { useCustomization } from '@/contexts/CustomizationProvider'
 import {
   MessageText,
   MessageImage,
@@ -90,6 +91,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const [chatScheduleCount, setChatScheduleCount] = useState(propScheduleCount || 0)
   const [kanbanInfo, setKanbanInfo] = useState<{ boardName: string, columnName: string, columnColor: string } | null>(null)
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null)
+  const { getChatClasses, getChatStyle } = useCustomization()
 
   // Usar hook de mensagens
   const {
@@ -642,32 +644,32 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
           {/* Ações do Header */}
           <div className="flex items-center gap-2">
-            {/* Botões de Navegação */}
-            <div className="flex items-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => window.location.href = '/dashboard'}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group"
-                title="Ir para Dashboard"
-              >
-                <LayoutDashboard className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-orange-500" />
-              </motion.button>
-
-              {kanbanInfo && (
+            {/* Botão Kanban */}
+            {kanbanInfo && (
+              <>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, translateY: -2 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => window.location.href = '/dashboard/kanban'}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group"
+                  className="relative p-2 rounded-xl transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                   title="Ir para Kanban"
                 >
-                  <Columns3 className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-500" />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-blue-50/50 dark:bg-blue-900/10">
+                    <Columns3 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                  </div>
+                  
+                  {/* Badge sempre visível - igual aos outros */}
+                  <span 
+                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 text-[10px] font-semibold text-white rounded-full flex items-center justify-center shadow-sm"
+                    style={{ backgroundColor: kanbanInfo.columnColor }}
+                  >
+                    {kanbanInfo.columnName.substring(0, 2)}
+                  </span>
                 </motion.button>
-              )}
-            </div>
 
-            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+              </>
+            )}
 
             <div className="flex items-center gap-2">
               {primaryActions.map((action) => renderIconButton(action))}
@@ -686,6 +688,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto py-4 space-y-1 min-h-0 bg-gray-50 dark:bg-gray-900"
+        style={getChatStyle()}
       >
         {messagesError ? (
           <div className="flex items-center justify-center h-full">

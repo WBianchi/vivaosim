@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils'
 import { useChats } from '@/hooks/useChats'
 import { getAuthToken } from '@/lib/auth-token'
 import { ATTENDANCE_STATUS_OPTIONS, resolveStatusDisplay, AttendanceStatusCode } from '@/lib/chat-status'
+import { useCustomization } from '@/contexts/CustomizationProvider'
 
 const STATUS_ICONS: Record<AttendanceStatusCode, React.ElementType> = {
   AGUARDANDO: Clock,
@@ -75,6 +76,7 @@ export const SideChat: React.FC<SideChatProps> = ({
   onMetaReplace,
   chatMeta
 }) => {
+  const { getSidebarClasses, getSidebarStyle } = useCustomization()
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'price' | 'priority'>('recent')
   const [actionState, setActionState] = useState<{chatId: string, action: 'transfer' | 'status' | 'favorite' | 'archive' | 'delete' | null}>({chatId: '', action: null})
@@ -704,7 +706,7 @@ export const SideChat: React.FC<SideChatProps> = ({
   }
 
   return (
-    <div className="w-[440px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
+    <div className="w-[440px] border-r border-gray-200 dark:border-gray-700 flex flex-col h-full bg-white dark:bg-gray-800" style={getSidebarStyle()}>
       {/* Header da Sidebar */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
