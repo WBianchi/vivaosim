@@ -568,15 +568,18 @@ const Footer = () => {
               }`}>Buscar</span>
             </Link>
             
-            <a 
-              href="#planos"
+            <button 
+              onClick={() => {
+                const planosSection = document.getElementById('planos')
+                planosSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
               className="flex flex-col items-center justify-center gap-1 -mt-8"
             >
               <div className="w-14 h-14 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
                 <Zap className="w-7 h-7 text-white" />
               </div>
               <span className="text-xs text-orange-500 font-semibold mt-1">Planos</span>
-            </a>
+            </button>
             
             <Link 
               href="/chat"
