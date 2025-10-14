@@ -170,14 +170,14 @@ const Header = () => {
       }}
     >
       <div className="transform skew-y-0.5">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between">
             
             {/* Logo */}
             <motion.div 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center space-x-3"
+              className="flex items-center space-x-2 md:space-x-3"
             >
               {logoConfig.logo ? (
                 <img 
@@ -191,12 +191,12 @@ const Header = () => {
                 />
               ) : (
                 <>
-                  <div className={`w-10 h-10 rounded-xl ${
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl ${
                     isDarkMode ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-orange-500 to-orange-600'
                   } flex items-center justify-center shadow-lg`}>
-                    <span className="text-white font-bold text-xl">V</span>
+                    <span className="text-white font-bold text-lg md:text-xl">V</span>
                   </div>
-                  <span className={`text-2xl font-bold ${
+                  <span className={`text-lg md:text-2xl font-bold ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
                     Viva o Sim
@@ -369,7 +369,7 @@ const Header = () => {
             </nav>
 
             {/* Right Side Actions */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1 md:space-x-3">
               
               {/* Phone */}
               <div className="hidden md:flex items-center space-x-2 text-sm">
@@ -521,7 +521,7 @@ const Header = () => {
               )}
 
               {/* CTA Button */}
-              <a href="#planos">
+              <a href="#planos" className="hidden md:block">
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(249, 115, 22, 0.4)" }}
                   whileTap={{ scale: 0.95 }}

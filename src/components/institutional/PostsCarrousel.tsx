@@ -48,7 +48,7 @@ const PostsCarrousel = () => {
       authorAvatar: '👩‍💼',
       date: '2024-01-15',
       readTime: '5 min',
-      image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop',
+      image: '/uploads/banners/1759613886538.jpg',
       views: 2847,
       likes: 156,
       comments: 23,
@@ -65,7 +65,7 @@ const PostsCarrousel = () => {
       authorAvatar: '👨‍💻',
       date: '2024-01-12',
       readTime: '8 min',
-      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
+      image: '/uploads/banners/1759614132388.jpg',
       views: 4521,
       likes: 298,
       comments: 45,
@@ -82,7 +82,7 @@ const PostsCarrousel = () => {
       authorAvatar: '👩‍🎨',
       date: '2024-01-10',
       readTime: '12 min',
-      image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&h=400&fit=crop',
+      image: '/uploads/banners/1759614156512.jpg',
       views: 3892,
       likes: 234,
       comments: 67,
@@ -99,7 +99,7 @@ const PostsCarrousel = () => {
       authorAvatar: '👨‍🔬',
       date: '2024-01-08',
       readTime: '6 min',
-      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=400&fit=crop',
+      image: '/uploads/banners/1759614292510.jpg',
       views: 1967,
       likes: 189,
       comments: 34,
@@ -116,7 +116,7 @@ const PostsCarrousel = () => {
       authorAvatar: '👩‍💼',
       date: '2024-01-05',
       readTime: '10 min',
-      image: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop',
+      image: '/uploads/banners/1759614894994.jpg',
       views: 5234,
       likes: 412,
       comments: 89,
@@ -133,7 +133,7 @@ const PostsCarrousel = () => {
       authorAvatar: '👨‍💼',
       date: '2024-01-03',
       readTime: '7 min',
-      image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=400&fit=crop',
+      image: '/uploads/banners/1759613886538.jpg',
       views: 2156,
       likes: 167,
       comments: 28,
@@ -147,8 +147,24 @@ const PostsCarrousel = () => {
     ? posts 
     : posts.filter(post => post.category === selectedCategory)
 
-  const visiblePosts = 3
+  const [visiblePosts, setVisiblePosts] = useState(3)
   const maxIndex = Math.max(0, filteredPosts.length - visiblePosts)
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setVisiblePosts(1)
+      } else if (window.innerWidth < 1024) {
+        setVisiblePosts(2)
+      } else {
+        setVisiblePosts(3)
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (!isAutoPlaying) return
@@ -307,7 +323,7 @@ const PostsCarrousel = () => {
         {/* Posts Carousel */}
         <div className="relative">
           {/* Navigation Buttons */}
-          <div className="absolute top-1/2 -translate-y-1/2 -left-6 z-20">
+          <div className="hidden md:block absolute top-1/2 -translate-y-1/2 -left-6 z-20">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -324,7 +340,7 @@ const PostsCarrousel = () => {
             </motion.button>
           </div>
 
-          <div className="absolute top-1/2 -translate-y-1/2 -right-6 z-20">
+          <div className="hidden md:block absolute top-1/2 -translate-y-1/2 -right-6 z-20">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -365,11 +381,11 @@ const PostsCarrousel = () => {
                     setHoveredPost(null)
                     setIsAutoPlaying(true)
                   }}
-                  className={`flex-shrink-0 px-4 ${
-                    visiblePosts === 3 ? 'w-1/3' : 'w-1/2'
+                  className={`flex-shrink-0 px-2 md:px-4 ${
+                    visiblePosts === 1 ? 'w-full' : visiblePosts === 2 ? 'w-1/2' : 'w-1/3'
                   }`}
                 >
-                  <div className={`group relative h-full rounded-3xl overflow-hidden ${
+                  <div className={`group relative h-full rounded-2xl md:rounded-3xl overflow-hidden ${
                     isDarkMode ? 'bg-slate-800' : 'bg-white'
                   } border ${
                     isDarkMode ? 'border-slate-700' : 'border-gray-200'
@@ -388,15 +404,17 @@ const PostsCarrousel = () => {
                     )}
 
                     {/* Image */}
-                    <div className="relative h-48 overflow-hidden">
+                    <div className="relative h-48 md:h-56 overflow-hidden">
                       <motion.div
                         whileHover={{ scale: 1.1 }}
                         transition={{ duration: 0.6 }}
-                        className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center"
+                        className="w-full h-full"
                       >
-                        <div className={`w-full h-full bg-gradient-to-br ${post.gradient} opacity-80 flex items-center justify-center`}>
-                          <Play className="w-12 h-12 text-white/80" />
-                        </div>
+                        <img 
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                        />
                       </motion.div>
                       
                       {/* Overlay gradient */}
@@ -438,7 +456,7 @@ const PostsCarrousel = () => {
                     </div>
 
                     {/* Content */}
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                       {/* Category & Date */}
                       <div className="flex items-center justify-between mb-4">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r ${post.gradient} text-white`}>
@@ -453,7 +471,7 @@ const PostsCarrousel = () => {
                       </div>
 
                       {/* Title */}
-                      <h3 className={`text-lg font-bold ${
+                      <h3 className={`text-base md:text-lg font-bold ${
                         isDarkMode ? 'text-white' : 'text-gray-900'
                       } mb-3 line-clamp-2 group-hover:text-blue-500 transition-colors`}>
                         {post.title}

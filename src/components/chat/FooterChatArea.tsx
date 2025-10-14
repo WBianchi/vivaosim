@@ -416,18 +416,6 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({
       case 'contact':
         setShowContactModal(true)
         return
-      case 'image':
-        setSelectedFile(null)
-        setShowImageModal(true)
-        return
-      case 'video':
-        setSelectedFile(null)
-        setShowVideoModal(true)
-        return
-      case 'document':
-        setSelectedFile(null)
-        setShowDocumentModal(true)
-        return
     }
     
     // Configurar input file baseado no tipo e abrir seletor
@@ -504,7 +492,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({
       console.log('✅ Upload concluído:', uploadResult.data)
 
       // 2. Enviar via WAHA
-      const { fileUrl, mediaType, fileName } = uploadResult.data
+      const { fileUrl, mediaType, fileName, mimeType } = uploadResult.data
 
       console.log('📤 Enviando via WAHA...')
       const sendResponse = await fetch('/api/messages/send', {
@@ -518,6 +506,7 @@ export const FooterChatArea: React.FC<FooterChatAreaProps> = ({
           type: mediaType,
           mediaUrl: fileUrl,
           fileName: fileName,
+          mimeType: mimeType || file.type,
           caption: caption
         })
       })

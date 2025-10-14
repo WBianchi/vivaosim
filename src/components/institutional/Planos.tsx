@@ -267,7 +267,7 @@ const Planos = () => {
                   transition: { duration: 0.3 }
                 }}
                 onClick={() => setSelectedPlan(plan.id)}
-                className={`relative group cursor-pointer p-8 rounded-3xl border-2 transition-all duration-500 overflow-hidden ${
+                className={`relative group cursor-pointer p-8 rounded-3xl border-2 transition-all duration-500 ${
                   isSelected || isPopular
                     ? `border-orange-500 ${isDarkMode ? 'bg-slate-800/80' : 'bg-white'} shadow-2xl shadow-orange-500/20`
                     : `${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-gray-200 bg-white/80'} hover:border-orange-300`
@@ -278,7 +278,7 @@ const Planos = () => {
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-bold rounded-full shadow-lg"
+                    className="absolute top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm font-bold rounded-full shadow-lg z-20"
                   >
                     MAIS POPULAR
                   </motion.div>
@@ -289,7 +289,7 @@ const Planos = () => {
                   isDarkMode ? colorScheme.darkBg : colorScheme.bg
                 } opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
                 
-                <div className="relative z-10">
+                <div className={`relative z-10 ${isPopular ? 'pt-8' : ''}`}>
                   {/* Plan Header */}
                   <div className="text-center mb-8">
                     <motion.div 

@@ -21,27 +21,16 @@ export default function Home() {
       <section id="beneficios">
         <Beneficios />
       </section>
-      <section id="demo">
-        <Demo />
-      </section>
-      <section id="vantagens">
-        <Vantagens />
-      </section>
-      <section id="avaliacoes">
-        <Avaliacoes />
-      </section>
-      <section id="numeros">
-        <Numeros />
-      </section>
+      
+    
+     
       <section id="planos">
         <Planos />
       </section>
       <section id="blog">
         <PostsCarrousel />
       </section>
-      <section id="sobre">
-        <Historias />
-      </section>
+      
       <Footer />
     </main>
   )

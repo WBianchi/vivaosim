@@ -73,7 +73,7 @@ const CtaHero = () => {
   }, [])
 
   return (
-    <section className={`relative py-20 lg:py-32 overflow-hidden ${
+    <section className={`relative py-12 md:py-20 lg:py-32 overflow-hidden ${
       isDarkMode ? 'bg-slate-900' : 'bg-gradient-to-br from-gray-50 via-white to-orange-50'
     }`}>
       
@@ -106,15 +106,15 @@ const CtaHero = () => {
         />
       </div>
 
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-20 items-center">
           
           {/* Left Side - CRM Animation */}
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative order-2 lg:order-1"
+            className="relative order-2 lg:order-1 hidden lg:block"
           >
             {/* Main CRM Dashboard */}
             <div className={`relative ${
@@ -306,14 +306,14 @@ const CtaHero = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            className="order-1 lg:order-2"
+            className="order-1 lg:order-2 text-center lg:text-left"
           >
             {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-200/50 backdrop-blur-sm mb-6"
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-200/50 backdrop-blur-sm mb-6 mt-20 md:mt-0 mx-auto lg:mx-0"
             >
               <Sparkles className="w-4 h-4 text-orange-500" />
               <span className={`text-sm font-medium ${
@@ -328,9 +328,9 @@ const CtaHero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className={`text-4xl lg:text-6xl font-bold ${
+              className={`text-3xl md:text-4xl lg:text-6xl font-bold ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
-              } mb-6 leading-tight`}
+              } mb-4 md:mb-6 leading-tight`}
             >
               Transforme seus{' '}
               <span className="bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
@@ -347,9 +347,9 @@ const CtaHero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className={`text-xl ${
+              className={`text-base md:text-xl ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              } mb-8 leading-relaxed max-w-lg`}
+              } mb-6 md:mb-8 leading-relaxed max-w-lg mx-auto lg:mx-0`}
             >
               A plataforma completa que conecta todos os aspectos do seu negócio de eventos. 
               Gerencie leads, organize projetos e maximize seus resultados com inteligência artificial.
@@ -360,27 +360,35 @@ const CtaHero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="flex flex-col sm:flex-row gap-4"
+              className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center lg:justify-start"
             >
               <motion.button
                 whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(249, 115, 22, 0.4)" }}
                 whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 shadow-lg hover:from-orange-600 hover:to-orange-700 transition-all"
+                onClick={() => {
+                  const planosSection = document.getElementById('planos')
+                  planosSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold flex items-center justify-center space-x-2 shadow-lg hover:from-orange-600 hover:to-orange-700 transition-all cursor-pointer text-sm md:text-base"
               >
                 <span>Começar gratuitamente</span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </motion.button>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`px-8 py-4 ${
+                onClick={() => {
+                  const planosSection = document.getElementById('planos')
+                  planosSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                className={`px-6 md:px-8 py-3 md:py-4 ${
                   isDarkMode 
                     ? 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700' 
                     : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
-                } border rounded-xl font-semibold flex items-center justify-center space-x-2 shadow-lg transition-all backdrop-blur-sm`}
+                } border rounded-xl font-semibold flex items-center justify-center space-x-2 shadow-lg transition-all backdrop-blur-sm cursor-pointer text-sm md:text-base`}
               >
-                <Play className="w-5 h-5" />
+                <Play className="w-4 h-4 md:w-5 md:h-5" />
                 <span>Ver demonstração</span>
               </motion.button>
             </motion.div>
@@ -390,7 +398,7 @@ const CtaHero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              className="flex items-center space-x-6 mt-8 pt-8 border-t border-gray-200/50"
+              className="flex flex-col md:flex-row items-center md:items-center justify-center lg:justify-start gap-4 md:space-x-6 mt-6 md:mt-8 pt-6 md:pt-8 border-t border-gray-200/50"
             >
               <div className="flex items-center space-x-2">
                 <div className="flex -space-x-2">

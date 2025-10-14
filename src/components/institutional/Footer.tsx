@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { 
@@ -27,13 +27,37 @@ import {
   Zap,
   DollarSign,
   BarChart3,
-  FileText
+  FileText,
+  Home,
+  Search,
+  MessageCircle,
+  Bell,
+  User
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 
 const Footer = () => {
   const [email, setEmail] = useState('')
   const { isDarkMode } = useTheme()
+
+  // Add padding to body on mobile to prevent content being hidden behind fixed footer
+  useEffect(() => {
+    const addBodyPadding = () => {
+      if (window.innerWidth < 768) {
+        document.body.style.paddingBottom = '80px'
+      } else {
+        document.body.style.paddingBottom = '0px'
+      }
+    }
+
+    addBodyPadding()
+    window.addEventListener('resize', addBodyPadding)
+    
+    return () => {
+      document.body.style.paddingBottom = '0px'
+      window.removeEventListener('resize', addBodyPadding)
+    }
+  }, [])
 
   const solucoesLinks = [
     { name: 'Vendas', href: '/solucoes/vendas', icon: TrendingUp },
@@ -43,7 +67,8 @@ const Footer = () => {
     { name: 'Marketing', href: '/solucoes/marketing', icon: Megaphone },
     { name: 'Automação', href: '/solucoes/automacao', icon: Zap },
     { name: 'Finanças', href: '/solucoes/financas', icon: DollarSign },
-    { name: 'Análises', href: '/solucoes/analises', icon: BarChart3 }
+    { name: 'Análises', href: '/solucoes/analises', icon: BarChart3 },
+    { name: 'Fiscal e Jurídico', href: '/solucoes/fiscal', icon: FileText }
   ]
 
   const segmentosLinks = [
@@ -268,7 +293,7 @@ const Footer = () => {
                         } transition-colors group`}
                       >
                         <IconComponent className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                        <span>{item.name}</span>
+                        <span className="text-sm">{item.name}</span>
                       </Link>
                     </li>
                   )
@@ -284,19 +309,27 @@ const Footer = () => {
                 Segmentos
               </h3>
               <ul className="space-y-3">
-                {segmentosLinks.slice(0, 8).map((item) => (
-                  <li key={item}>
-                    <Link 
-                      href={`/segmentos/${item.toLowerCase().replace(/\s+/g, '-')}`}
-                      className={`flex items-center space-x-2 ${
-                        isDarkMode ? 'text-gray-300 hover:text-orange-400' : 'text-gray-600 hover:text-orange-500'
-                      } transition-colors group`}
-                    >
-                      <div className="w-2 h-2 rounded-full bg-orange-500 group-hover:scale-125 transition-transform" />
-                      <span>{item}</span>
-                    </Link>
-                  </li>
-                ))}
+                {segmentosLinks.map((item) => {
+                  const slug = item
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\s+/g, '-')
+                  
+                  return (
+                    <li key={item}>
+                      <Link 
+                        href={`/segmentos/${slug}`}
+                        className={`flex items-center space-x-2 ${
+                          isDarkMode ? 'text-gray-300 hover:text-orange-400' : 'text-gray-600 hover:text-orange-500'
+                        } transition-colors group`}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-orange-500 group-hover:scale-125 transition-transform" />
+                        <span className="text-sm">{item}</span>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
 
@@ -501,6 +534,74 @@ const Footer = () => {
               <span>Voltar ao topo</span>
               <ArrowRight className="w-4 h-4 rotate-[-90deg]" />
             </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation - Fixed */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        <div className={`${
+          isDarkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-200'
+        } backdrop-blur-xl border-t shadow-2xl`}>
+          <div className="grid grid-cols-5 h-16">
+            <Link 
+              href="/"
+              className="flex flex-col items-center justify-center gap-1 group"
+            >
+              <Home className={`w-6 h-6 ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              } transition-colors`} />
+              <span className={`text-xs ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              }`}>Início</span>
+            </Link>
+            
+            <Link 
+              href="/ajuda"
+              className="flex flex-col items-center justify-center gap-1 group"
+            >
+              <Search className={`w-6 h-6 ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              } transition-colors`} />
+              <span className={`text-xs ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              }`}>Buscar</span>
+            </Link>
+            
+            <a 
+              href="#planos"
+              className="flex flex-col items-center justify-center gap-1 -mt-8"
+            >
+              <div className="w-14 h-14 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-xs text-orange-500 font-semibold mt-1">Planos</span>
+            </a>
+            
+            <Link 
+              href="/chat"
+              className="flex flex-col items-center justify-center gap-1 group relative"
+            >
+              <MessageCircle className={`w-6 h-6 ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              } transition-colors`} />
+              <span className={`text-xs ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              }`}>Suporte</span>
+              <span className="absolute top-0 right-6 w-2 h-2 bg-red-500 rounded-full"></span>
+            </Link>
+            
+            <Link 
+              href="/login"
+              className="flex flex-col items-center justify-center gap-1 group"
+            >
+              <User className={`w-6 h-6 ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              } transition-colors`} />
+              <span className={`text-xs ${
+                isDarkMode ? 'text-gray-400 group-hover:text-orange-400' : 'text-gray-600 group-hover:text-orange-500'
+              }`}>Conta</span>
+            </Link>
           </div>
         </div>
       </div>

@@ -62,16 +62,24 @@ export const SendImageModal: React.FC<SendImageModalProps> = ({
   const openGallery = () => galleryInputRef.current?.click()
   const openCamera = () => cameraInputRef.current?.click()
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!localFile) {
       alert('Selecione uma imagem para enviar.')
       return
     }
 
-    onSend(localFile, caption)
-    setCaption('')
-    updateFile(null)
-    onClose()
+    console.log('📤 SendImageModal: Iniciando envio da imagem:', localFile.name)
+    
+    try {
+      await onSend(localFile, caption)
+      console.log('✅ SendImageModal: Imagem enviada com sucesso')
+      setCaption('')
+      updateFile(null)
+      onClose()
+    } catch (error) {
+      console.error('❌ SendImageModal: Erro ao enviar imagem:', error)
+      alert('Erro ao enviar imagem. Tente novamente.')
+    }
   }
 
   const handleClose = () => {

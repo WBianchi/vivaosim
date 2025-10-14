@@ -196,11 +196,32 @@ async function handleMessage(webhook: WAHAWebhookPayload) {
       const chatId = messageData.from
       
       console.log(`🔍 [WEBHOOK] Verificando agente para chat: ${chatId}`)
+      console.log(`🔍 [WEBHOOK] Tipo do chatId:`, typeof chatId, `Valor:`, chatId)
+      
+      // Buscar TODOS os agentes ativos para debug
+      const allAgents = await prisma.agent.findMany({
+        where: { 
+          status: 'ACTIVE',
+          chatId: { not: null }
+        },
+        select: {
+          id: true,
+          name: true,
+          chatId: true,
+          status: true
+        }
+      })
+      
+      console.log(`📋 [WEBHOOK] Total de agentes ativos com chatId:`, allAgents.length)
+      allAgents.forEach(a => {
+        console.log(`  - ${a.name}: chatId="${a.chatId}" (match: ${a.chatId === chatId})`)
+      })
       
       // Verificar se o chat tem um agente IA ativo
       const agent = await prisma.agent.findFirst({
         where: { 
-          chatId: chatId
+          chatId: chatId,
+          status: 'ACTIVE'
         }
       })
 

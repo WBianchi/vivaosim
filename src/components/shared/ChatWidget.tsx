@@ -120,7 +120,7 @@ const ChatWidget = () => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full shadow-2xl flex items-center justify-center text-white hover:shadow-orange-500/25 transition-all duration-300"
+            className="fixed bottom-24 md:bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full shadow-2xl flex items-center justify-center text-white hover:shadow-orange-500/25 transition-all duration-300"
             style={{
               boxShadow: '0 8px 32px rgba(249, 115, 22, 0.4), 0 0 0 0 rgba(249, 115, 22, 0.7)',
               animation: 'pulse 2s infinite'
@@ -146,7 +146,7 @@ const ChatWidget = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-3rem)]"
+            className="fixed bottom-24 md:bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-3rem)]"
           >
             <div className={`rounded-2xl overflow-hidden ${
               isDarkMode ? 'bg-slate-800' : 'bg-white'

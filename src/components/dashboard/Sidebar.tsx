@@ -922,25 +922,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onExpandChange, isMobile = fal
           </AnimatePresence>
         </motion.div>
       </div>
-
-      {/* Expand/Collapse indicator */}
-      <motion.div
-        className={cn(
-          'absolute -right-3 top-6 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer',
-          'border shadow-lg transition-all duration-300',
-          isDarkMode
-            ? 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700'
-            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-        )}
-        animate={{ 
-          rotate: isExpanded ? 180 : 0,
-          scale: isExpanded ? 1.1 : 1
-        }}
-        whileHover={{ scale: 1.2 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <ChevronRight className="w-3 h-3" />
-      </motion.div>
     </motion.div>
   )
 }

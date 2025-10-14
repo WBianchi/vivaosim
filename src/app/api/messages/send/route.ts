@@ -10,6 +10,7 @@ interface SendMessageRequest {
   type?: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contact' | 'poll' | 'list' | 'event'
   mediaUrl?: string
   fileName?: string
+  mimeType?: string
   caption?: string
   latitude?: number
   longitude?: number
@@ -23,7 +24,7 @@ interface SendMessageRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: SendMessageRequest = await request.json()
-    const { chatId, sessionId, message, type = 'text', mediaUrl, fileName, caption, latitude, longitude, contactName, contactPhone, pollData, listData, eventData } = body
+    const { chatId, sessionId, message, type = 'text', mediaUrl, fileName, mimeType, caption, latitude, longitude, contactName, contactPhone, pollData, listData, eventData } = body
 
     if (!chatId || !message) {
       return NextResponse.json(
@@ -122,7 +123,11 @@ export async function POST(request: NextRequest) {
         payload = {
           session: finalSessionId,
           chatId,
-          file: { url: mediaUrl, filename: fileName },
+          file: { 
+            url: mediaUrl, 
+            filename: fileName,
+            mimetype: mimeType || 'image/jpeg'
+          },
           caption: caption || ''
         }
         break
@@ -131,7 +136,11 @@ export async function POST(request: NextRequest) {
         payload = {
           session: finalSessionId,
           chatId,
-          file: { url: mediaUrl, filename: fileName },
+          file: { 
+            url: mediaUrl, 
+            filename: fileName,
+            mimetype: mimeType || 'video/mp4'
+          },
           caption: caption || ''
         }
         break
@@ -140,7 +149,11 @@ export async function POST(request: NextRequest) {
         payload = {
           session: finalSessionId,
           chatId,
-          file: { url: mediaUrl, filename: fileName }
+          file: { 
+            url: mediaUrl, 
+            filename: fileName,
+            mimetype: mimeType || 'audio/ogg'
+          }
         }
         break
       case 'document':
@@ -148,7 +161,11 @@ export async function POST(request: NextRequest) {
         payload = {
           session: finalSessionId,
           chatId,
-          file: { url: mediaUrl, filename: fileName },
+          file: { 
+            url: mediaUrl, 
+            filename: fileName,
+            mimetype: mimeType || 'application/pdf'
+          },
           caption: caption || ''
         }
         break
